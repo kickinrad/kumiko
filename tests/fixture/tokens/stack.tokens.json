@@ -1,0 +1,2 @@
+{ "space": { "md": { "$value": { "value": 12, "unit": "px" } } },
+  "color": { "primary": { "$value": "#ffffff" } } }

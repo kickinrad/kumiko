@@ -1,0 +1,24 @@
+@font-face { font-family: Test; }
+@layer tokens {
+  :root {
+    --palette-ink: #121417;
+    --semantic-text: #121417;
+    --color-ink: #121417;
+    --color-primary: #121417;
+    --space-md: 16px;
+    --space-fluid: clamp(1rem, 2vw, 2rem);
+    --typography-body: 600 16px/1.5 Inter, sans-serif;
+    --typography-body-letter-spacing: 0.2px;
+    --radius-sm: 4px;
+    --motion-duration: 250ms;
+    --motion-ease: cubic-bezier(0.2, 0, 0.8, 1);
+    --shadow-card: 0px 2px 8px 0px #000000;
+  }
+
+  @media (max-width: 850px) {
+    :root {
+      --color-primary: #ffffff;
+      --space-md: 12px;
+    }
+  }
+}

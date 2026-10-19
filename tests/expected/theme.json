@@ -1,0 +1,39 @@
+{
+  "version": 4,
+  "settings": {
+    "custom": {
+      "incumbent": "keep",
+      "designTokens": {
+        "palette": {
+          "ink": "#121417"
+        },
+        "semantic": {
+          "text": "#121417"
+        },
+        "color": {
+          "ink": "#121417",
+          "primary": "#121417"
+        },
+        "space": {
+          "md": "16px",
+          "fluid": "clamp(1rem, 2vw, 2rem)"
+        },
+        "typography": {
+          "body": "600 16px/1.5 Inter, sans-serif",
+          "bodyLetterSpacing": "0.2px"
+        },
+        "radius": {
+          "sm": "4px"
+        },
+        "motion": {
+          "duration": "250ms",
+          "ease": "cubic-bezier(0.2, 0, 0.8, 1)"
+        },
+        "shadow": {
+          "card": "0px 2px 8px 0px #000000"
+        }
+      }
+    }
+  },
+  "$schema": "https://schemas.wp.org/trunk/theme.json"
+}

@@ -1,0 +1,15 @@
+{
+  "palette": {
+    "$type": "color",
+    "ink": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [0.07, 0.08, 0.09],
+        "hex": "#121416"
+      }
+    }
+  },
+  "semantic": {
+    "text": { "$value": "{palette.ink}" }
+  }
+}

@@ -1,0 +1,3 @@
+# House rule: track latest, no SHA pins; Renovate keeps major refs current.
+rules:
+  unpinned-uses: off

@@ -1,0 +1,14 @@
+[tools]
+bun = "latest"
+
+[tasks.setup]
+run = "bun install"
+
+[tasks.check]
+run = "bun build bin/tokens.mjs --target=bun --outdir=dist/check >/dev/null"
+
+[tasks.test]
+run = "bun test"
+
+[tasks.build]
+run = "bun build --compile --target=bun-linux-x64 bin/tokens.mjs --outfile dist/tokens-linux-x64"

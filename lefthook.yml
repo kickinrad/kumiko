@@ -1,0 +1,6 @@
+pre-commit:
+  jobs:
+    - run: mise run check
+pre-push:
+  jobs:
+    - run: mise run test
