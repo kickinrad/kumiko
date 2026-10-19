@@ -1,8 +1,6 @@
 @font-face { font-family: Test; }
 @layer tokens {
   :root {
-    --palette-ink: #121417;
-    --semantic-text: #121417;
     --color-ink: #121417;
     --color-primary: #121417;
     --space-md: 16px;
@@ -13,6 +11,8 @@
     --motion-duration: 250ms;
     --motion-ease: cubic-bezier(0.2, 0, 0.8, 1);
     --shadow-card: 0px 2px 8px 0px #000000;
+    --palette-ink: #121417;
+    --semantic-text: #121417;
   }
 
   @media (max-width: 850px) {

@@ -1,6 +1,6 @@
 // Golden outputs were frozen from the design-system 2.1.0 template; any byte change fails.
 import { expect, test } from "bun:test";
-import { appendFileSync, cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -40,6 +40,21 @@ test("a project target is one file named in tokens.config.mjs", () => {
   rmSync(join(dir, "tokens/stack.tokens.json"));
   expect(run(dir).exitCode).toBe(0);
   expect(Number(read(dir, "local.txt"))).toBeGreaterThan(0);
+});
+
+test("token files build in sorted order, whatever order the filesystem lists them", () => {
+  const dir = mkdtempSync(join(tmpdir(), "tokens-order-"));
+  mkdirSync(join(dir, "tokens"));
+  // Scrambled creation order: directory listing order differs from sorted order on common filesystems.
+  const names = ["web", "foundation", "m", "c", "x", "b", "q", "a"];
+  for (const name of names) {
+    writeFileSync(join(dir, `tokens/${name}.tokens.json`), JSON.stringify({ [`t${name}`]: { gap: { $type: "dimension", $value: { value: 1, unit: "px" } } } }));
+  }
+  writeFileSync(join(dir, "tokens.config.mjs"), 'export default { targets: ["css"] };\n');
+  expect(run(dir).exitCode).toBe(0);
+  const css = read(dir, "src/styles/tokens.css");
+  const order = [...css.matchAll(/--t([a-z]+)-gap/g)].map((m) => m[1]);
+  expect(order).toEqual([...names].sort());
 });
 
 test("an unknown target fails loudly", () => {

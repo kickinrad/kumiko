@@ -4,12 +4,6 @@
     "custom": {
       "incumbent": "keep",
       "designTokens": {
-        "palette": {
-          "ink": "#121417"
-        },
-        "semantic": {
-          "text": "#121417"
-        },
         "color": {
           "ink": "#121417",
           "primary": "#121417"
@@ -31,6 +25,12 @@
         },
         "shadow": {
           "card": "0px 2px 8px 0px #000000"
+        },
+        "palette": {
+          "ink": "#121417"
+        },
+        "semantic": {
+          "text": "#121417"
         }
       }
     }

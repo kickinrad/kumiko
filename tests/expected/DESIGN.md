@@ -1,10 +1,10 @@
 ---
 name: Existing
 colors:
-  palette-ink: "#121417"
-  semantic-text: "#121417"
   ink: "#121417"
   primary: "#121417"
+  palette-ink: "#121417"
+  semantic-text: "#121417"
 typography:
   body:
     fontFamily: Inter, sans-serif
