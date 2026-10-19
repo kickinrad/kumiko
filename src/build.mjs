@@ -136,8 +136,10 @@ export const build = async (config = {}, { check = false } = {}) => {
 
   const media = config.media ?? {};
   const mediaPaths = new Set(Object.values(media).flat().map((file) => resolve(file)));
+  // Sorted: directory listing order varies by filesystem and runtime, and output order must not.
   const baseFiles = (await readdir("tokens"))
     .filter((file) => file.endsWith(".tokens.json"))
+    .sort()
     .map((file) => `tokens/${file}`)
     .filter((file) => !mediaPaths.has(resolve(file)));
   const dictionary = makeDictionary(baseFiles);
