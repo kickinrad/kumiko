@@ -1,1 +1,9 @@
-{ "packages": { ".": { "release-type": "node", "package-name": "@kickinrad/tokens" } } }
+{
+  "packages": {
+    ".": {
+      "release-type": "node",
+      "package-name": "@kickinrad/tokens",
+      "include-component-in-tag": false
+    }
+  }
+}
