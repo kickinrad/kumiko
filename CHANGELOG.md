@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/kickinrad/tokens/compare/v1.1.0...v1.2.0) (2026-10-28)
+
+
+### Features
+
+* include option for a silent base token layer ([#5](https://github.com/kickinrad/tokens/issues/5)) ([d9edb5d](https://github.com/kickinrad/tokens/commit/d9edb5de9673f5a62f031bd4fd31b5c6d5673428))
+
 ## [1.1.0](https://github.com/kickinrad/tokens/compare/tokens-v1.0.0...tokens-v1.1.0) (2026-10-19)
 
 
