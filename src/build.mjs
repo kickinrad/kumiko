@@ -142,7 +142,9 @@ export const build = async (config = {}, { check = false } = {}) => {
     .sort()
     .map((file) => `tokens/${file}`)
     .filter((file) => !mediaPaths.has(resolve(file)));
-  const dictionary = makeDictionary(baseFiles);
+  // Include files (globs) are a silent base layer under the project's own tokens, which override them.
+  const include = config.include ?? [];
+  const dictionary = makeDictionary(baseFiles, include);
   const raw = await dictionary.getPlatformTokens("raw");
   const rawTokens = new Map(raw.allTokens.map((token) => [token.path.join("."), token]));
   for (const token of raw.allTokens) {
@@ -176,7 +178,8 @@ export const build = async (config = {}, { check = false } = {}) => {
     for (const path of overridePaths) {
       if (!rawTokens.has(path)) throw new Error(`Media token ${path} does not override a base token`);
     }
-    const mediaDictionary = makeDictionary(files, baseFiles);
+    // Order matters: among include files the later wins, so the project's base files beat the include layer.
+    const mediaDictionary = makeDictionary(files, [...include, ...baseFiles]);
     const mediaRaw = await mediaDictionary.getPlatformTokens("raw");
     const mediaRawTokens = new Map(mediaRaw.allTokens.map((token) => [token.path.join("."), token]));
     const mediaResolved = await mediaDictionary.getPlatformTokens("css");

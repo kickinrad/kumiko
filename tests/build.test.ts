@@ -64,3 +64,29 @@ test("an unknown target fails loudly", () => {
   expect(result.exitCode).toBe(1);
   expect(result.stderr.toString()).toContain("Unknown token target nope");
 });
+
+test("include files are a silent base: project tokens override them, in the base and in media", () => {
+  const dir = mkdtempSync(join(tmpdir(), "tokens-include-"));
+  mkdirSync(join(dir, "tokens"));
+  mkdirSync(join(dir, "vendor"));
+  const dim = (value: number) => ({ $type: "dimension", $value: { value, unit: "px" } });
+  // Base layer: a and b; the project overrides a and adds c; media overrides c only.
+  writeFileSync(join(dir, "vendor/base.tokens.json"), JSON.stringify({ t: { a: dim(1), b: dim(2) } }));
+  writeFileSync(join(dir, "tokens/project.tokens.json"), JSON.stringify({ t: { a: dim(10), c: dim(3) } }));
+  writeFileSync(join(dir, "tokens/narrow.tokens.json"), JSON.stringify({ t: { c: dim(30) } }));
+  writeFileSync(join(dir, "tokens.config.mjs"), `export default {
+    targets: ["css"], include: ["vendor/*.tokens.json"],
+    media: { "(max-width: 600px)": ["tokens/narrow.tokens.json"] },
+  };\n`);
+  const result = run(dir);
+  expect(result.stderr.toString()).toBe("");
+  expect(result.exitCode).toBe(0);
+  const css = read(dir, "src/styles/tokens.css");
+  const [base, narrow] = css.split("@media");
+  expect(base).toContain("--t-a: 10px;");
+  expect(base).toContain("--t-b: 2px;");
+  expect(base).toContain("--t-c: 3px;");
+  // Inside media, project values still beat the include layer.
+  expect(narrow).toContain("--t-c: 30px;");
+  expect(narrow).not.toContain("--t-a: 1px;");
+});
