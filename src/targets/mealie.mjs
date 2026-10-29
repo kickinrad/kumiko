@@ -13,7 +13,7 @@
 // which the env file cannot. The env file stays the fallback for clients that bypass the proxy.
 //
 // Options: out (path prefix: <out>.env and <out>.css), title, modes (the two mode names, base first),
-// generatedBy, and palette: the kit's palette colours Mealie's slots take.
+// and palette: the kit's palette colours Mealie's slots take.
 //   palette.slots    { primary, accent, secondary, success, info, warning, error }: the env file's fills
 //   palette.overlay  the same seven keys: the overlay's fills
 //   palette.layers   five colours, darkest first: background, surface, base, raised, border
@@ -115,7 +115,7 @@ const VARIATIONS = 3;
 
 const envFile = (c, palette) => {
   const lines = [
-    `# ${c.title} for Mealie. Generated from ${c.generatedBy}`,
+    `# ${c.title} for Mealie.`,
     `# Light mode = ${c.modes.light}, dark mode = ${c.modes.dark}. Mealie reads these at startup; recreate the container after changes.`,
     '# Comments give the palette token and the contrast of the text Vuetify places on the fill.',
   ];
@@ -139,7 +139,7 @@ const cssFile = (c, palette) => {
   const surfaces = { background: darkest, surface: bar, 'surface-bright': raised, 'surface-light': raised, 'surface-variant': raised };
   const backgroundVariations = { lighten: [bar, base, raised], darken: [darkest, darkest, darkest] };
   const lines = [
-    `/* ${c.title} for Mealie: full-look overlay. Generated from ${c.generatedBy} */`,
+    `/* ${c.title} for Mealie: full-look overlay. */`,
     `/* Served by a reverse proxy that injects <link rel="stylesheet" href="/${basename(c.out)}.css"> into the Mealie index.html. */`,
   ];
   for (const variant of ['light', 'dark']) {
@@ -226,7 +226,6 @@ export default {
     }
     const c = {
       out, title: options.title ?? name, modes: { dark, light }, palette: given,
-      generatedBy: options.generatedBy ?? "the kit's palette by the mealie output; edit the kit, not this.",
     };
     return [
       { path: `${out}.env`, content: envFile(c, palette) },

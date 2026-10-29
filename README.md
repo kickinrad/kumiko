@@ -108,9 +108,9 @@ Four more built-in outputs for a declared kit (they read `ctx.name` and `VERSION
 
 | Output | Writes | Options (required first) |
 | --- | --- | --- |
-| `tailwind` | one Tailwind v4 `@theme inline` file mapping its namespaces onto the kit's runtime CSS variables | `path`, `css` (the runtime CSS file, named in the header); `title`, `generatedBy` |
-| `compose-tv` | `Color.kt`, `Type.kt`, `Shape.kt`, `Tokens.kt`, `Motion.kt` for androidx.tv.material3 | `out` (directory), `package`; `title`, `short`, `generatedBy`, `ownColours`, `fontNote` (two comment lines) |
-| `obsidian` | a snippet per mode for the Minimal theme: `<out>-<mode>.css` | `out`, `modes` (the two mode names, base first); `title`, `tagline`, `generatedBy`, `license`, `font` |
-| `mealie` | `<out>.env` (Mealie's colour slots) and `<out>.css` (a full-look overlay) | `out`, `modes`, `palette`; `title`, `generatedBy` |
+| `tailwind` | one Tailwind v4 `@theme inline` file mapping its namespaces onto the kit's runtime CSS variables | `path`, `css` (the runtime CSS file, named in the header); `title` |
+| `compose-tv` | `Color.kt`, `Type.kt`, `Shape.kt`, `Tokens.kt`, `Motion.kt` for androidx.tv.material3 | `out` (directory), `package`; `title` |
+| `obsidian` | a snippet per mode for the Minimal theme: `<out>-<mode>.css` | `out`, `modes` (the two mode names, base first); `title`, `font` |
+| `mealie` | `<out>.env` (Mealie's colour slots) and `<out>.css` (a full-look overlay) | `out`, `modes`, `palette`; `title` |
 
 `mealie`'s `palette` names the kit's palette colours (`<name>.palette.*`): `slots` and `overlay` map Mealie's seven slots (`primary`, `accent`, `secondary`, `success`, `info`, `warning`, `error`) to a colour each, `layers` lists five colours darkest first (background, surface, base, raised, border), and `text`, `muted` and `stars` name three more. `compose-tv` needs the kit's `<name>.layout.card-gap`, `.card-inset` and `<name>.tv.safe-margin`, Material's focus-indicator thickness, and uses any `<name>.domain.*` colours. `obsidian` needs the kit's `on-surface-muted`, `comment`, `yellow`, `orange`, `cyan` and `green` roles (under `<name>.color`).
