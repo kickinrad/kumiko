@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.0](https://github.com/kickinrad/tokens/compare/v1.8.0...v1.9.0) (2026-10-29)
+
+
+### Features
+
+* a material-you output writes the Material You theme file for Home Assistant ([#33](https://github.com/kickinrad/tokens/issues/33)) ([75f7226](https://github.com/kickinrad/tokens/commit/75f72265774f916be3dda621af355db90fd029f9))
+* the web outputs are built in: css pins modes and carries springs, and beer ([#29](https://github.com/kickinrad/tokens/issues/29)) ([a0641af](https://github.com/kickinrad/tokens/commit/a0641afb5af93efdefcf47534a19374c738f192f))
+
 ## [1.8.0](https://github.com/kickinrad/tokens/compare/v1.7.0...v1.8.0) (2026-10-29)
 
 
