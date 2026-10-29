@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0](https://github.com/kickinrad/tokens/compare/v1.7.0...v1.8.0) (2026-10-29)
+
+
+### Features
+
+* tailwind, compose-tv, obsidian and mealie are built in ([#31](https://github.com/kickinrad/tokens/issues/31)) ([d2006db](https://github.com/kickinrad/tokens/commit/d2006db2988c37077b9823ed6829bac15ae89bc5))
+
 ## [1.7.0](https://github.com/kickinrad/tokens/compare/v1.6.0...v1.7.0) (2026-10-29)
 
 
