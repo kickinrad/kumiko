@@ -1,6 +1,6 @@
 // Outputs declare coverage and consumers; with a kit, the build enforces it and the check reports consumers.
 import { expect, test } from "bun:test";
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -12,11 +12,13 @@ const coverage = 'coverage: { native: "the platform", emits: [{ what: "a file", 
 const target = (name: string, withCoverage: boolean) =>
   `export default { name: "${name}", ${withCoverage ? `${coverage}, ` : ""}build: async () => [{ path: "${name}.txt", content: "x\\n" }] };\n`;
 
-// A kit project: builds only the given project targets over the fixture's tokens.
+// A kit project: builds only the given project targets over one small token file that passes the DTCG schema,
+// since a kit's --check also validates its tokens.
+const validTokens = { size: { $type: "dimension", gap: { $value: { value: 8, unit: "px" } } } };
 const kitProject = (targets: Record<string, boolean>, kitExtra = "") => {
   const dir = mkdtempSync(join(tmpdir(), "tokens-coverage-"));
-  cpSync(join(root, "tests/fixture"), dir, { recursive: true });
-  rmSync(join(dir, "tokens/stack.tokens.json"));
+  mkdirSync(join(dir, "tokens"));
+  writeFileSync(join(dir, "tokens/kit.tokens.json"), JSON.stringify(validTokens));
   for (const [name, withCoverage] of Object.entries(targets)) writeFileSync(join(dir, `${name}.mjs`), target(name, withCoverage));
   const specs = Object.keys(targets).map((name) => `"./${name}.mjs"`).join(", ");
   writeFileSync(join(dir, "tokens.config.mjs"),
