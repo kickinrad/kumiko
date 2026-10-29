@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.6.0](https://github.com/kickinrad/tokens/compare/v1.5.0...v1.6.0) (2026-10-29)
+
+
+### Features
+
+* a kit's tokens are no longer schema-checked ([#24](https://github.com/kickinrad/tokens/issues/24)) ([29cc0b9](https://github.com/kickinrad/tokens/commit/29cc0b9b4424ced02603993f715b2d7e681c5909))
+* theme.toml fits a real kit: partial roles, another mode's colour, Material faces ([#25](https://github.com/kickinrad/tokens/issues/25)) ([8c2b9b1](https://github.com/kickinrad/tokens/commit/8c2b9b160ec40d2cdea11153fd9f8dd43682f188))
+
 ## [1.5.0](https://github.com/kickinrad/tokens/compare/v1.4.0...v1.5.0) (2026-10-29)
 
 
