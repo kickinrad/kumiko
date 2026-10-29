@@ -5,6 +5,7 @@ import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import StyleDictionary from "style-dictionary";
+import { checkSchema } from "./checks/schema.mjs";
 import builtins from "./targets/index.mjs";
 
 export const DEFAULT_TARGETS = ["css", "theme-json", "design-md"];
@@ -159,6 +160,7 @@ export const build = async (config = {}, { check = false } = {}) => {
     .filter((file) => !mediaPaths.has(resolve(file)));
   // Include files (globs) are a silent base layer under the project's own tokens, which override them.
   const include = config.include ?? [];
+  if (check && config.kit) await checkSchema({ files: [...baseFiles, ...mediaPaths], include });
   const dictionary = makeDictionary(baseFiles, include);
   const raw = await dictionary.getPlatformTokens("raw");
   const rawTokens = new Map(raw.allTokens.map((token) => [token.path.join("."), token]));
