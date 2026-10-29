@@ -5,7 +5,7 @@
 import { contrast } from "../color.mjs";
 import cards from "./cards.js";
 import components from "./components.js";
-import foundations from "./foundations.js";
+import foundations, { fontLinks, replay } from "./foundations.js";
 import pages from "./pages.js";
 
 export const esc = (text) => String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -45,7 +45,7 @@ export const markdown = (text) => {
 
 // Which of the stylesheet's two colour schemes (data-theme) a mode is: by its surface, nearer black or white.
 export const scheme = (tokens) => {
-  const { value } = tokens.find((token) => token.path === `${COLOR}surface`);
+  const { value } = tokens.find((token) => token.path === "md.sys.color.surface");
   return contrast(value, "#000000") > contrast(value, "#ffffff") ? "light" : "dark";
 };
 
@@ -83,12 +83,17 @@ const boot = async () => {
   const root = document.documentElement;
   let mode = modes.find((each) => schemes[each] === getComputedStyle(root).colorScheme) ?? modes[0];
   document.title = `${data.name} playground`;
+  // The kit's faces, one stylesheet each, so a family Google Fonts lacks fails alone.
+  for (const href of new Set(modes.flatMap((each) => fontLinks(data.modes[each])))) document.head.append(Object.assign(document.createElement("link"), { rel: "stylesheet", href }));
   const draw = () => {
     const [tab, item] = location.hash.slice(1).split("/");
     document.getElementById("app").innerHTML = view(data, { tab, item, mode });
+    // A frame follows the mode through its address: the hash is the data-theme it sets.
+    for (const frame of document.querySelectorAll("[data-frame]")) frame.src = `${frame.dataset.frame}#${schemes[mode]}`;
   };
   window.addEventListener("hashchange", draw);
   document.addEventListener("click", (event) => {
+    if (event.target.closest("[data-replay]")) return replay(document);
     const button = event.target.closest("[data-mode]");
     if (!button) return;
     mode = button.dataset.mode;

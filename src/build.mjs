@@ -244,9 +244,11 @@ export const build = async (config = {}, { check = false } = {}) => {
     catch (error) { if (error.code === "ENOENT") return undefined; throw error; }
   };
   const outputs = [];
+  // What an earlier target in this run made at a path (stamped, as written), so a later one reads it current.
+  const built = (path) => outputs.find((output) => resolve(output.path) === resolve(path))?.content;
   for (const target of targets) {
     const options = config[target.name] ?? {};
-    const made = await target.build({ tokens, media, mediaTokens, options, readExisting, ...kit, ...(theme.modes && { modes: theme.modes }) });
+    const made = await target.build({ tokens, media, mediaTokens, options, readExisting, built, ...kit, ...(theme.modes && { modes: theme.modes }) });
     outputs.push(...(kit.name ? stamp(made, kit, target.name) : made));
   }
   for (const { path, content } of outputs) {
