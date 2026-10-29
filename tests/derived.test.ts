@@ -21,7 +21,7 @@ const edited = (edit: string) => {
   const dir = project();
   renameSync(join(dir, "tokens.config.mjs"), join(dir, "base.config.mjs"));
   writeFileSync(join(dir, "tokens.config.mjs"),
-    `import base from "./base.config.mjs";\nconst d = structuredClone({ ...base.derived, descriptions: undefined });\n${edit}\nexport default { ...base, derived: d };\n`);
+    `import base from "./base.config.mjs";\nconst d = structuredClone(base.derived);\n${edit}\nexport default { ...base, derived: d };\n`);
   return dir;
 };
 

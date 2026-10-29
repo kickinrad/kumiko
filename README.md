@@ -75,7 +75,6 @@ derived: {
   marks: { group: "track", darkerInDay: ["slow"] }, // optional: <prefix>.<group>.<item>.color gets a mark role
   dayFiles: ["tokens/day.tokens.json"], // the Day media files to read
   out: { night: "tokens/derived.tokens.json", day: "tokens/derived-day.tokens.json" },
-  descriptions: {},                    // optional text overrides: night, day, container, mark, markDay, fixed, fixedDim
 }
 ```
 
