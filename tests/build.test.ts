@@ -90,3 +90,55 @@ test("include files are a silent base: project tokens override them, in the base
   expect(narrow).toContain("--t-c: 30px;");
   expect(narrow).not.toContain("--t-a: 1px;");
 });
+
+// A kit gives every target its root, version and name, so no target reads a path beside its own file.
+const echoTarget = 'export default { name: "echo", build: async (ctx) => [{ path: "echo.json", content: JSON.stringify({ keys: Object.keys(ctx).sort(), root: ctx.root, version: ctx.version, name: ctx.name }) + "\\n" }] };\n';
+const kitProject = (kit: string | undefined, version: string | null = "1.2.3\n") => {
+  const dir = project();
+  rmSync(join(dir, "tokens/stack.tokens.json"));
+  writeFileSync(join(dir, "echo.mjs"), echoTarget);
+  writeFileSync(join(dir, "tokens.config.mjs"),
+    `export default { targets: ["./echo.mjs"]${kit === undefined ? "" : `, kit: ${kit}`} };\n`);
+  if (version !== null) writeFileSync(join(dir, "VERSION"), version);
+  return dir;
+};
+
+test("a kit hands every target its root, version and name", () => {
+  const dir = kitProject('{ name: "acme", root: "kit" }');
+  expect(run(dir).exitCode).toBe(0);
+  const ctx = JSON.parse(read(dir, "echo.json"));
+  expect(ctx.root).toBe(join(dir, "kit"));
+  expect(ctx.version).toBe("1.2.3");
+  expect(ctx.name).toBe("acme");
+});
+
+test("a kit root defaults to design", () => {
+  const dir = kitProject('{ name: "acme" }');
+  expect(run(dir).exitCode).toBe(0);
+  expect(JSON.parse(read(dir, "echo.json")).root).toBe(join(dir, "design"));
+});
+
+test("a kit needs a name", () => {
+  const result = run(kitProject("{ root: \"kit\" }"));
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr.toString()).toContain("kit.name");
+});
+
+test("a kit with no VERSION file fails naming VERSION", () => {
+  const result = run(kitProject('{ name: "acme" }', null));
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr.toString()).toContain("VERSION");
+});
+
+test("a kit with a non-semver VERSION fails naming VERSION", () => {
+  const result = run(kitProject('{ name: "acme" }', "v1\n"));
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr.toString()).toContain("VERSION");
+});
+
+test("with no kit, a target's ctx carries no new keys", () => {
+  const dir = kitProject(undefined, null);
+  expect(run(dir).exitCode).toBe(0);
+  expect(JSON.parse(read(dir, "echo.json")).keys).toEqual(
+    ["media", "mediaTokens", "options", "readExisting", "tokens"]);
+});
