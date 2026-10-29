@@ -1,11 +1,11 @@
 // A kit's hand-written <root>/theme.toml becomes DTCG 2025.10 token files that feed the build as layers:
-// <root>/tokens/theme.tokens.json for the default mode (palette, every role, faces) and
+// <root>/tokens/theme.tokens.json for the default mode (palette, roles, faces) and
 // <root>/tokens/theme.<mode>.tokens.json for each media mode (role values for that mode).
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
-import material from "./material.mjs";
 
-const FACES = ["brand", "plain", "mono", "icon"];
+// Brand and plain fill Material's own typeface slots; mono and icon sit under the kit's name.
+const FACES = { brand: ["md", "ref", "typeface", "brand"], plain: ["md", "ref", "typeface", "plain"], mono: ["typeface", "mono"], icon: ["typeface", "icon"] };
 const KEYS = ["name", "default", "media", "palette", "roles", "faces"];
 const NONE = { include: [], media: {}, files: [] };
 
@@ -58,24 +58,35 @@ const validate = (toml, kitName) => {
       colours[mode][tokenName(key, `[palette.${mode}] colour`)] = colour(hex, `${mode}.${key}`);
     }
   }
+  // A role names a colour: "blue" is the mode's own, "day.blue" that mode's in every mode. [roles.<mode>] overrides in one mode.
+  const pick = (role, value, mode) => {
+    const parts = text(value, `role ${role}`).split(".");
+    if (parts.length > 2) fail(`role ${role} names "${value}"; a colour is "name" or "mode.name"`);
+    const [from, colourName] = parts.length === 2 ? parts : [mode, value];
+    if (!modes.includes(from)) fail(`role ${role} names mode "${from}", which has no [palette.${from}]`);
+    if (!Object.hasOwn(colours[from], colourName)) fail(`role ${role} names colour "${colourName}", which the ${from} palette lacks`);
+    return colours[from][colourName];
+  };
+  const given = table(toml.roles ?? {}, "roles");
   const roles = {};
-  for (const [role, colourName] of Object.entries(table(toml.roles ?? {}, "roles"))) {
-    const path = role.split(".");
-    path.forEach((part) => tokenName(part, `role ${role}`));
-    roles[role] = text(colourName, `role ${role}`);
-    for (const mode of modes) {
-      if (!Object.hasOwn(colours[mode], roles[role])) fail(`role ${role} names colour "${roles[role]}", which the ${mode} palette lacks`);
+  for (const [role, value] of Object.entries(given)) {
+    if (isTable(value)) {
+      if (!modes.includes(role)) fail(`[roles.${role}] names a mode with no [palette.${role}]`);
+      continue;
+    }
+    role.split(".").forEach((part) => tokenName(part, `role ${role}`));
+    roles[role] = Object.fromEntries(modes.map((mode) => [mode, pick(role, value, mode)]));
+  }
+  for (const mode of modes.filter((each) => isTable(given[each]))) {
+    for (const [role, value] of Object.entries(given[mode])) {
+      if (!Object.hasOwn(roles, role)) fail(`[roles.${mode}] overrides ${role}, which [roles] doesn't set`);
+      roles[role][mode] = pick(role, value, mode);
     }
   }
-  // Every Material colour role needs a palette colour: the engine never falls back to Material's own values.
-  const required = Object.entries(material.tokens().md.sys.color)
-    .filter(([, token]) => "$value" in token).map(([key]) => `md.sys.color.${key}`);
-  const missing = required.filter((role) => !Object.hasOwn(roles, role));
-  if (missing.length) fail(`[roles] lacks ${missing.length} Material colour role${missing.length === 1 ? "" : "s"}: ${missing.join(", ")}`);
   const faces = table(toml.faces ?? {}, "faces");
-  for (const face of Object.keys(faces)) {
-    if (!FACES.includes(face)) fail(`unknown face "${face}" (expected ${FACES.join(", ")})`);
-    text(faces[face], `face ${face}`);
+  for (const [face, family] of Object.entries(faces)) {
+    if (!Object.hasOwn(FACES, face)) fail(`unknown face "${face}" (expected ${Object.keys(FACES).join(", ")})`);
+    (Array.isArray(family) && family.length ? family : [family]).forEach((each) => text(each, `face ${face}`));
   }
   return { name, modes, base, media, colours, roles, faces };
 };
@@ -94,17 +105,15 @@ export const loadTheme = async ({ root, name } = {}) => {
   // One mode's tokens: its palette and every role in its colour; the default mode adds the faces.
   const modeTree = (mode, faces = {}) => {
     const tree = Object.create(null);
-    const group = { palette: Object.create(null) };
-    for (const [key, value] of Object.entries(theme.colours[mode])) group.palette[key] = { $type: "color", $value: value };
-    if (Object.keys(faces).length) {
-      group.font = Object.create(null);
-      for (const [face, family] of Object.entries(faces)) group.font[face] = { $type: "fontFamily", $value: family };
+    tree[theme.name] = Object.assign(Object.create(null), { palette: Object.create(null) });
+    for (const [key, value] of Object.entries(theme.colours[mode])) tree[theme.name].palette[key] = { $type: "color", $value: value };
+    for (const [face, family] of Object.entries(faces)) {
+      const path = FACES[face][0] === "md" ? FACES[face] : [theme.name, ...FACES[face]];
+      put(tree, path, { $type: "fontFamily", $value: family });
     }
-    tree[theme.name] = group;
-    for (const [role, colourName] of Object.entries(theme.roles)) {
+    for (const [role, values] of Object.entries(theme.roles)) {
       const path = role.split(".");
-      if (path[0] === theme.name) fail(`role ${role} collides with the kit's own ${theme.name} group`);
-      put(tree, path, { $type: "color", $value: theme.colours[mode][colourName] });
+      put(tree, path, { $type: "color", $value: values[mode] });
     }
     return tree;
   };

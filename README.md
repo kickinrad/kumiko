@@ -26,7 +26,6 @@ With a kit, every generated text file (`.css`, `.scss`, `.js`, `.mjs`, `.ts`, `.
 A kit may declare `contrast: [{ fg, bg, min }]` (token paths and a minimum ratio: 4.5 for text, 3 for marks). Every pair is resolved in the base tokens and in each `media` set, and a pair under its floor, or a path that is not a colour token, fails the build and `--check`, naming the pair, the mode, the ratio and the floor.
 The colour maths (`luminance`, `contrast`, `mix`, `bestOn`, `stateLayer`, `textSafe`, `hsl`, `rgb`) live in `src/color.mjs`.
 
-With a `kit`, `tokens --check` also validates the token sources (`tokens/*.tokens.json`, media files and `include` globs) against the official [DTCG 2025.10 format schema](https://www.designtokens.org/schemas/2025.10/format.json), vendored under `src/schema/2025.10/` (re-fetch with `node scripts/fetch-dtcg-schema.mjs`). Each error names the file and the path, e.g. `tokens/brand.tokens.json: $.color.ink.$value must be object`; a hex-string colour fails because 2025.10 colours are objects.
 
 ## Built-in Material 3 baseline
 
@@ -38,7 +37,7 @@ To re-vendor, run `bun scripts/vendor-m3.mjs --sha <androidx sha>` on a branch, 
 
 ## A kit's `theme.toml`
 
-With a `kit`, a hand-written `<kit root>/theme.toml` holds the kit's palette per mode (plain `#rrggbb` hex), which palette colour fills each Material colour role, and its faces:
+With a `kit`, a hand-written `<kit root>/theme.toml` holds the kit's palette per mode (plain `#rrggbb` hex), which palette colour fills each Material colour role it picks, and its faces:
 
 ```toml
 name = "acme"                          # must equal kit.name in the config
@@ -54,12 +53,16 @@ blue = "#2e7de9"
 [roles]
 "md.sys.color.surface" = "ink"         # a token path to a palette colour, resolved per mode
 "md.sys.color.primary" = "blue"
-[faces]                                # brand, plain, mono, icon
+"md.sys.color.scrim" = "night.ink"     # one mode's colour, in every mode
+"md.sys.color.inverse-surface" = "day.ink"
+[roles.day]                            # overrides a role in one mode
+"md.sys.color.inverse-surface" = "night.ink"
+[faces]                                # brand, plain, mono, icon: a family or a stack
 brand = "Some Sans"
-mono = "Some Mono"
+mono = ["Some Mono", "monospace"]
 ```
 
-`tokens` turns it into DTCG 2025.10 files (colours as `{ colorSpace, components, hex }` objects) beside the kit's other tokens: `<root>/tokens/theme.tokens.json` for the default mode (the palette under `<name>.palette.<colour>`, the faces under `<name>.font.<face>`, every role at its path) and `<root>/tokens/theme.<mode>.tokens.json` for each other mode (every role, in that mode's colour). They are build outputs, never hand-edited: `tokens --check` byte-compares and schema-checks them. The default file is an include layer above `include` and below the project's `tokens/`; each mode file joins the `media` set for its query. A role naming a colour a mode's palette lacks fails the build, naming the role, the colour and the mode. A kit with no `theme.toml` builds as before.
+`tokens` turns it into DTCG 2025.10 files (colours as `{ colorSpace, components, hex }` objects) beside the kit's other tokens: `<root>/tokens/theme.tokens.json` for the default mode (the palette under `<name>.palette.<colour>`, brand and plain in Material's `md.ref.typeface` slots, mono and icon under `<name>.typeface`, each role at its path) and `<root>/tokens/theme.<mode>.tokens.json` for each other mode (its palette and each role, in that mode's colour). A role the kit doesn't pick comes from its other layers (its own tokens, `include`, `builtin:material`). They are build outputs, never hand-edited: `tokens --check` byte-compares them. The default file is an include layer above `include` and below the project's `tokens/`; each mode file joins the `media` set for its query. A role naming a colour a palette lacks, or a mode with no palette, fails the build, naming the role, the colour and the mode; so do `[roles.<mode>]` for an unknown mode, and an override of a role `[roles]` doesn't set. A kit with no `theme.toml` builds as before.
 
 ## The `derived` target
 
@@ -97,3 +100,22 @@ beer: {
 ```
 
 With an option absent, Beer keeps its own value for what it sets. An option naming a path that is no token fails the build.
+
+## Drift guard: `tokens lint`
+
+`tokens lint <path> [<path>...]` fails when a consumer's source hand-types a value the theme defines, instead of reading the theme's variable. A path is a file or a directory (walked; `node_modules`, `.git` and dot-directories are skipped). It scans `.css .scss .yaml .yml .py .js .mjs .ts .jinja .html .kt .kts`; other files are ignored.
+
+| Rule | Finding |
+| --- | --- |
+| colour | a 3, 4, 6 or 8-digit hex (`#fff`, `#rrggbbaa`; not a `repo#123` reference); `rgb(`, `rgba(`, `hsl(`, `hsla(` followed by a digit; Kotlin `Color(0x…)` |
+| motion | a literal duration (`120ms`, `6s`) in a CSS `transition` or `animation` declaration; any `cubic-bezier(`; Compose `tween(` with a number first argument |
+| type size | CSS `font-size:` in px; a Kotlin `.sp` literal |
+| radius | CSS `border-radius:` with a non-zero px; Compose `RoundedCornerShape(` with a `.dp` literal |
+
+Zero values pass. Two skips: a file carrying the generated header, and a line carrying `lint: own <why>` with a non-empty reason (a consumer's named local value).
+
+```
+modules/otto_control.yaml:68: motion: 120ms
+```
+
+One line per finding, `path:line: rule: matched text`, then exit 1. A clean run prints nothing and exits 0; a missing path fails, naming it.

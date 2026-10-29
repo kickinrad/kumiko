@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.7.0](https://github.com/kickinrad/tokens/compare/v1.6.0...v1.7.0) (2026-10-29)
+
+
+### Features
+
+* tokens lint fails a consumer's hand-typed colour, motion, type size or radius ([#27](https://github.com/kickinrad/tokens/issues/27)) ([3a2b3d8](https://github.com/kickinrad/tokens/commit/3a2b3d86d07b4601f37bac2791cf7b986dc722d2))
+
+
+### Bug Fixes
+
+* the generated header names no engine version ([#30](https://github.com/kickinrad/tokens/issues/30)) ([297eb5e](https://github.com/kickinrad/tokens/commit/297eb5ef54c4f05f5e8ac0b074ba848d1c1f1573))
+
+## [1.6.0](https://github.com/kickinrad/tokens/compare/v1.5.0...v1.6.0) (2026-10-29)
+
+
+### Features
+
+* a kit's tokens are no longer schema-checked ([#24](https://github.com/kickinrad/tokens/issues/24)) ([29cc0b9](https://github.com/kickinrad/tokens/commit/29cc0b9b4424ced02603993f715b2d7e681c5909))
+* theme.toml fits a real kit: partial roles, another mode's colour, Material faces ([#25](https://github.com/kickinrad/tokens/issues/25)) ([8c2b9b1](https://github.com/kickinrad/tokens/commit/8c2b9b160ec40d2cdea11153fd9f8dd43682f188))
+
 ## [1.5.0](https://github.com/kickinrad/tokens/compare/v1.4.0...v1.5.0) (2026-10-29)
 
 
