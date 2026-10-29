@@ -5,6 +5,18 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "../src/build.mjs";
 
+if (process.argv[2] === "lint") {
+  const { lint } = await import("../src/lint.mjs");
+  try {
+    const findings = lint(process.argv.slice(3));
+    if (findings.length) console.log(findings.join("\n"));
+    process.exit(findings.length ? 1 : 0);
+  } catch (error) {
+    console.error(error.message);
+    process.exit(1);
+  }
+}
+
 const configPath = resolve("tokens.config.mjs");
 let config = {};
 try {
