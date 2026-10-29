@@ -175,3 +175,30 @@ test("without a kit a theme.toml is ignored and the golden outputs are byte-iden
   }
   expect(existsSync(join(dir, "design/tokens"))).toBe(false);
 });
+
+test("a role path through Object.prototype keys fails naming the path", () => {
+  for (const role of ["constructor.prototype.primary", "md.__proto__.primary"]) {
+    const result = run(kitProject(theme.replace('"md.sys.color.primary"', `"${role}"`)));
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr.toString()).toContain(`theme.toml: role ${role}`);
+    expect(result.stderr.toString()).toContain("is not a valid name");
+  }
+});
+
+test("a palette colour named like an Object.prototype key fails instead of vanishing", () => {
+  const result = run(kitProject(theme.replace('"md.sys.color.primary" = "blue"', '"md.sys.color.primary" = "toString"')));
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr.toString()).toContain("toString");
+});
+
+test("each media mode carries its own palette, and it reaches the media output", () => {
+  const dir = kitProject();
+  expect(run(dir).exitCode).toBe(0);
+  const day = { colorSpace: "srgb", components: [0.1804, 0.4902, 0.9137], hex: "#2e7de9" };
+  expect(json(dir, "design/tokens/theme.day.tokens.json").acme.palette.blue).toEqual({ $type: "color", $value: day });
+  const css = read(dir, "src/styles/tokens.css");
+  const media = css.slice(css.indexOf("@media (prefers-color-scheme: light)"));
+  expect(media).toContain("--acme-palette-blue: #2e7de9;");
+  expect(media).toContain("--acme-palette-ink: #f6f6f6;");
+  expect(css.slice(0, css.indexOf("@media"))).toContain("--acme-palette-blue: #7aa2f7;");
+});

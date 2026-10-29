@@ -12,8 +12,9 @@ const fail = (message) => { throw new Error(`theme.toml: ${message}`); };
 const isTable = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 const table = (value, where) => { if (!isTable(value)) fail(`${where} must be a table`); return value; };
 const text = (value, where) => { if (typeof value !== "string" || !value) fail(`${where} must be a non-empty string`); return value; };
-// A DTCG name: no dot, braces or leading $; also safe in a file name.
+// A DTCG name: no dot, braces or leading $; also safe in a file name. Never an Object.prototype key.
 const tokenName = (value, where) => {
+  if (["__proto__", "prototype", "constructor"].includes(value)) fail(`${where} "${value}" is not a valid name`);
   if (!/^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(text(value, where))) fail(`${where} "${value}" is not a valid name`);
   return value;
 };
@@ -27,12 +28,12 @@ const colour = (hex, where) => {
 const put = (tree, path, token) => {
   let node = tree;
   for (const part of path.slice(0, -1)) {
-    node[part] ??= {};
+    node[part] ??= Object.create(null);
     if ("$value" in node[part]) fail(`${path.join(".")} sits inside the token ${part}`);
     node = node[part];
   }
   const last = path.at(-1);
-  if (last in node) fail(`${path.join(".")} is defined twice`);
+  if (Object.hasOwn(node, last)) fail(`${path.join(".")} is defined twice`);
   node[last] = token;
 };
 const render = (tree) => `${JSON.stringify(tree, null, 2)}\n`;
@@ -51,7 +52,7 @@ const validate = (toml, kitName) => {
   for (const mode of modes) {
     tokenName(mode, "palette mode");
     if (mode !== base) text(media[mode], `[media] ${mode} (the media query for mode "${mode}")`);
-    colours[mode] = {};
+    colours[mode] = Object.create(null);
     for (const [key, hex] of Object.entries(table(palette[mode], `[palette.${mode}]`))) {
       colours[mode][tokenName(key, `[palette.${mode}] colour`)] = colour(hex, `${mode}.${key}`);
     }
@@ -62,7 +63,7 @@ const validate = (toml, kitName) => {
     path.forEach((part) => tokenName(part, `role ${role}`));
     roles[role] = text(colourName, `role ${role}`);
     for (const mode of modes) {
-      if (!(roles[role] in colours[mode])) fail(`role ${role} names colour "${roles[role]}", which the ${mode} palette lacks`);
+      if (!Object.hasOwn(colours[mode], roles[role])) fail(`role ${role} names colour "${roles[role]}", which the ${mode} palette lacks`);
     }
   }
   const faces = table(toml.faces ?? {}, "faces");
@@ -84,29 +85,29 @@ export const loadTheme = async ({ root, name } = {}) => {
   catch (error) { fail(`not valid TOML (${error.message})`); }
   const theme = validate(table(toml, "the file"), name);
 
-  const roleTokens = (mode) => {
-    const tree = {};
+  // One mode's tokens: its palette and every role in its colour; the default mode adds the faces.
+  const modeTree = (mode, faces = {}) => {
+    const tree = Object.create(null);
+    const group = { palette: Object.create(null) };
+    for (const [key, value] of Object.entries(theme.colours[mode])) group.palette[key] = { $type: "color", $value: value };
+    if (Object.keys(faces).length) {
+      group.font = Object.create(null);
+      for (const [face, family] of Object.entries(faces)) group.font[face] = { $type: "fontFamily", $value: family };
+    }
+    tree[theme.name] = group;
     for (const [role, colourName] of Object.entries(theme.roles)) {
-      put(tree, role.split("."), { $type: "color", $value: theme.colours[mode][colourName] });
+      const path = role.split(".");
+      if (path[0] === theme.name) fail(`role ${role} collides with the kit's own ${theme.name} group`);
+      put(tree, path, { $type: "color", $value: theme.colours[mode][colourName] });
     }
     return tree;
   };
-  const files = [];
-  const base = { [theme.name]: { palette: {}, font: {} } };
-  for (const [key, value] of Object.entries(theme.colours[theme.base])) {
-    base[theme.name].palette[key] = { $type: "color", $value: value };
-  }
-  for (const [face, family] of Object.entries(theme.faces)) base[theme.name].font[face] = { $type: "fontFamily", $value: family };
-  for (const [top, tree] of Object.entries(roleTokens(theme.base))) {
-    if (top in base) fail(`a role under "${top}" collides with the kit's own ${theme.name} group`);
-    base[top] = tree;
-  }
   const baseFile = join(root, "tokens/theme.tokens.json");
-  files.push({ path: baseFile, content: render(base) });
+  const files = [{ path: baseFile, content: render(modeTree(theme.base, theme.faces)) }];
   const media = {};
   for (const mode of theme.modes.filter((each) => each !== theme.base)) {
     const path = join(root, `tokens/theme.${mode}.tokens.json`);
-    files.push({ path, content: render(roleTokens(mode)) });
+    files.push({ path, content: render(modeTree(mode)) });
     (media[theme.media[mode]] ??= []).push(path);
   }
   return { include: [baseFile], media, files };
