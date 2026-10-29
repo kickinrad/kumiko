@@ -6,6 +6,7 @@ import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import StyleDictionary from "style-dictionary";
 import { checkSchema } from "./checks/schema.mjs";
+import { assertCoverage, consumerReport, withConsumers } from "./checks/coverage.mjs";
 import builtins from "./targets/index.mjs";
 
 export const DEFAULT_TARGETS = ["css", "theme-json", "design-md"];
@@ -146,9 +147,10 @@ const loadTarget = async (spec) => {
 
 export const build = async (config = {}, { check = false } = {}) => {
   const specs = config.targets ?? DEFAULT_TARGETS;
-  const targets = [];
+  let targets = [];
   for (const spec of specs) targets.push(await loadTarget(spec));
   const kit = await loadKit(config.kit);
+  if (config.kit) { assertCoverage(targets); targets = withConsumers(targets, config.kit.consumers); }
 
   const media = config.media ?? {};
   const mediaPaths = new Set(Object.values(media).flat().map((file) => resolve(file)));
@@ -230,5 +232,6 @@ export const build = async (config = {}, { check = false } = {}) => {
     await mkdir(dirname(path), { recursive: true });
     await writeFile(path, content);
   }
+  if (check && config.kit) for (const line of await consumerReport(targets, kit.version)) console.log(line);
   return outputs;
 };

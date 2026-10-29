@@ -2,6 +2,12 @@
 // an @layer wrapper, and a raw prelude before it.
 export default {
   name: "css",
+  coverage: {
+    native: "the browser's own CSS custom properties",
+    emits: [{ what: "one :root block of --<token> variables, with @media overrides and an optional @layer", why: "the browser has no design-token source; the variables are the base every web output reads" }],
+    skips: ["selectors, components and utilities"],
+  },
+  consumers: [],
   async build({ tokens, media, mediaTokens, options }) {
     const { path = "src/styles/tokens.css", layer = "", prelude = "" } = options;
     const lines = [];

@@ -92,7 +92,7 @@ test("include files are a silent base: project tokens override them, in the base
 });
 
 // A kit gives every target its root, version and name, so no target reads a path beside its own file.
-const echoTarget = 'export default { name: "echo", build: async (ctx) => [{ path: "echo.json", content: JSON.stringify({ keys: Object.keys(ctx).sort(), root: ctx.root, version: ctx.version, name: ctx.name }) + "\\n" }] };\n';
+const echoTarget = 'export default { name: "echo", coverage: { native: "none", emits: [], skips: [] }, build: async (ctx) => [{ path: "echo.json", content: JSON.stringify({ keys: Object.keys(ctx).sort(), root: ctx.root, version: ctx.version, name: ctx.name }) + "\\n" }] };\n';
 const kitProject = (kit: string | undefined, version: string | null = "1.2.3\n") => {
   const dir = project();
   rmSync(join(dir, "tokens/stack.tokens.json"));

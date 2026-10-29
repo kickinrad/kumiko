@@ -15,6 +15,12 @@ export const designTokens = (tokens) => {
 
 export default {
   name: "theme-json",
+  coverage: {
+    native: "the WordPress theme.json settings (palette, typography, spacing)",
+    emits: [{ what: "settings.custom.designTokens, exposed as --wp--custom--design-tokens--*", why: "theme.json's own presets cannot hold arbitrary tokens" }],
+    skips: ["every other theme.json key, which stays the theme's"],
+  },
+  consumers: [],
   async build({ tokens, options, readExisting }) {
     const { path = "theme.json" } = options;
     const current = await readExisting(path);

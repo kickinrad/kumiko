@@ -4,6 +4,12 @@ import YAML from "yaml";
 
 export default {
   name: "design-md",
+  coverage: {
+    native: "the DESIGN.md frontmatter schema (colors, typography, rounded, spacing)",
+    emits: [{ what: "those four frontmatter groups from the tokens", why: "an agent reads them there; nothing else writes them" }],
+    skips: ["name, description, other frontmatter keys and the body"],
+  },
+  consumers: [],
   async build({ tokens, options, readExisting }) {
     const { path = "DESIGN.md" } = options;
     const current = await readExisting(path) ?? "";
