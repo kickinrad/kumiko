@@ -39,19 +39,22 @@ const describe = (errors) => {
   return [...new Set(lines)];
 };
 
-// files: paths read as-is; include: globs for the silent base layer. Throws one Error listing every problem, file first.
-export const checkSchema = async ({ files = [], include = [] } = {}) => {
+// files: paths read as-is; include: globs for the silent base layer; documents: { name: parsed tokens } not on disk.
+// Throws one Error listing every problem, file first.
+export const checkSchema = async ({ files = [], include = [], documents = {} } = {}) => {
   const found = new Set(files.map((file) => resolve(file)));
   for (const pattern of include) for await (const file of glob(pattern)) found.add(resolve(file));
   const problems = [];
+  const check = (name, document) => {
+    if (!validate(inherit(document))) for (const line of describe(validate.errors)) problems.push(`${name}: ${line}`);
+  };
   for (const file of [...found].sort()) {
     const name = relative(process.cwd(), file);
     let document;
     try { document = JSON.parse(await readFile(file, "utf8")); }
     catch (error) { problems.push(`${name}: not readable JSON (${error.message})`); continue; }
-    if (!validate(inherit(document))) {
-      for (const line of describe(validate.errors)) problems.push(`${name}: ${line}`);
-    }
+    check(name, document);
   }
+  for (const [name, document] of Object.entries(documents)) check(name, document);
   if (problems.length) throw new Error(`Kit tokens do not match the DTCG 2025.10 schema:\n${problems.join("\n")}`);
 };

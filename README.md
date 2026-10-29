@@ -60,3 +60,26 @@ mono = "Some Mono"
 ```
 
 `tokens` turns it into DTCG 2025.10 files (colours as `{ colorSpace, components, hex }` objects) beside the kit's other tokens: `<root>/tokens/theme.tokens.json` for the default mode (the palette under `<name>.palette.<colour>`, the faces under `<name>.font.<face>`, every role at its path) and `<root>/tokens/theme.<mode>.tokens.json` for each other mode (every role, in that mode's colour). They are build outputs, never hand-edited: `tokens --check` byte-compares and schema-checks them. The default file is an include layer above `include` and below the project's `tokens/`; each mode file joins the `media` set for its query. A role naming a colour a mode's palette lacks fails the build, naming the role, the colour and the mode. A kit with no `theme.toml` builds as before.
+
+## Departures
+
+A kit built on `builtin:material` records every place it differs from Material in `<kit root>/departures.toml`. Each record has an `id` and a `why`:
+
+```toml
+[[departure]]                                           # changes a Material token
+id = "card-corner"
+replaces = "md.comp.elevated-card.container-shape"     # a token path in the baseline
+value = { value = 12, unit = "px" }                     # a DTCG $value; the type is the baseline token's
+why = "The house card shape since 2026-10-28."
+
+[[addition]]                                            # adds a token Material lacks
+id = "domain-heat"
+adds = "acme.domain.heat.color"                         # a new path
+type = "color"
+value = { colorSpace = "srgb", components = [0.81, 0.48, 0.13], hex = "#cf7b20" }
+why = "Material has no domain colours."
+```
+
+The build writes the records as `<kit root>/tokens/departures.tokens.json` (each `why` is the token's `$description`). It is an output, so `tokens --check` byte-compares it and the schema check covers it, and it sits above `builtin:material` and below the project's own `tokens/`.
+
+The build then compares the kit's tokens with plain Material. A token outside `md.sys.color.*` (the colour roles are the kit's palette) that has its own value, differing from Material's, with no `departure` whose `replaces` is its path, fails the build and `--check`, naming the path and both values. A token that only aliases a changed one follows it and needs no record. A `replaces` that is not a Material token, an `adds` that is, a path recorded twice, or a record missing a field also fails, naming the id. A kit with no `departures.toml` is still compared; a config without `builtin:material` has no baseline, so nothing is compared or written.

@@ -2,7 +2,7 @@
 // A target is one module exporting { name, build(ctx) → [{ path, content }] }:
 // built in under ./targets (listed in its index) or a project path in tokens.config.mjs.
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import StyleDictionary from "style-dictionary";
 import material from "./material.mjs";
@@ -10,6 +10,7 @@ import { checkHeader, stamp } from "./header.mjs";
 import { checkContrast } from "./checks/contrast.mjs";
 import { checkSchema } from "./checks/schema.mjs";
 import { loadTheme, syncTheme, withMedia } from "./theme.mjs";
+import { checkDepartures, departureLayer, overlay, readDepartures } from "./departures.mjs";
 import builtins from "./targets/index.mjs";
 
 // Built-in include layers, named in a config's `include` beside its file globs.
@@ -180,7 +181,19 @@ export const build = async (config = {}, { check = false } = {}) => {
     Object.assign(builtin, layers[spec].tokens());
   }
   include.push(...theme.include);
-  if (check && config.kit) await checkSchema({ files: [...baseFiles, ...mediaPaths], include });
+  // A kit on the Material baseline records its departures from it in departures.toml: a layer above Material.
+  let baseline, records = [], layer;
+  if (kit.name && config.include?.includes(material.name)) {
+    const plain = await makeDictionary([], [], material.tokens()).getPlatformTokens("raw");
+    baseline = new Map(plain.allTokens.map((token) => [token.path.join("."), token]));
+    records = await readDepartures(kit.root);
+    const tree = departureLayer(records, baseline, (path) => resolvedType(baseline.get(path), baseline));
+    layer = { path: relative(process.cwd(), join(kit.root, "tokens/departures.tokens.json")), content: `${JSON.stringify(tree, null, 2)}\n` };
+    overlay(builtin, tree);
+  }
+  if (check && config.kit) {
+    await checkSchema({ files: [...baseFiles, ...mediaPaths], include, documents: records.length ? { [layer.path]: JSON.parse(layer.content) } : {} });
+  }
   const dictionary = makeDictionary(baseFiles, include, builtin);
   const raw = await dictionary.getPlatformTokens("raw");
   const rawTokens = new Map(raw.allTokens.map((token) => [token.path.join("."), token]));
@@ -190,6 +203,7 @@ export const build = async (config = {}, { check = false } = {}) => {
       throw new Error(`No lossless CSS scalar mapping for ${token.path.join(".")} (${type})`);
     }
   }
+  if (baseline) checkDepartures(raw.allTokens, baseline, records);
   const resolved = await dictionary.getPlatformTokens("css");
   const tokens = resolved.allTokens.map((token) => {
     const path = token.path.join(".");
@@ -245,6 +259,7 @@ export const build = async (config = {}, { check = false } = {}) => {
     const made = await target.build({ tokens, media, mediaTokens, options, readExisting, ...kit });
     outputs.push(...(kit.name ? stamp(made, kit, target.name) : made));
   }
+  if (records.length) outputs.push(layer);
   for (const { path, content } of outputs) {
     if (check) {
       const existing = await readExisting(path);
