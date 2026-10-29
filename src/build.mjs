@@ -182,6 +182,12 @@ export const build = async (config = {}, { check = false } = {}) => {
   const dictionary = makeDictionary(baseFiles, include, builtin);
   const raw = await dictionary.getPlatformTokens("raw");
   const rawTokens = new Map(raw.allTokens.map((token) => [token.path.join("."), token]));
+  // A kit's theme maps the roles it picks; once the layers merge, every Material colour role must be set.
+  if (theme.files.length) {
+    const missing = Object.entries(material.tokens().md.sys.color).filter(([key, token]) => "$value" in token && !rawTokens.has(`md.sys.color.${key}`))
+      .map(([key]) => `md.sys.color.${key}`);
+    if (missing.length) throw new Error(`theme.toml: no layer sets ${missing.length} Material colour role${missing.length === 1 ? "" : "s"}: ${missing.join(", ")}`);
+  }
   for (const token of raw.allTokens) {
     const type = resolvedType(token, rawTokens);
     if (!cssTypes.has(type)) {

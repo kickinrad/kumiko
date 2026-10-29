@@ -60,7 +60,9 @@ const validate = (toml, kitName) => {
   }
   // A role names a colour: "blue" is the mode's own, "day.blue" that mode's in every mode. [roles.<mode>] overrides in one mode.
   const pick = (role, value, mode) => {
-    const [from, colourName] = text(value, `role ${role}`).includes(".") ? value.split(".", 2) : [mode, value];
+    const parts = text(value, `role ${role}`).split(".");
+    if (parts.length > 2) fail(`role ${role} names "${value}"; a colour is "name" or "mode.name"`);
+    const [from, colourName] = parts.length === 2 ? parts : [mode, value];
     if (!modes.includes(from)) fail(`role ${role} names mode "${from}", which has no [palette.${from}]`);
     if (!Object.hasOwn(colours[from], colourName)) fail(`role ${role} names colour "${colourName}", which the ${from} palette lacks`);
     return colours[from][colourName];
@@ -77,7 +79,7 @@ const validate = (toml, kitName) => {
   }
   for (const mode of modes.filter((each) => isTable(given[each]))) {
     for (const [role, value] of Object.entries(given[mode])) {
-      if (!roles[role]) fail(`[roles.${mode}] overrides ${role}, which [roles] doesn't set`);
+      if (!Object.hasOwn(roles, role)) fail(`[roles.${mode}] overrides ${role}, which [roles] doesn't set`);
       roles[role][mode] = pick(role, value, mode);
     }
   }
@@ -103,7 +105,7 @@ export const loadTheme = async ({ root, name } = {}) => {
   // One mode's tokens: its palette and every role in its colour; the default mode adds the faces.
   const modeTree = (mode, faces = {}) => {
     const tree = Object.create(null);
-    tree[theme.name] = { palette: Object.create(null) };
+    tree[theme.name] = Object.assign(Object.create(null), { palette: Object.create(null) });
     for (const [key, value] of Object.entries(theme.colours[mode])) tree[theme.name].palette[key] = { $type: "color", $value: value };
     for (const [face, family] of Object.entries(faces)) {
       const path = FACES[face][0] === "md" ? FACES[face] : [theme.name, ...FACES[face]];

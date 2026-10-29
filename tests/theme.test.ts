@@ -250,3 +250,24 @@ test("a role may sit in the kit's own group, but not on a palette colour", () =>
   expect(clash.exitCode).toBe(1);
   expect(clash.stderr.toString()).toContain("acme.palette.ink is defined twice");
 });
+
+test("after the layers merge, a Material colour role nothing sets fails naming it", () => {
+  const dir = kitProject(theme.slice(0, theme.indexOf("[roles]")) + '[roles]\n"md.sys.color.primary" = "blue"\n\n' + theme.slice(theme.indexOf("[faces]")));
+  const result = run(dir);
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr.toString()).toContain("md.sys.color.surface");
+  expect(result.stderr.toString()).not.toContain("md.sys.color.primary,");
+});
+
+test("a reference with more than one dot fails naming the role and the value", () => {
+  const result = run(kitProject(theme.replace('"md.sys.color.scrim" = "ink"', '"md.sys.color.scrim" = "night.ink.typo"')));
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr.toString()).toContain("md.sys.color.scrim");
+  expect(result.stderr.toString()).toContain("night.ink.typo");
+});
+
+test("an override of an inherited key like toString is not a mapped role", () => {
+  const result = run(kitProject(theme.replace("[faces]", '[roles.day]\n"toString" = "ink"\n\n[faces]')));
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr.toString()).toContain("toString, which [roles] doesn't set");
+});
