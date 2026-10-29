@@ -31,7 +31,7 @@ test("builds the four outputs, byte-identical to the golden", () => {
   const result = run(dir);
   expect(result.stderr.toString()).toBe("");
   expect(result.exitCode).toBe(0);
-  expect(outputs.length).toBe(10);
+  expect(outputs.length).toBe(11);
   for (const file of outputs) expect(read(dir, file)).toBe(read(golden, file));
 });
 
@@ -105,10 +105,26 @@ test.each([
   ["mealie", "out", "delete c.mealie.out;"],
   ["mealie", "modes", "delete c.mealie.modes;"],
   ["mealie", "palette", "delete c.mealie.palette;"],
+  ["material-you", "path", 'delete c["material-you"].path;'],
 ])("%s: a missing %s fails, naming it", (output, option, edit) => {
   const result = run(edited(edit));
   expect(result.exitCode).toBe(1);
   expect(result.stderr.toString()).toContain(`${output} option "${option}" is required`);
+});
+
+test("material-you: every Material colour role in both modes, then the kit's own values and no palette", () => {
+  const dir = project();
+  run(dir);
+  const file = read(dir, "ports/home-assistant/acme.css");
+  const roles = file.slice(file.indexOf(":host, html, body, ha-card {"), file.indexOf("html {"));
+  expect(roles).toMatch(/--md-sys-color-primary-light: rgb\(\d+ \d+ \d+\);/);
+  expect(roles).toMatch(/--md-sys-color-primary-dark: rgb\(\d+ \d+ \d+\);/);
+  expect(roles).not.toContain("--acme-");
+  const shared = file.slice(file.indexOf("html {"));
+  expect(shared).toContain("--md-sys-shape-corner-medium:");
+  expect(shared).toContain("--acme-");
+  expect(shared).not.toContain("--acme-palette-");
+  expect(shared).not.toMatch(/^  --md-sys-color-/m);
 });
 
 test("mealie: a palette colour the kit lacks fails, naming it", () => {

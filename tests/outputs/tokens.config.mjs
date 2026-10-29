@@ -1,6 +1,6 @@
 // A small kit for the tailwind, compose-tv, obsidian and mealie outputs.
 export default {
-  targets: ["tailwind", "compose-tv", "obsidian", "mealie"],
+  targets: ["tailwind", "compose-tv", "obsidian", "mealie", "material-you"],
   include: ["builtin:material"],
   kit: { name: "acme", root: "design" },
   tailwind: { path: "ports/tailwind/acme.css", css: "ports/css/acme.css", title: "Acme" },
@@ -14,6 +14,7 @@ export default {
     package: "com.example.acme",
     title: "Acme Kit",
   },
+  "material-you": { path: "ports/home-assistant/acme.css", title: "Acme" },
   mealie: {
     out: "ports/mealie/acme",
     title: "Acme",
