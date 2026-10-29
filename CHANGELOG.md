@@ -18,3 +18,5 @@
 ### Bug Fixes
 
 * build token files in sorted order ([#2](https://github.com/kickinrad/tokens/issues/2)) ([6492e53](https://github.com/kickinrad/tokens/commit/6492e53749f364c72c71b16cb15fe7b10825d6f5))
+
+**Release note:** 6492e53 also changed the frozen golden outputs under `tests/expected/`. That change should have been marked breaking and released as 2.0.0, not included in 1.1.0.
