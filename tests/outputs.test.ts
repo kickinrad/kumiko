@@ -146,7 +146,7 @@ test("an output without a declared kit fails, saying so", () => {
 test("the engine holds no kit: src/ names no house, and carries no palette hex", () => {
   const sources = (dir: string): string[] => readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
     entry.isDirectory() ? sources(join(dir, entry.name)) : [join(dir, entry.name)]);
-  const house = /tokyo|tokyo[- ]mono|tokyo-material/i;
+  const house = /tokyo/i;
   const hex = /#(?!(?:fff|000)(?:fff|000)?\b)[0-9a-fA-F]{6}\b/;
   for (const file of sources(join(root, "src"))) {
     const text = readFileSync(file, "utf8");
