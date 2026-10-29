@@ -5,9 +5,14 @@ import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import StyleDictionary from "style-dictionary";
+import material from "./material.mjs";
+import { checkHeader, stamp } from "./header.mjs";
 import { checkSchema } from "./checks/schema.mjs";
 import { loadTheme, syncTheme, withMedia } from "./theme.mjs";
 import builtins from "./targets/index.mjs";
+
+// Built-in include layers, named in a config's `include` beside its file globs.
+const layers = { [material.name]: material };
 
 export const DEFAULT_TARGETS = ["css", "theme-json", "design-md"];
 
@@ -90,8 +95,9 @@ const cssTransforms = [
 ];
 const cssTypes = new Set(["color", "dimension", "duration", "fontFamily", "fontWeight", "number", "string", "typography", "shadow", "cubicBezier"]);
 
-const makeDictionary = (source, include = []) => new StyleDictionary({
-  include, source,
+const makeDictionary = (source, include = [], tokens = {}) => new StyleDictionary({
+  // Inline tokens are Style Dictionary's lowest layer: under include files, which sit under source.
+  tokens, include, source,
   log: { warnings: "error", verbosity: "verbose" },
   platforms: { raw: {}, css: { transforms: cssTransforms } },
 });
@@ -162,11 +168,19 @@ export const build = async (config = {}, { check = false } = {}) => {
     .sort()
     .map((file) => `tokens/${file}`)
     .filter((file) => !mediaPaths.has(resolve(file)) && !theme.include.includes(resolve(file)));
-  // Include files (globs) are a silent base layer under the project's own tokens, which override them.
-  // The theme's default sits last among them: above the built-in includes, below the project.
-  const include = [...(config.include ?? []), ...theme.include];
+  // Includes are a silent base layer under the project's own tokens, which override them: file globs, and
+  // built-in layers (builtin:<name>), which sit beneath the globs. The theme's default sits last among the
+  // globs: above the built-in layers and other includes, below the project.
+  const include = [];
+  const builtin = {};
+  for (const spec of config.include ?? []) {
+    if (!spec.startsWith("builtin:")) { include.push(spec); continue; }
+    if (!layers[spec]) throw new Error(`Unknown built-in include ${spec}`);
+    Object.assign(builtin, layers[spec].tokens());
+  }
+  include.push(...theme.include);
   if (check && config.kit) await checkSchema({ files: [...baseFiles, ...mediaPaths], include });
-  const dictionary = makeDictionary(baseFiles, include);
+  const dictionary = makeDictionary(baseFiles, include, builtin);
   const raw = await dictionary.getPlatformTokens("raw");
   const rawTokens = new Map(raw.allTokens.map((token) => [token.path.join("."), token]));
   for (const token of raw.allTokens) {
@@ -201,7 +215,7 @@ export const build = async (config = {}, { check = false } = {}) => {
       if (!rawTokens.has(path)) throw new Error(`Media token ${path} does not override a base token`);
     }
     // Order matters: among include files the later wins, so the project's base files beat the include layer.
-    const mediaDictionary = makeDictionary(files, [...include, ...baseFiles]);
+    const mediaDictionary = makeDictionary(files, [...include, ...baseFiles], builtin);
     const mediaRaw = await mediaDictionary.getPlatformTokens("raw");
     const mediaRawTokens = new Map(mediaRaw.allTokens.map((token) => [token.path.join("."), token]));
     const mediaResolved = await mediaDictionary.getPlatformTokens("css");
@@ -225,11 +239,14 @@ export const build = async (config = {}, { check = false } = {}) => {
   const outputs = [];
   for (const target of targets) {
     const options = config[target.name] ?? {};
-    outputs.push(...await target.build({ tokens, media, mediaTokens, options, readExisting, ...kit }));
+    const made = await target.build({ tokens, media, mediaTokens, options, readExisting, ...kit });
+    outputs.push(...(kit.name ? stamp(made, kit, target.name) : made));
   }
   for (const { path, content } of outputs) {
     if (check) {
-      if (await readExisting(path) !== content) throw new Error(`${path} is stale; run tokens`);
+      const existing = await readExisting(path);
+      if (kit.name) checkHeader(path, existing);
+      if (existing !== content) throw new Error(`${path} is stale; run tokens`);
       continue;
     }
     await mkdir(dirname(path), { recursive: true });

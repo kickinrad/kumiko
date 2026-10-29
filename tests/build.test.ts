@@ -219,3 +219,45 @@ test("without a kit, hex-string colours still pass --check", () => {
 test("a kit's plain build does not run the schema check", () => {
   expect(run(schemaProject("#121416")).exitCode).toBe(0);
 });
+
+// The built-in Material 3 baseline: `builtin:material` in include, read from the engine, never from the project.
+const materialProject = (include: string) => {
+  const dir = mkdtempSync(join(tmpdir(), "tokens-material-"));
+  mkdirSync(join(dir, "tokens"));
+  writeFileSync(join(dir, "tokens/project.tokens.json"), JSON.stringify({
+    md: { sys: { shape: { corner: { medium: { $type: "dimension", $value: { value: 20, unit: "px" } } } } } },
+  }));
+  writeFileSync(join(dir, "tokens.config.mjs"), `export default { targets: ["css"], include: [${include}] };\n`);
+  return dir;
+};
+
+test("builtin:material gives a project Material's tokens beneath its own", () => {
+  const dir = materialProject('"builtin:material"');
+  const result = run(dir);
+  expect(result.stderr.toString()).toBe("");
+  expect(result.exitCode).toBe(0);
+  const css = read(dir, "src/styles/tokens.css");
+  expect(css).toContain("--md-sys-color-primary: #");
+  // An alias in the baseline follows the project's override.
+  expect(css).toContain("--md-comp-filled-card-container-shape: 20px;");
+  expect(css).toContain("--md-sys-motion-duration-short3: 150ms;");
+  expect(css).toContain("--md-sys-shape-corner-medium: 20px;");
+  expect(css).not.toContain("--md-sys-shape-corner-medium: 12px;");
+  expect(run(dir, "--check").exitCode).toBe(0);
+});
+
+test("builtin:material sits beneath file includes too", () => {
+  const dir = materialProject('"vendor/*.tokens.json", "builtin:material"');
+  mkdirSync(join(dir, "vendor"));
+  writeFileSync(join(dir, "vendor/base.tokens.json"), JSON.stringify({
+    md: { sys: { shape: { corner: { small: { $type: "dimension", $value: { value: 3, unit: "px" } } } } } },
+  }));
+  expect(run(dir).exitCode).toBe(0);
+  expect(read(dir, "src/styles/tokens.css")).toContain("--md-sys-shape-corner-small: 3px;");
+});
+
+test("an unknown built-in include fails loudly", () => {
+  const result = run(materialProject('"builtin:nope"'));
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr.toString()).toContain("Unknown built-in include builtin:nope");
+});
