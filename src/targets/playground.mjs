@@ -17,6 +17,8 @@ import { need, needKit } from "../system.mjs";
 const BEER = "https://cdn.jsdelivr.net/npm/beercss/dist/cdn";
 // The client's modules; each imports the colour maths from "../color.mjs" in the source and "./color.mjs" beside the page.
 const CLIENT = { "playground.js": playground, "foundations.js": foundations, "components.js": components, "cards.js": cards, "pages.js": pages };
+// Tailwind's browser build reads @import "tailwindcss" even inside a comment, and then draws nothing.
+const withoutComments = (css) => css.replace(/\/\*[\s\S]*?\*\//g, "");
 const attribute = (text) => text.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 
 // Each token on its own line, so a change to one token is one line of diff.
@@ -74,7 +76,7 @@ export default {
       ...Object.entries(CLIENT).map(([file, source]) => ({ path: join(dir, file), content: source.replaceAll('"../color.mjs"', '"./color.mjs"') })),
       { path: join(dir, "color.mjs"), content: color },
       { path: join(dir, "tokens.json"), content: data },
-      ...(output === undefined ? [] : [{ path: join(dir, "tailwind.html"), content: tailwind.replace("{{css}}", () => attribute(css)).replace("{{tailwind}}", () => output) }]),
+      ...(output === undefined ? [] : [{ path: join(dir, "tailwind.html"), content: tailwind.replace("{{css}}", () => attribute(css)).replace("{{tailwind}}", () => withoutComments(output)) }]),
     ];
   },
 };
