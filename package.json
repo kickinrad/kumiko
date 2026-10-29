@@ -17,6 +17,7 @@
   "private": true,
   "author": "wils <wils@bestfootforward.business>",
   "dependencies": {
+    "ajv": "latest",
     "style-dictionary": "latest",
     "yaml": "latest"
   }
