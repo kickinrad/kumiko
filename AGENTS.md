@@ -1,6 +1,6 @@
 # tokens
 
-Builds DTCG 2025.10 `tokens/*.tokens.json` into stack targets, shipped as one standalone Bun binary per GitHub Release. Projects install it with `mise use github:kickinrad/tokens` and configure it in `tokens.config.mjs`.
+Builds DTCG 2025.10 `tokens/*.tokens.json` into stack targets, shipped as one standalone Bun binary per GitHub Release. Projects install it with `mise use github:kickinrad/kumiko` and configure it in `tokens.config.mjs`.
 
 - A target is one module exporting `{ name, build(ctx) → [{ path, content }] }`. A built-in one lives in `src/targets/` and is listed in `src/targets/index.mjs`; a project one is a path in its config.
 - `tests/expected/` is frozen from the design-system 2.1.0 template. A byte change there is a breaking release, never a silent update.
