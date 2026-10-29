@@ -27,7 +27,6 @@ const filesTarget = `export default { name: "files", build: async () => ${JSON.s
 const kitProject = (kit = true) => {
   const dir = mkdtempSync(join(tmpdir(), "tokens-header-"));
   mkdirSync(join(dir, "tokens"));
-  // A kit's --check also validates its tokens against the DTCG schema, so the kit gets one valid file.
   writeFileSync(join(dir, "tokens/kit.tokens.json"), JSON.stringify({ size: { $type: "dimension", gap: { $value: { value: 8, unit: "px" } } } }));
   writeFileSync(join(dir, "files.mjs"), filesTarget);
   writeFileSync(join(dir, "tokens.config.mjs"),
