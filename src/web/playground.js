@@ -1,10 +1,14 @@
 // The playground's client: a page drawn with Beer's own markup on the kit's generated theme. It reads one file
-// of the kit's, tokens.json, and names no kit. Everything that draws is a pure function of the data and is
-// exported; the page starts only where there is a document. Its one import, the engine's colour maths,
-// is replaced by that file's text when the output is made, so the page is one module.
+// of the kit's, tokens.json, and names no kit. Each destination's items come from its own module beside this
+// one; everything that draws is a pure function of the data and is exported; the page starts only where there is
+// a document. "../color.mjs" is the engine's colour maths, written beside the page as color.mjs.
 import { contrast } from "../color.mjs";
+import cards from "./cards.js";
+import components from "./components.js";
+import foundations, { fontLinks, replay } from "./foundations.js";
+import pages from "./pages.js";
 
-const esc = (text) => String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+export const esc = (text) => String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 // Markdown, as much as a kit's notes use: headings (one level down, under the item's own h1), paragraphs,
 // lists and inline code.
@@ -39,31 +43,17 @@ export const markdown = (text) => {
   return out.join("\n");
 };
 
-// Colour: each Material role as a tile in its own colour (the live theme's variable) under its on-colour's
-// text, with the ratio between the two from the mode's tokens. A role with no on-colour of its own takes
-// on-surface; the on-colours are the text, so they have no tile.
-const COLOR = "md.sys.color.";
-export const colour = (tokens) => {
-  const roles = new Map(tokens.filter((token) => token.type === "color" && token.path.startsWith(COLOR)).map((token) => [token.path.slice(COLOR.length), token.value]));
-  const tiles = [...roles].filter(([role]) => !role.startsWith("on-") && role !== "inverse-on-surface").map(([role, value]) => {
-    const on = roles.has(`on-${role}`) ? `on-${role}` : role === "inverse-surface" ? "inverse-on-surface" : "on-surface";
-    return `<div class="s6 m4 l3"><div class="padding round" style="background: var(--${COLOR.replaceAll(".", "-")}${role}); color: var(--${COLOR.replaceAll(".", "-")}${on})"><b>${role}</b><br><small>${on} ${contrast(roles.get(on), value).toFixed(2)}:1</small></div></div>`;
-  });
-  return `<div class="grid">${tiles.join("")}</div>`;
-};
-
 // Which of the stylesheet's two colour schemes (data-theme) a mode is: by its surface, nearer black or white.
 export const scheme = (tokens) => {
-  const { value } = tokens.find((token) => token.path === `${COLOR}surface`);
+  const { value } = tokens.find((token) => token.path === "md.sys.color.surface");
   return contrast(value, "#000000") > contrast(value, "#ffffff") ? "light" : "dark";
 };
 
-const later = (text) => () => `<p>${text}</p>`;
 const TABS = [
-  { id: "foundations", name: "Foundations", icon: "palette", items: [{ id: "colour", name: "Colour", body: (data, tokens) => colour(tokens) }] },
-  { id: "components", name: "Components", icon: "widgets", items: [{ id: "overview", name: "Overview", body: later("Beer's full set of components, live on this theme, will fill this.") }] },
-  { id: "cards", name: "Cards", icon: "dashboard", items: [{ id: "overview", name: "Overview", body: later("The kit's card patterns will fill this.") }] },
-  { id: "pages", name: "Pages", icon: "devices", items: [{ id: "overview", name: "Overview", body: later("The kit's page layouts will fill this.") }] },
+  { id: "foundations", name: "Foundations", icon: "palette", items: foundations },
+  { id: "components", name: "Components", icon: "widgets", items: components },
+  { id: "cards", name: "Cards", icon: "dashboard", items: cards },
+  { id: "pages", name: "Pages", icon: "devices", items: pages },
   { id: "rules", name: "Rules", icon: "rule", items: [{ id: "notes", name: "Notes", body: (data) => (data.notes ? markdown(data.notes) : "<p>This kit has no notes.md.</p>") }] },
 ];
 
@@ -93,12 +83,17 @@ const boot = async () => {
   const root = document.documentElement;
   let mode = modes.find((each) => schemes[each] === getComputedStyle(root).colorScheme) ?? modes[0];
   document.title = `${data.name} playground`;
+  // The kit's faces, one stylesheet each, so a family Google Fonts lacks fails alone.
+  for (const href of new Set(modes.flatMap((each) => fontLinks(data.modes[each])))) document.head.append(Object.assign(document.createElement("link"), { rel: "stylesheet", href }));
   const draw = () => {
     const [tab, item] = location.hash.slice(1).split("/");
     document.getElementById("app").innerHTML = view(data, { tab, item, mode });
+    // A frame follows the mode through its address: the hash is the data-theme it sets.
+    for (const frame of document.querySelectorAll("[data-frame]")) frame.src = `${frame.dataset.frame}#${schemes[mode]}`;
   };
   window.addEventListener("hashchange", draw);
   document.addEventListener("click", (event) => {
+    if (event.target.closest("[data-replay]")) return replay(document);
     const button = event.target.closest("[data-mode]");
     if (!button) return;
     mode = button.dataset.mode;

@@ -103,21 +103,22 @@ With an option absent, Beer keeps its own value for what it sets. An option nami
 
 ## The `playground` output
 
-`"playground"` writes a page that shows the kit on its own generated theme, for a declared kit. It needs the kit's `css` and `beer` outputs.
+`"playground"` writes a page that shows the kit on its own generated theme, for a declared kit. It needs the kit's `css` and `beer` outputs, and takes its `tailwind` output if it has one.
 
 ```js
-playground: { path: "docs/playground", css: "src/styles/tokens.css", beer: "src/styles/beer.css" }
+playground: { path: "docs/playground", css: "src/styles/tokens.css", beer: "src/styles/beer.css", tailwind: "src/styles/tailwind.css" }
 ```
 
-`path` is a directory; `css` and `beer` are the kit's two outputs, as the config gives them, and the page links them by paths relative to itself. It writes three files:
+`path` is a directory; `css` and `beer` are the kit's two outputs, as the config gives them, and the page links them by paths relative to itself. `tailwind` is optional: the kit's `tailwind` output, which the page inlines into `tailwind.html`. List the `tailwind` target before `playground`, so the page takes the file as this run made it. It writes:
 
 | File | Holds |
 | --- | --- |
 | `index.html` | one fixed page that names no kit: Beer from the CDN at latest in a cascade layer, the kit's `css` and `beer` outputs, and `playground.js` |
-| `playground.js` | the engine's client, one module: a navigation rail (Foundations, Components, Cards, Pages, Rules), each destination a list-detail layout with an item at `#destination/item`, and a top app bar with the kit's name and a switch for its modes |
-| `tokens.json` | `{ name, version, modes, notes }`: every token in the base mode and in each `media` mode (`path`, `value`, `type`, `description`), and the text of `<kit root>/notes.md` if it exists; the only per-kit data the page reads |
+| `playground.js`, `foundations.js`, `components.js`, `cards.js`, `pages.js`, `color.mjs` | the engine's client, a module per destination beside the shell and the engine's colour maths: a navigation rail (Foundations, Components, Cards, Pages, Rules), each destination a list-detail layout with an item at `#destination/item`, and a top app bar with the kit's name and a switch for its modes |
+| `tailwind.html` | with the `tailwind` option: a page of Tailwind utility classes on the kit's `css` and the inlined `tailwind` output, Tailwind's browser build from the CDN at latest; the playground shows it in a frame, so Tailwind's reset leaves Beer alone |
+| `tokens.json` | `{ name, version, modes, tailwind, notes }`: every token in the base mode and in each `media` mode (`path`, `value`, `type`, `description`), `"tailwind.html"` if the page was written, and the text of `<kit root>/notes.md` if it exists; the only per-kit data the page reads |
 
-Serve the directory with the rest of the project (the page fetches `tokens.json` and links the stylesheets), and set the mode with the switch. The page draws Foundations' colour (each role in its colour under its on-colour, with the contrast between them) and Rules (`notes.md` as Markdown: headings, paragraphs, lists and inline code); Components, Cards and Pages are placeholders. The rail is Beer's bottom bar on small screens, where one pane shows at a time. A mode's `data-theme` value is the colour scheme its surface is nearer to, so the switch needs one dark and one light mode.
+Serve the directory with the rest of the project (the page fetches `tokens.json` and links the stylesheets), and set the mode with the switch. Foundations is a view-only builder of the current mode: Colour (the kit's palette, the Material roles in Material's groups each with the palette colours of its value, and each role on its on-colour with the contrast between them, a pair under 4.5:1 marked), Type (the 15 Material styles through the kit's variables; the page loads the families the type tokens name from Google Fonts, one stylesheet each, in the weights they use), Shape (the corner scale), Motion (durations and easings, with a replay that stands still under reduced motion) and Tailwind (the frame, or a line saying the kit has none). The page also draws Rules (`notes.md` as Markdown: headings, paragraphs, lists and inline code); Components draws Beer's full set live in Beer's own markup (hover, focus, press and toggle each; dialogs, menus and snackbars open from a button, and a container component is shown whole), Cards composes M3's elevated, filled and outlined cards from those components, and Pages composes M3's canonical layouts (list-detail, supporting pane, feed) from the cards in a framed area. The rail is Beer's bottom bar on small screens, where one pane shows at a time. A mode's `data-theme` value is the colour scheme its surface is nearer to, so the switch needs one dark and one light mode.
 
 ## Drift guard: `tokens lint`
 

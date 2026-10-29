@@ -9,15 +9,22 @@ ink = "#141414"
 paper = "#f2f2f2"
 blue = "#7aa2f7"
 navy = "#0b1b3a"
+shade = "#141414"
 
 [palette.day]
 ink = "#f6f6f6"
 paper = "#1a1a1a"
 blue = "#2e7de9"
 navy = "#ffffff"
+shade = "#f6f6f6"
 
 [roles]
 "md.sys.color.surface" = "ink"
 "md.sys.color.on-surface" = "paper"
 "md.sys.color.primary" = "blue"
 "md.sys.color.on-primary" = "navy"
+
+[faces]
+brand = "Fixture Serif"
+plain = ["Fixture Sans", "sans-serif"]
+mono = ["Fixture Mono", "monospace"]

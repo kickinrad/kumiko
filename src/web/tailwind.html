@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tailwind</title>
+<link rel="stylesheet" href="{{css}}">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser"></script>
+<script>
+  // The playground sets the frame's address to #<data-theme>.
+  const follow = () => { if (location.hash) document.documentElement.dataset.theme = location.hash.slice(1); };
+  addEventListener("hashchange", follow);
+  follow();
+</script>
+<style type="text/tailwindcss">
+{{tailwind}}</style>
+</head>
+<body class="bg-surface text-on-surface font-sans text-body-medium p-4">
+<main class="grid gap-4">
+  <h1 class="font-brand text-headline-medium">Utilities on the kit</h1>
+  <p class="text-body-large">Each class reads the kit's variables, so it follows the mode.</p>
+  <div class="flex flex-wrap gap-2">
+    <span class="bg-primary text-on-primary rounded-full px-4 py-2 text-label-large">Primary</span>
+    <span class="bg-secondary-container text-on-secondary-container rounded-large px-4 py-2 text-label-large">Secondary container</span>
+    <span class="bg-tertiary-container text-on-tertiary-container rounded-small px-4 py-2 text-label-large">Tertiary container</span>
+    <span class="bg-error text-on-error rounded-extra-small px-4 py-2 text-label-large">Error</span>
+  </div>
+  <div class="bg-surface-container text-on-surface-variant border border-outline-variant rounded-extra-large p-4">
+    <h2 class="text-title-large text-on-surface">A surface container</h2>
+    <p class="text-body-medium">Corners, colours and type sizes from the output.</p>
+    <code class="font-mono text-label-medium">font-mono</code>
+  </div>
+  <button class="bg-primary-container text-on-primary-container hover:bg-primary hover:text-on-primary rounded-full px-6 py-3 text-label-large transition ease-standard">Hover me</button>
+</main>
+</body>
+</html>

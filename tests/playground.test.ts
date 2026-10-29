@@ -1,6 +1,6 @@
 // The playground output: one kit-agnostic page on the kit's web outputs, a client, and tokens.json (tests/playground/ is the kit).
 import { expect, test } from "bun:test";
-import { cpSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { contrast } from "../src/color.mjs";
@@ -31,7 +31,10 @@ const built = (dir = project()) => {
   expect(result.exitCode).toBe(0);
   return dir;
 };
-const client = async (dir: string) => import(join(dir, "docs/play/playground.js"));
+// The fixture with the Tailwind output built just before the playground, which inlines it.
+const withTailwind = () => edited('c.targets = ["css", "beer", "tailwind", "playground"]; c.tailwind = { path: "ports/css/kit-tailwind.css", css: "ports/css/kit.css" }; c.playground.tailwind = "ports/css/kit-tailwind.css";');
+const tokensOf = (dir: string) => JSON.parse(read(dir, "docs/play/tokens.json"));
+const client = async (dir: string) => ({ ...(await import(join(dir, "docs/play/playground.js"))), ...(await import(join(dir, "docs/play/foundations.js"))) });
 
 test("writes index.html, playground.js and tokens.json, and --check passes on them", () => {
   const dir = built();
@@ -43,12 +46,12 @@ test("writes index.html, playground.js and tokens.json, and --check passes on th
   expect(run(dir, "--check").stderr.toString()).toContain("docs/play/playground.js is stale");
 });
 
-test("the page and the client name no kit, and the client is one module with no imports", () => {
+test("the page and the client name no kit, and the client imports only its files beside the page", () => {
   const dir = built();
-  for (const file of ["index.html", "playground.js"]) {
+  for (const file of ["index.html", "playground.js", "foundations.js", "components.js", "cards.js", "pages.js", "color.mjs"]) {
     const text = body(read(dir, `docs/play/${file}`));
     expect(text, file).not.toMatch(/acme/i);
-    expect(text, file).not.toMatch(/^import /m);
+    for (const [, from] of text.matchAll(/^import .* from "([^"]+)";$/gm)) expect(from, file).toMatch(/^\.\/[a-z]+\.m?js$/);
   }
   const page = read(dir, "docs/play/index.html");
   expect(page).toContain('@import url("https://cdn.jsdelivr.net/npm/beercss/dist/cdn/beer.min.css") layer(beer);');
@@ -122,20 +125,285 @@ test("markdown: headings (under the item's own h1), paragraphs, lists and inline
   expect(markdown("###### six")).toBe("<h6>six</h6>");
 });
 
-test("colour: a tile per role that is not an on-colour, in the role's colour under its on-colour, with the ratio the engine computes", async () => {
+type Token = { path: string; value: string; type: string };
+const MODES = ["night", "day"];
+const valueOf = (tokens: Token[], path: string) => tokens.find((token) => token.path === path)!.value;
+
+test("every foundation item builds for the fixture kit in both modes", async () => {
+  const dir = built();
+  const { default: items } = await import(join(dir, "docs/play/foundations.js"));
+  const data = tokensOf(dir);
+  expect(items.map((item: { id: string }) => item.id)).toEqual(["colour", "type", "shape", "motion", "tailwind"]);
+  for (const mode of MODES) {
+    for (const item of items) {
+      const html: string = item.body(data, data.modes[mode]);
+      expect(html.length, item.id).toBeGreaterThan(0);
+      expect(html, item.id).not.toMatch(/undefined|NaN|\[object/);
+    }
+  }
+});
+
+test("scheme: each mode's data-theme is the scheme its surface is nearer to", async () => {
+  const dir = built();
+  const { scheme } = await client(dir);
+  const data = tokensOf(dir);
+  expect(scheme(data.modes.night)).toBe("dark");
+  expect(scheme(data.modes.day)).toBe("light");
+});
+
+test("colour: the palette as swatches in the live theme's variables, each with its value", async () => {
   const dir = built();
   const { colour } = await client(dir);
-  const data = JSON.parse(read(dir, "docs/play/tokens.json"));
-  for (const mode of ["night", "day"]) {
-    const html: string = colour(data.modes[mode]);
-    const value = (path: string) => data.modes[mode].find((token: { path: string }) => token.path === path).value;
-    const ratio = (role: string, on: string) => `${contrast(value(`md.sys.color.${on}`), value(`md.sys.color.${role}`)).toFixed(2)}:1`;
-    expect(html).toContain(`background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary)`);
-    expect(html).toContain(`on-primary ${ratio("primary", "on-primary")}`);
-    expect(html).toContain(`on-surface ${ratio("surface-container", "on-surface")}`);
-    expect(html).toContain(`inverse-on-surface ${ratio("inverse-surface", "inverse-on-surface")}`);
-    expect(html).not.toContain("<b>on-primary</b>");
+  const data = tokensOf(dir);
+  for (const mode of MODES) {
+    const html: string = colour(data, data.modes[mode]);
+    const palette = data.modes[mode].filter((token: Token) => token.path.startsWith("acme.palette."));
+    expect(palette).toHaveLength(5);
+    for (const { path, value } of palette) {
+      const swatch = html.match(new RegExp(`background: var\\(--${path.replaceAll(".", "-")}\\)[^>]*>(.*?)</div>`))?.[1];
+      expect(swatch, path).toContain(value);
+      expect(swatch, path).toContain(`<b>${path.slice("acme.palette.".length)}</b>`);
+    }
+    // The Material reference palette is Material's, not the kit's.
+    expect(html).not.toContain("--md-ref-palette");
   }
+});
+
+test("colour: the roles in Material's groups, each naming every palette colour of its value", async () => {
+  const dir = built();
+  const { colour, fills } = await client(dir);
+  const data = tokensOf(dir);
+  for (const mode of MODES) {
+    const tokens: Token[] = data.modes[mode];
+    const html: string = colour(data, tokens);
+    const roles = tokens.filter((token) => token.type === "color" && token.path.startsWith("md.sys.color."));
+    const palette = tokens.filter((token) => token.path.startsWith("acme.palette."));
+    const map: Map<string, string[]> = fills(data.name, tokens);
+    expect([...map.keys()].sort()).toEqual(roles.map((role) => role.path.slice("md.sys.color.".length)).sort());
+    // Match by value, listing all.
+    for (const { path, value } of roles) {
+      const expected = palette.filter((colour) => colour.value.toLowerCase() === value.toLowerCase()).map((colour) => colour.path.slice("acme.palette.".length));
+      expect(map.get(path.slice("md.sys.color.".length)), path).toEqual(expected);
+    }
+    expect(map.get("surface")).toEqual(["ink", "shade"]);
+    expect(map.get("on-surface")).toEqual(["paper"]);
+    expect(map.get("primary")).toEqual(["blue"]);
+    expect(map.get("on-primary")).toEqual(["navy"]);
+    expect(map.get("scrim")).toEqual([]);
+    // Each group names its roles; the tile for a role shows its value and its palette colours.
+    const group = (title: string) => html.split(`<h3>${title}</h3>`)[1].split(/<h[23]>/)[0];
+    expect(Array.from(html.matchAll(/<h3>(.*?)<\/h3>/g), (found) => found[1])).toEqual(["Primary", "Secondary", "Tertiary", "Error", "Surfaces and containers", "Outline", "Inverse", "Fixed", "Other"]);
+    for (const [title, role] of [["Primary", "on-primary-container"], ["Secondary", "secondary-container"], ["Tertiary", "tertiary"], ["Error", "on-error"], ["Surfaces and containers", "surface-container-high"], ["Surfaces and containers", "on-surface-variant"], ["Surfaces and containers", "background"], ["Outline", "outline-variant"], ["Inverse", "inverse-primary"], ["Fixed", "on-primary-fixed-variant"], ["Fixed", "secondary-fixed-dim"], ["Other", "scrim"]]) {
+      expect(group(title), `${title} ${role}`).toContain(`background: var(--md-sys-color-${role});`);
+    }
+    for (const role of roles) expect(html, role.path).toContain(`background: var(--${role.path.replaceAll(".", "-")});`);
+    expect(group("Surfaces and containers")).toContain(`<b>surface</b><br><small>${valueOf(tokens, "md.sys.color.surface")} · ink, shade</small>`);
+    expect(group("Other")).toContain("<b>scrim</b><br><small>" + valueOf(tokens, "md.sys.color.scrim") + " · no palette match</small>");
+  }
+});
+
+test("colour: each role on its on-colour with the ratio the engine computes, and a failing pair marked", async () => {
+  const dir = built();
+  const { colour, pairs } = await client(dir);
+  const data = tokensOf(dir);
+  let failing = 0;
+  let passing = 0;
+  for (const mode of MODES) {
+    const tokens: Token[] = data.modes[mode];
+    const html: string = colour(data, tokens);
+    const section = html.split("<h2>Contrast</h2>")[1];
+    const value = (role: string) => valueOf(tokens, `md.sys.color.${role}`);
+    const pairing: string[][] = pairs(new Set(tokens.filter((token) => token.path.startsWith("md.sys.color.")).map((token) => token.path.slice("md.sys.color.".length))));
+    const has = (bg: string, fg: string) => expect(pairing.some(([a, b]) => a === bg && b === fg), `${bg} on ${fg}`).toBe(true);
+    for (const [bg, fg] of [["primary", "on-primary"], ["primary-container", "on-primary-container"], ["error", "on-error"], ["background", "on-background"], ["surface", "on-surface"], ["surface", "on-surface-variant"], ["surface-variant", "on-surface-variant"], ["surface-dim", "on-surface"], ["surface-container-highest", "on-surface"], ["inverse-surface", "inverse-on-surface"], ["primary-fixed", "on-primary-fixed"], ["primary-fixed-dim", "on-primary-fixed"], ["primary-fixed", "on-primary-fixed-variant"]]) has(bg, fg);
+    // A colour with nothing to read on it is not a pair.
+    for (const [bg, fg] of pairing) {
+      expect(fg.startsWith("on-") || fg === "inverse-on-surface", fg).toBe(true);
+      expect(bg, bg).not.toMatch(/^(outline|scrim|shadow|inverse-primary|surface-tint)/);
+    }
+    const tiles = [...section.matchAll(/<div class="padding round"([^>]*) style="background: var\(--md-sys-color-([a-z-]+)\); color: var\(--md-sys-color-([a-z-]+)\)">(.*?)<\/div>/g)];
+    expect(tiles.map((tile) => [tile[2], tile[3]])).toEqual(pairing);
+    for (const [, flag, bg, fg, text] of tiles) {
+      const ratio = contrast(value(fg), value(bg));
+      expect(text, `${bg} on ${fg}`).toContain(`${ratio.toFixed(2)}:1`);
+      // Text pairs need 4.5:1.
+      expect(flag === " data-fail", `${bg} on ${fg} ${ratio}`).toBe(ratio < 4.5);
+      if (ratio < 4.5) failing++;
+      else passing++;
+    }
+  }
+  // The fixture has both kinds, or the marking would be vacuous.
+  expect(failing).toBeGreaterThan(0);
+  expect(passing).toBeGreaterThan(0);
+});
+
+test("type: the 15 Material styles, a line each through the kit's variables with its size, line height and weight", async () => {
+  const dir = built();
+  const { type } = await client(dir);
+  const data = tokensOf(dir);
+  const styles = ["display", "headline", "title", "body", "label"].flatMap((group) => ["large", "medium", "small"].map((size) => `${group}-${size}`));
+  for (const mode of MODES) {
+    const tokens: Token[] = data.modes[mode];
+    const html: string = type(data, tokens);
+    expect(html.match(/data-style="/g)).toHaveLength(15);
+    expect(Array.from(html.matchAll(/data-style="([a-z-]+)"/g), (found) => found[1])).toEqual(styles);
+    for (const style of styles) {
+      const at = (part: string) => valueOf(tokens, `md.sys.typescale.${style}.${part}`);
+      const line = html.split(`data-style="${style}"`)[1].split("</div></div>")[0];
+      for (const part of ["weight", "size", "line-height", "font", "tracking"]) expect(line, `${style} ${part}`).toContain(`var(--md-sys-typescale-${style}-${part})`);
+      expect(line, style).toContain(`${at("size")} / ${at("line-height")} · ${at("weight")}`);
+    }
+  }
+});
+
+test("type: the faces to load come from the type tokens, one link per family, and no family is named in the client", async () => {
+  const dir = built();
+  const { fontLinks } = await client(dir);
+  const data = tokensOf(dir);
+  const weights = [...new Set(data.modes.night.filter((token: Token) => /^md\.sys\.typescale\.[a-z-]+\.weight$/.test(token.path)).map((token: Token) => token.value))].sort((a: any, b: any) => a - b).join(";");
+  const links: string[] = fontLinks(data.modes.night);
+  expect(links.sort()).toEqual([
+    `https://fonts.googleapis.com/css2?family=Fixture+Sans:wght@${weights}&display=swap`,
+    `https://fonts.googleapis.com/css2?family=Fixture+Serif:wght@${weights}&display=swap`,
+  ]);
+  // A kit whose type tokens name no family loads none (generic stacks are not families).
+  expect(fontLinks([{ path: "md.sys.typescale.body-large.font", value: "'a b', serif, system-ui", type: "fontFamily" }, { path: "x.font", value: "Other", type: "fontFamily" }])).toEqual(["https://fonts.googleapis.com/css2?family=a+b&display=swap"]);
+  // The page and the client carry no family: not the fixture's, and not a Material or house default.
+  for (const file of ["index.html", "playground.js", "foundations.js", "components.js", "cards.js", "pages.js"]) expect(body(read(dir, `docs/play/${file}`)), file).not.toMatch(/Fixture|Roboto|Inter\b|Cascadia|Google Sans|Material Symbols/i);
+  expect(read(dir, "docs/play/index.html")).not.toContain("fonts.googleapis.com");
+  for (const file of ["foundations.js", "playground.js"]) expect(readFileSync(join(root, "src/web", file), "utf8"), file).not.toMatch(/Fixture|Roboto|Inter\b|Cascadia|Google Sans/i);
+});
+
+test("shape: the corner scale as boxes, smallest first, each rounded by the kit's variable", async () => {
+  const dir = built();
+  const { shape } = await client(dir);
+  const data = tokensOf(dir);
+  for (const mode of MODES) {
+    const tokens: Token[] = data.modes[mode];
+    const html: string = shape(data, tokens);
+    const corners = tokens.filter((token) => /^md\.sys\.shape\.corner\.[a-z-]+$/.test(token.path) && token.type === "dimension");
+    const named = Array.from(html.matchAll(/border-radius: var\(--md-sys-shape-corner-([a-z-]+)\)/g), (found) => found[1]);
+    expect(named.sort()).toEqual(corners.map((corner) => corner.path.split(".").at(-1)!).sort());
+    expect(named).not.toContain("extra-large-top");
+    // Smallest first.
+    const sizes = Array.from(html.matchAll(/border-radius: var\(--md-sys-shape-corner-([a-z-]+)\)/g), (found) => Number.parseFloat(valueOf(tokens, `md.sys.shape.corner.${found[1]}`)));
+    expect(sizes).toEqual([...sizes].sort((a, b) => a - b));
+    expect(html).toContain(`<b>medium</b><br><small>${valueOf(tokens, "md.sys.shape.corner.medium")}</small>`);
+  }
+});
+
+test("motion: the durations and easings with a replay button, a dot on each track", async () => {
+  const dir = built();
+  const { motion } = await client(dir);
+  const data = tokensOf(dir);
+  for (const mode of MODES) {
+    const tokens: Token[] = data.modes[mode];
+    const html: string = motion(data, tokens);
+    const durations = tokens.filter((token) => token.type === "duration" && token.path.startsWith("md.sys.motion.duration."));
+    const easings = tokens.filter((token) => token.type === "cubicBezier" && token.path.startsWith("md.sys.motion.easing."));
+    expect(durations.length).toBeGreaterThan(0);
+    expect(easings.length).toBeGreaterThan(0);
+    expect(html).toContain("data-replay");
+    expect(html.match(/data-track/g)).toHaveLength(durations.length + easings.length);
+    for (const { path, value } of durations) {
+      expect(html, path).toContain(`--dur: var(--${path.replaceAll(".", "-")})`);
+      expect(html, path).toContain(`<small>${value}</small>`);
+    }
+    for (const { path, value } of easings) {
+      expect(html, path).toContain(`--ease: var(--${path.replaceAll(".", "-")})`);
+      expect(html, path).toContain(`<small>${value}</small>`);
+    }
+    // Durations in order, shortest first.
+    const ms = Array.from(html.matchAll(/--dur: var\(--md-sys-motion-duration-([a-z0-9-]+)\)/g), (found) => Number.parseFloat(valueOf(tokens, `md.sys.motion.duration.${found[1]}`)));
+    expect(ms.slice(0, durations.length)).toEqual([...ms.slice(0, durations.length)].sort((a, b) => a - b));
+  }
+});
+
+test("motion: replay moves each dot over its track with its duration and easing, and stands still under reduced motion", async () => {
+  const { replay } = await client(built());
+  const saved = { matchMedia: (globalThis as any).matchMedia, getComputedStyle: (globalThis as any).getComputedStyle };
+  const played: unknown[] = [];
+  const track = {
+    clientWidth: 300,
+    querySelector: () => ({ offsetWidth: 24, animate: (...args: unknown[]) => played.push(args) }),
+  };
+  const root = { querySelectorAll: () => [track] };
+  (globalThis as any).getComputedStyle = () => ({ getPropertyValue: (name: string) => (name === "--dur" ? " 500ms" : " cubic-bezier(0.2, 0, 0, 1)") });
+  try {
+    (globalThis as any).matchMedia = (query: string) => ({ matches: query === "(prefers-reduced-motion: reduce)" });
+    replay(root);
+    expect(played).toHaveLength(0);
+    (globalThis as any).matchMedia = () => ({ matches: false });
+    replay(root);
+    expect(played).toHaveLength(1);
+    const [frames, options] = played[0] as [{ transform: string }[], { duration: number; easing: string }];
+    expect(frames.at(-1)!.transform).toBe("translateX(276px)");
+    expect(options).toEqual({ duration: 500, easing: "cubic-bezier(0.2, 0, 0, 1)" });
+  } finally {
+    Object.assign(globalThis, saved);
+  }
+});
+
+test("tailwind: without the option the item says the kit has none and writes no page; with it, a frame", async () => {
+  const plain = built();
+  const { tailwind } = await client(plain);
+  const data = tokensOf(plain);
+  expect(existsSync(join(plain, "docs/play/tailwind.html"))).toBe(false);
+  expect("tailwind" in data).toBe(false);
+  expect(tailwind(data, data.modes.night)).toContain("no Tailwind output");
+  expect(tailwind(data, data.modes.night)).not.toContain("<iframe");
+
+  const dir = built(withTailwind());
+  const withData = tokensOf(dir);
+  expect(Object.keys(withData)).toEqual(["name", "version", "modes", "tailwind", "notes"]);
+  expect(withData.tailwind).toBe("tailwind.html");
+  const html: string = tailwind(withData, withData.modes.night);
+  expect(html).toContain('<iframe data-frame="tailwind.html"');
+  expect(html).not.toContain("no Tailwind output");
+});
+
+test("tailwind.html inlines the kit's Tailwind file, loads the browser build at latest and the kit's css, and uses only classes the output defines", () => {
+  const dir = built(withTailwind());
+  const page = read(dir, "docs/play/tailwind.html");
+  const output = read(dir, "ports/css/kit-tailwind.css");
+  expect(page).toStartWith("<!doctype html>\n<!-- Generated by kumiko");
+  // Without its comments: Tailwind's browser build reads @import "tailwindcss" even inside one, and draws nothing.
+  expect(output).toContain('@import "tailwindcss"');
+  expect(page).toContain(`<style type="text/tailwindcss">\n${output.replace(/\/\*[\s\S]*?\*\//g, "")}</style>`);
+  expect(page.slice(page.indexOf('<style type="text/tailwindcss">'))).not.toContain("/*");
+  expect(page).toContain('<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser"></script>');
+  expect(page).toContain('<link rel="stylesheet" href="../../ports/css/kit.css">');
+  expect(page).not.toContain("beer");
+  // The mode comes from the parent, in the hash.
+  expect(page).toContain("location.hash");
+  // Every utility that reads the theme is one the output defines.
+  const markup = page.slice(page.indexOf("<body"));
+  const classes = new Set([...markup.matchAll(/class="([^"]+)"/g)].flatMap((found) => found[1].split(/\s+/)));
+  const keys = new Set([...output.matchAll(/--([a-z0-9-]+):/g)].map((found) => found[1]));
+  const themed = [...classes].map((name) => name.replace(/^(?:hover:|focus-visible:)/, "")).filter((name) => /^(bg|text|border|rounded|font|ease)-/.test(name));
+  expect(themed.length).toBeGreaterThan(8);
+  const namespace: Record<string, string[]> = { bg: ["color"], border: ["color"], text: ["color", "text"], rounded: ["radius"], font: ["font"], ease: ["ease"] };
+  for (const name of themed) {
+    const [prefix, ...rest] = name.split("-");
+    expect(namespace[prefix].some((space) => keys.has(`${space}-${rest.join("-")}`)), name).toBe(true);
+  }
+  // The specimen shows a colour pair, a corner, a face and a type size.
+  for (const used of ["bg-primary", "text-on-primary", "font-brand", "font-mono"]) expect(classes.has(used), used).toBe(true);
+  expect([...classes].some((name) => name.startsWith("rounded-"))).toBe(true);
+  expect([...classes].some((name) => /^text-(display|headline|title|body|label)-/.test(name))).toBe(true);
+  expect(run(dir, "--check").exitCode).toBe(0);
+});
+
+test("a tailwind option naming a file no output made and none on disk fails, naming it", () => {
+  const result = run(edited('c.playground.tailwind = "ports/css/nothing.css";'));
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr.toString()).toContain('playground option "tailwind" names ports/css/nothing.css');
+});
+
+test("no kit name in the client files, as built and in the source (tailwind.html carries the kit's own output)", () => {
+  const dir = built(withTailwind());
+  for (const file of ["index.html", "playground.js", "foundations.js", "components.js", "cards.js", "pages.js", "color.mjs"]) expect(body(read(dir, `docs/play/${file}`)), file).not.toMatch(/acme/i);
+  for (const file of ["playground.js", "foundations.js", "tailwind.html"]) expect(readFileSync(join(root, "src/web", file), "utf8"), file).not.toMatch(/acme/i);
 });
 
 test("view: five destinations in a rail and a bar, the open item in a list-detail, one pane at a time on small", async () => {
@@ -165,6 +433,81 @@ test("view: five destinations in a rail and a bar, the open item in a list-detai
   // The mode switch names the modes and marks the current one.
   expect(open).toContain('<button class="active" data-mode="night">Night</button>');
   expect(open).toContain('<button data-mode="day">Day</button>');
+});
+
+// Every destination's module, as the built page loads them.
+const modules = async (dir: string) => {
+  const load = async (name: string) => (await import(join(dir, `docs/play/${name}.js`))).default as { id: string; name: string; body: (data: unknown, tokens: unknown) => string }[];
+  return { foundations: await load("foundations"), components: await load("components"), cards: await load("cards"), pages: await load("pages") };
+};
+// The tags of a fragment open and close in order (void elements and self-closing tags aside).
+const balanced = (html: string) => {
+  const voids = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);
+  const stack: string[] = [];
+  for (const [, close, tag] of html.matchAll(/<(\/?)([a-z][a-z0-9]*)\b[^>]*>/gi)) {
+    const name = tag.toLowerCase();
+    if (voids.has(name)) continue;
+    if (!close) stack.push(name);
+    else if (stack.pop() !== name) return false;
+  }
+  return stack.length === 0;
+};
+
+// Beer's documented components, by the id a component item carries (Grid, Layout, Main layout, Page and Typography are
+// layout and type, which the playground's own page and Foundations draw).
+const BEER = [
+  "badge", "button", "icon-button", "fab", "button-group", "chip", "card", "checkbox", "radio", "switch", "slider",
+  "text-field", "textarea", "select", "menu", "dialog", "snackbar", "tooltip", "progress", "overlay", "shape", "icon", "media",
+  "list", "divider", "expansion", "table", "tabs", "navigation-bar", "navigation-rail", "navigation-drawer", "top-app-bar",
+  "bottom-app-bar", "toolbar",
+];
+
+test("every item of every destination builds non-empty, balanced html with a unique id, and no inline style", async () => {
+  const dir = built();
+  const data = JSON.parse(read(dir, "docs/play/tokens.json"));
+  for (const [destination, items] of Object.entries(await modules(dir))) {
+    expect(new Set(items.map((item) => item.id)).size, destination).toBe(items.length);
+    for (const item of items) {
+      const html = item.body(data, data.modes.night);
+      expect(html.length, `${destination}/${item.id}`).toBeGreaterThan(0);
+      expect(balanced(html), `${destination}/${item.id} is balanced`).toBe(true);
+      if (destination !== "foundations") expect(html, `${destination}/${item.id}`).not.toContain("style=");
+    }
+  }
+});
+
+test("the component items cover Beer's documented components, each naming its Beer doc", async () => {
+  const dir = built();
+  const data = JSON.parse(read(dir, "docs/play/tokens.json"));
+  const { components } = await modules(dir);
+  expect(components.map((item) => item.id)).toEqual(expect.arrayContaining(BEER));
+  for (const item of components) expect(item.body(data, data.modes.night), item.id).toContain("github.com/beercss/beercss/blob/main/docs/");
+});
+
+test("cards are built from the components' builders, and pages from cards and components", async () => {
+  const dir = built();
+  const data = JSON.parse(read(dir, "docs/play/tokens.json"));
+  expect(read(dir, "docs/play/cards.js")).toMatch(/^import \{[^}]+\} from "\.\/components\.js";$/m);
+  expect(read(dir, "docs/play/pages.js")).toMatch(/^import \{[^}]+\} from "\.\/components\.js";$/m);
+  expect(read(dir, "docs/play/pages.js")).toMatch(/^import \{[^}]+\} from "\.\/cards\.js";$/m);
+  const { components } = await import(join(dir, "docs/play/components.js")).then((module) => ({ components: module }));
+  for (const builder of ["button", "iconButton", "chip", "field", "listItem", "list", "card", "switchRow"]) expect(typeof components[builder], builder).toBe("function");
+  const { cards, pages } = await modules(dir);
+  for (const item of cards) expect(item.body(data, data.modes.night), item.id).toMatch(/<article[ >]/);
+  // A page is a framed area holding cards and navigation.
+  for (const item of pages) {
+    const html = item.body(data, data.modes.night);
+    expect(html, item.id).toContain("<article");
+    expect(html, item.id).toContain("data-ui=");
+  }
+});
+
+test("the client's source names no kit and types no value", () => {
+  for (const file of ["components.js", "cards.js", "pages.js"]) {
+    const text = readFileSync(join(root, "src/web", file), "utf8");
+    expect(text, file).not.toMatch(/tokyo|wils|domain|cascadia|acme|\btm-/i);
+    expect(text, file).not.toMatch(/#[0-9a-f]{3,8}\b|\d(px|rem|ms)\b/i);
+  }
 });
 
 test("the page carries no CSS of its own: Beer's layer import is its only style", () => {

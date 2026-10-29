@@ -144,11 +144,11 @@ test("a kit with a non-semver VERSION fails naming VERSION", () => {
   expect(result.stderr.toString()).toContain("VERSION");
 });
 
-test("with no kit, a target's ctx carries no new keys", () => {
+test("with no kit, a target's ctx carries no kit keys", () => {
   const dir = kitProject(undefined, null);
   expect(run(dir).exitCode).toBe(0);
   expect(JSON.parse(read(dir, "echo.json")).keys).toEqual(
-    ["media", "mediaTokens", "options", "readExisting", "tokens"]);
+    ["built", "media", "mediaTokens", "options", "readExisting", "tokens"]);
 });
 
 // A kit's tokens are not schema-checked: a hex-string colour builds and passes --check.
