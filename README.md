@@ -20,3 +20,6 @@ export default {
 ```
 
 `kit` is optional. When set, `name` is required, `root` is the kit folder relative to the config and defaults to `design`, and `VERSION` in the working directory must hold a semantic version. Every target's `ctx` then also carries `root`, `version` and `name`; without `kit` it carries none of them.
+
+A kit may declare `contrast: [{ fg, bg, min }]` (token paths and a minimum ratio: 4.5 for text, 3 for marks). Every pair is resolved in the base tokens and in each `media` set, and a pair under its floor, or a path that is not a colour token, fails the build and `--check`, naming the pair, the mode, the ratio and the floor.
+The colour maths (`luminance`, `contrast`, `mix`, `bestOn`, `stateLayer`, `textSafe`, `hsl`, `rgb`) live in `src/color.mjs`.

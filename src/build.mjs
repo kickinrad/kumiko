@@ -5,6 +5,7 @@ import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import StyleDictionary from "style-dictionary";
+import { checkContrast } from "./checks/contrast.mjs";
 import builtins from "./targets/index.mjs";
 
 export const DEFAULT_TARGETS = ["css", "theme-json", "design-md"];
@@ -210,6 +211,8 @@ export const build = async (config = {}, { check = false } = {}) => {
       return result;
     });
   };
+
+  await checkContrast(config.kit?.contrast, { tokens, media, mediaTokens });
 
   const readExisting = async (path) => {
     try { return await readFile(path, "utf8"); }
