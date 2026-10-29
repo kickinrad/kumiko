@@ -82,3 +82,22 @@ derived: {
 ```
 
 A missing required option fails, naming it. The colour roles read are Material's: `surface`, `surface-container-lowest`, `surface-container-low`, `on-surface`, `inverse-surface`, `inverse-on-surface` and the accents. `src/motion.mjs` (springs as CSS `linear()` easings) and `src/type.mjs` (the fifteen type styles) are libraries for other outputs, not targets.
+
+## Drift guard: `tokens lint`
+
+`tokens lint <path> [<path>...]` fails when a consumer's source hand-types a value the theme defines, instead of reading the theme's variable. A path is a file or a directory (walked; `node_modules`, `.git` and dot-directories are skipped). It scans `.css .scss .yaml .yml .py .js .mjs .ts .jinja .html .kt .kts`; other files are ignored.
+
+| Rule | Finding |
+| --- | --- |
+| colour | a 3, 4, 6 or 8-digit hex (`#fff`, `#rrggbbaa`; not a `repo#123` reference); `rgb(`, `rgba(`, `hsl(`, `hsla(` followed by a digit; Kotlin `Color(0x…)` |
+| motion | a literal duration (`120ms`, `6s`) in a CSS `transition` or `animation` declaration; any `cubic-bezier(`; Compose `tween(` with a number first argument |
+| type size | CSS `font-size:` in px; a Kotlin `.sp` literal |
+| radius | CSS `border-radius:` with a non-zero px; Compose `RoundedCornerShape(` with a `.dp` literal |
+
+Zero values pass. Two skips: a file carrying the generated header, and a line carrying `lint: own <why>` with a non-empty reason (a consumer's named local value).
+
+```
+modules/otto_control.yaml:68: motion: 120ms
+```
+
+One line per finding, `path:line: rule: matched text`, then exit 1. A clean run prints nothing and exits 0; a missing path fails, naming it.
