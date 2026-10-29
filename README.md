@@ -109,12 +109,12 @@ With an option absent, Beer keeps its own value for what it sets. An option nami
 playground: { path: "docs/playground", css: "src/styles/tokens.css", beer: "src/styles/beer.css" }
 ```
 
-`path` is a directory; `css` and `beer` are the kit's two outputs, as the config gives them, and the page links them by paths relative to itself. It writes three files:
+`path` is a directory; `css` and `beer` are the kit's two outputs, as the config gives them, and the page links them by paths relative to itself. It writes:
 
 | File | Holds |
 | --- | --- |
 | `index.html` | one fixed page that names no kit: Beer from the CDN at latest in a cascade layer, the kit's `css` and `beer` outputs, and `playground.js` |
-| `playground.js` | the engine's client, one module: a navigation rail (Foundations, Components, Cards, Pages, Rules), each destination a list-detail layout with an item at `#destination/item`, and a top app bar with the kit's name and a switch for its modes |
+| `playground.js`, `foundations.js`, `components.js`, `cards.js`, `pages.js`, `color.mjs` | the engine's client, a module per destination beside the shell and the engine's colour maths: a navigation rail (Foundations, Components, Cards, Pages, Rules), each destination a list-detail layout with an item at `#destination/item`, and a top app bar with the kit's name and a switch for its modes |
 | `tokens.json` | `{ name, version, modes, notes }`: every token in the base mode and in each `media` mode (`path`, `value`, `type`, `description`), and the text of `<kit root>/notes.md` if it exists; the only per-kit data the page reads |
 
 Serve the directory with the rest of the project (the page fetches `tokens.json` and links the stylesheets), and set the mode with the switch. The page draws Foundations' colour (each role in its colour under its on-colour, with the contrast between them) and Rules (`notes.md` as Markdown: headings, paragraphs, lists and inline code); Components, Cards and Pages are placeholders. The rail is Beer's bottom bar on small screens, where one pane shows at a time. A mode's `data-theme` value is the colour scheme its surface is nearer to, so the switch needs one dark and one light mode.

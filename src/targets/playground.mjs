@@ -1,14 +1,19 @@
 // The playground: one page on the kit's generated web outputs, so the kit shows itself on its own theme.
-// Writes three files into options.path: index.html (fixed, names no kit), playground.js (the engine's client,
-// src/web/playground.js with src/color.mjs joined in place of its import, so it is one module) and tokens.json
-// (the kit's name, version, tokens per mode and notes: the only per-kit data the page reads).
+// Writes into options.path: index.html (fixed, names no kit), the engine's client (src/web: playground.js and a
+// module per destination, with color.mjs, the engine's colour maths, beside them) and tokens.json (the kit's name,
+// version, tokens per mode and notes: the only per-kit data the page reads).
 // Options: path (a directory), css and beer (the kit's css and beer outputs, as the config gives them).
 import { join, relative, resolve } from "node:path";
-import clientSource from "../web/playground.js" with { type: "text" };
+import cards from "../web/cards.js" with { type: "text" };
+import components from "../web/components.js" with { type: "text" };
+import foundations from "../web/foundations.js" with { type: "text" };
+import pages from "../web/pages.js" with { type: "text" };
+import playground from "../web/playground.js" with { type: "text" };
 import { need, needKit } from "../system.mjs";
 
 const BEER = "https://cdn.jsdelivr.net/npm/beercss/dist/cdn";
-const COLOR_IMPORT = /^import \{[^}]*\} from "\.\.\/color\.mjs";\n/m;
+// The client's modules; each imports the colour maths from "../color.mjs" in the source and "./color.mjs" beside the page.
+const CLIENT = { "playground.js": playground, "foundations.js": foundations, "components.js": components, "cards.js": cards, "pages.js": pages };
 const attribute = (text) => text.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 
 // Each token on its own line, so a change to one token is one line of diff.
@@ -30,9 +35,7 @@ export default {
 
     // color.mjs is a module of the engine too, and the bundler cannot embed a module as text beside importing it,
     // so the binary carries it as an asset (mise.toml: --asset src/color.mjs); from source it is the file.
-    const colorSource = await (Bun.embeddedFiles.find((file) => file.name === "color.mjs") ?? Bun.file(new URL("../color.mjs", import.meta.url))).text();
-    const script = clientSource.replace(COLOR_IMPORT, () => colorSource);
-    if (script === clientSource) throw new Error("playground: the client no longer imports color.mjs where the target joins it");
+    const color = await (Bun.embeddedFiles.find((file) => file.name === "color.mjs") ?? Bun.file(new URL("../color.mjs", import.meta.url))).text();
     const page = [
       "<!doctype html>",
       '<html lang="en">',
@@ -61,7 +64,8 @@ export default {
     const data = `{\n${fields.map((field) => `  ${field}`).join(",\n")}\n}\n`;
     return [
       { path: join(dir, "index.html"), content: page },
-      { path: join(dir, "playground.js"), content: script },
+      ...Object.entries(CLIENT).map(([file, source]) => ({ path: join(dir, file), content: source.replaceAll('"../color.mjs"', '"./color.mjs"') })),
+      { path: join(dir, "color.mjs"), content: color },
       { path: join(dir, "tokens.json"), content: data },
     ];
   },

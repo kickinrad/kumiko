@@ -31,7 +31,7 @@ const built = (dir = project()) => {
   expect(result.exitCode).toBe(0);
   return dir;
 };
-const client = async (dir: string) => import(join(dir, "docs/play/playground.js"));
+const client = async (dir: string) => ({ ...(await import(join(dir, "docs/play/playground.js"))), ...(await import(join(dir, "docs/play/foundations.js"))) });
 
 test("writes index.html, playground.js and tokens.json, and --check passes on them", () => {
   const dir = built();
@@ -43,12 +43,12 @@ test("writes index.html, playground.js and tokens.json, and --check passes on th
   expect(run(dir, "--check").stderr.toString()).toContain("docs/play/playground.js is stale");
 });
 
-test("the page and the client name no kit, and the client is one module with no imports", () => {
+test("the page and the client name no kit, and the client imports only its files beside the page", () => {
   const dir = built();
-  for (const file of ["index.html", "playground.js"]) {
+  for (const file of ["index.html", "playground.js", "foundations.js", "components.js", "cards.js", "pages.js", "color.mjs"]) {
     const text = body(read(dir, `docs/play/${file}`));
     expect(text, file).not.toMatch(/acme/i);
-    expect(text, file).not.toMatch(/^import /m);
+    for (const [, from] of text.matchAll(/^import .* from "([^"]+)";$/gm)) expect(from, file).toMatch(/^\.\/[a-z]+\.m?js$/);
   }
   const page = read(dir, "docs/play/index.html");
   expect(page).toContain('@import url("https://cdn.jsdelivr.net/npm/beercss/dist/cdn/beer.min.css") layer(beer);');
