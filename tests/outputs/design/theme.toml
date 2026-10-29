@@ -1,0 +1,71 @@
+name = "acme"
+default = "night"
+
+[media]
+day = "(prefers-color-scheme: light)"
+
+[palette.night]
+crust = "#141414"
+mantle = "#1f1f1f"
+base = "#292929"
+surface0 = "#333333"
+surface1 = "#3d3d3d"
+text = "#ffffff"
+subtext1 = "#d6d6d6"
+subtext0 = "#adadad"
+overlay = "#666666"
+blue = "#7aa2f7"
+cyan = "#7dcfff"
+purple = "#bb9af7"
+green = "#9ece6a"
+red = "#f79178"
+orange = "#ff9e64"
+yellow = "#e0af68"
+teal = "#73daca"
+
+[palette.day]
+crust = "#ebebeb"
+mantle = "#f5f5f5"
+base = "#ffffff"
+surface0 = "#fafafa"
+surface1 = "#e0e0e0"
+text = "#242424"
+subtext1 = "#424242"
+subtext0 = "#616161"
+overlay = "#d1d1d1"
+blue = "#2e7de9"
+cyan = "#007197"
+purple = "#9854f1"
+green = "#587539"
+red = "#c64343"
+orange = "#b15c00"
+yellow = "#8c6c3e"
+teal = "#118c74"
+
+[roles]
+"md.sys.color.surface" = "base"
+"md.sys.color.surface-container-lowest" = "crust"
+"md.sys.color.surface-container-low" = "mantle"
+"md.sys.color.surface-container" = "base"
+"md.sys.color.surface-container-high" = "surface0"
+"md.sys.color.surface-container-highest" = "surface1"
+"md.sys.color.on-surface" = "text"
+"md.sys.color.on-surface-variant" = "subtext1"
+"md.sys.color.inverse-surface" = "text"
+"md.sys.color.inverse-on-surface" = "crust"
+"md.sys.color.primary" = "blue"
+"md.sys.color.secondary" = "teal"
+"md.sys.color.tertiary" = "purple"
+"md.sys.color.error" = "red"
+"acme.color.on-surface-muted" = "subtext0"
+"acme.color.comment" = "overlay"
+"acme.color.yellow" = "yellow"
+"acme.color.orange" = "orange"
+"acme.color.cyan" = "cyan"
+"acme.color.green" = "green"
+
+[faces]
+brand = ["Some Sans", "sans-serif"]
+plain = ["Some Sans", "sans-serif"]
+mono = ["Some Mono", "monospace"]
+icon = "Some Icons"

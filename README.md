@@ -101,3 +101,16 @@ modules/otto_control.yaml:68: motion: 120ms
 ```
 
 One line per finding, `path:line: rule: matched text`, then exit 1. A clean run prints nothing and exits 0; a missing path fails, naming it.
+
+## The `tailwind`, `compose-tv`, `obsidian` and `mealie` outputs
+
+Four more built-in outputs for a declared kit (they read `ctx.name` and `VERSION`, and fail without a `kit`). Each reads the resolved tokens, the kit's token prefix is its name, and the base mode comes first with the first `media` mode second. Every title, path and line of house wording is an option; `tests/outputs/` is a small kit with golden files for all four.
+
+| Output | Writes | Options (required first) |
+| --- | --- | --- |
+| `tailwind` | one Tailwind v4 `@theme inline` file mapping its namespaces onto the kit's runtime CSS variables | `path`, `css` (the runtime CSS file, named in the header); `title`, `generatedBy` |
+| `compose-tv` | `Color.kt`, `Type.kt`, `Shape.kt`, `Tokens.kt`, `Motion.kt` for androidx.tv.material3 | `out` (directory), `package`; `title`, `short`, `generatedBy`, `ownColours`, `fontNote` (two comment lines) |
+| `obsidian` | a snippet per mode for the Minimal theme: `<out>-<mode>.css` | `out`, `modes` (the two mode names, base first); `title`, `tagline`, `generatedBy`, `license`, `font` |
+| `mealie` | `<out>.env` (Mealie's colour slots) and `<out>.css` (a full-look overlay) | `out`, `modes`, `palette`; `title`, `generatedBy` |
+
+`mealie`'s `palette` names the kit's palette colours (`<name>.palette.*`): `slots` and `overlay` map Mealie's seven slots (`primary`, `accent`, `secondary`, `success`, `info`, `warning`, `error`) to a colour each, `layers` lists five colours darkest first (background, surface, base, raised, border), and `text`, `muted` and `stars` name three more. `compose-tv` needs the kit's `<name>.layout.card-gap`, `.card-inset` and `<name>.tv.safe-margin`, Material's focus-indicator thickness, and uses any `<name>.domain.*` colours. `obsidian` needs the kit's `on-surface-muted`, `comment`, `yellow`, `orange`, `cyan` and `green` roles (under `<name>.color`).

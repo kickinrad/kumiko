@@ -1,0 +1,60 @@
+{
+  "acme": {
+    "layout": {
+      "card-gap": {
+        "$type": "dimension",
+        "$value": {
+          "value": 8,
+          "unit": "px"
+        }
+      },
+      "card-inset": {
+        "$type": "dimension",
+        "$value": {
+          "value": 16,
+          "unit": "px"
+        }
+      }
+    },
+    "tv": {
+      "safe-margin": {
+        "$type": "dimension",
+        "$value": {
+          "value": 58,
+          "unit": "px"
+        }
+      }
+    },
+    "domain": {
+      "light": {
+        "container": {
+          "$type": "color",
+          "$value": "{acme.palette.yellow}"
+        }
+      }
+    }
+  },
+  "md": {
+    "sys": {
+      "typescale": {
+        "label-large": {
+          "font": {
+            "$type": "fontFamily",
+            "$value": "{acme.typeface.mono}"
+          }
+        }
+      },
+      "state": {
+        "focus-indicator": {
+          "thickness": {
+            "$type": "dimension",
+            "$value": {
+              "value": 3,
+              "unit": "px"
+            }
+          }
+        }
+      }
+    }
+  }
+}
