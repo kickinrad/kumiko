@@ -9,6 +9,7 @@ import material from "./material.mjs";
 import { checkHeader, stamp } from "./header.mjs";
 import { checkContrast } from "./checks/contrast.mjs";
 import { checkSchema } from "./checks/schema.mjs";
+import { loadTheme, syncTheme, withMedia } from "./theme.mjs";
 import builtins from "./targets/index.mjs";
 
 // Built-in include layers, named in a config's `include` beside its file globs.
@@ -157,16 +158,20 @@ export const build = async (config = {}, { check = false } = {}) => {
   for (const spec of specs) targets.push(await loadTarget(spec));
   const kit = await loadKit(config.kit);
 
-  const media = config.media ?? {};
+  // The kit's theme.toml becomes token files: its default is an include layer, its modes join their media query.
+  const theme = await loadTheme(kit);
+  await syncTheme(theme, { check });
+  const media = withMedia(theme, config.media);
   const mediaPaths = new Set(Object.values(media).flat().map((file) => resolve(file)));
   // Sorted: directory listing order varies by filesystem and runtime, and output order must not.
   const baseFiles = (await readdir("tokens"))
     .filter((file) => file.endsWith(".tokens.json"))
     .sort()
     .map((file) => `tokens/${file}`)
-    .filter((file) => !mediaPaths.has(resolve(file)));
+    .filter((file) => !mediaPaths.has(resolve(file)) && !theme.include.includes(resolve(file)));
   // Includes are a silent base layer under the project's own tokens, which override them: file globs, and
-  // built-in layers (builtin:<name>), which sit beneath the globs.
+  // built-in layers (builtin:<name>), which sit beneath the globs. The theme's default sits last among the
+  // globs: above the built-in layers and other includes, below the project.
   const include = [];
   const builtin = {};
   for (const spec of config.include ?? []) {
@@ -174,6 +179,7 @@ export const build = async (config = {}, { check = false } = {}) => {
     if (!layers[spec]) throw new Error(`Unknown built-in include ${spec}`);
     Object.assign(builtin, layers[spec].tokens());
   }
+  include.push(...theme.include);
   if (check && config.kit) await checkSchema({ files: [...baseFiles, ...mediaPaths], include });
   const dictionary = makeDictionary(baseFiles, include, builtin);
   const raw = await dictionary.getPlatformTokens("raw");
