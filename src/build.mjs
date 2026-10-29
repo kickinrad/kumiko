@@ -6,6 +6,7 @@ import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import StyleDictionary from "style-dictionary";
 import { checkSchema } from "./checks/schema.mjs";
+import { loadTheme, syncTheme, withMedia } from "./theme.mjs";
 import builtins from "./targets/index.mjs";
 
 export const DEFAULT_TARGETS = ["css", "theme-json", "design-md"];
@@ -150,16 +151,20 @@ export const build = async (config = {}, { check = false } = {}) => {
   for (const spec of specs) targets.push(await loadTarget(spec));
   const kit = await loadKit(config.kit);
 
-  const media = config.media ?? {};
+  // The kit's theme.toml becomes token files: its default is an include layer, its modes join their media query.
+  const theme = await loadTheme(kit);
+  await syncTheme(theme, { check });
+  const media = withMedia(theme, config.media);
   const mediaPaths = new Set(Object.values(media).flat().map((file) => resolve(file)));
   // Sorted: directory listing order varies by filesystem and runtime, and output order must not.
   const baseFiles = (await readdir("tokens"))
     .filter((file) => file.endsWith(".tokens.json"))
     .sort()
     .map((file) => `tokens/${file}`)
-    .filter((file) => !mediaPaths.has(resolve(file)));
+    .filter((file) => !mediaPaths.has(resolve(file)) && !theme.include.includes(resolve(file)));
   // Include files (globs) are a silent base layer under the project's own tokens, which override them.
-  const include = config.include ?? [];
+  // The theme's default sits last among them: above the built-in includes, below the project.
+  const include = [...(config.include ?? []), ...theme.include];
   if (check && config.kit) await checkSchema({ files: [...baseFiles, ...mediaPaths], include });
   const dictionary = makeDictionary(baseFiles, include);
   const raw = await dictionary.getPlatformTokens("raw");
