@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.7.0](https://github.com/kickinrad/tokens/compare/v1.6.0...v1.7.0) (2026-10-29)
+
+
+### Features
+
+* tokens lint fails a consumer's hand-typed colour, motion, type size or radius ([#27](https://github.com/kickinrad/tokens/issues/27)) ([3a2b3d8](https://github.com/kickinrad/tokens/commit/3a2b3d86d07b4601f37bac2791cf7b986dc722d2))
+
+
+### Bug Fixes
+
+* the generated header names no engine version ([#30](https://github.com/kickinrad/tokens/issues/30)) ([297eb5e](https://github.com/kickinrad/tokens/commit/297eb5ef54c4f05f5e8ac0b074ba848d1c1f1573))
+
 ## [1.6.0](https://github.com/kickinrad/tokens/compare/v1.5.0...v1.6.0) (2026-10-29)
 
 
