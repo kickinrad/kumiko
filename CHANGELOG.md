@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.0](https://github.com/kickinrad/tokens/compare/v1.9.0...v1.10.0) (2026-10-29)
+
+
+### Features
+
+* the playground is built in: one kit-agnostic page on the kit's web outputs ([#35](https://github.com/kickinrad/tokens/issues/35)) ([24339e4](https://github.com/kickinrad/tokens/commit/24339e42ee51f2441dcbaa18d63589629cf26e32))
+
 ## [1.9.0](https://github.com/kickinrad/tokens/compare/v1.8.0...v1.9.0) (2026-10-29)
 
 
