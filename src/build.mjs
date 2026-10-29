@@ -6,6 +6,8 @@ import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import StyleDictionary from "style-dictionary";
 import material from "./material.mjs";
+import { checkHeader, stamp } from "./header.mjs";
+import { checkSchema } from "./checks/schema.mjs";
 import builtins from "./targets/index.mjs";
 
 // Built-in include layers, named in a config's `include` beside its file globs.
@@ -171,6 +173,7 @@ export const build = async (config = {}, { check = false } = {}) => {
     if (!layers[spec]) throw new Error(`Unknown built-in include ${spec}`);
     Object.assign(builtin, layers[spec].tokens());
   }
+  if (check && config.kit) await checkSchema({ files: [...baseFiles, ...mediaPaths], include });
   const dictionary = makeDictionary(baseFiles, include, builtin);
   const raw = await dictionary.getPlatformTokens("raw");
   const rawTokens = new Map(raw.allTokens.map((token) => [token.path.join("."), token]));
@@ -230,11 +233,14 @@ export const build = async (config = {}, { check = false } = {}) => {
   const outputs = [];
   for (const target of targets) {
     const options = config[target.name] ?? {};
-    outputs.push(...await target.build({ tokens, media, mediaTokens, options, readExisting, ...kit }));
+    const made = await target.build({ tokens, media, mediaTokens, options, readExisting, ...kit });
+    outputs.push(...(kit.name ? stamp(made, kit, target.name) : made));
   }
   for (const { path, content } of outputs) {
     if (check) {
-      if (await readExisting(path) !== content) throw new Error(`${path} is stale; run tokens`);
+      const existing = await readExisting(path);
+      if (kit.name) checkHeader(path, existing);
+      if (existing !== content) throw new Error(`${path} is stale; run tokens`);
       continue;
     }
     await mkdir(dirname(path), { recursive: true });

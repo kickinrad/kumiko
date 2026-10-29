@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/kickinrad/tokens/compare/v1.2.0...v1.3.0) (2026-10-29)
+
+
+### Features
+
+* a config may declare a kit; targets get its root, version and name ([#11](https://github.com/kickinrad/tokens/issues/11)) ([5604b46](https://github.com/kickinrad/tokens/commit/5604b465044f41c605565523d1478d34b715de15))
+
 ## [1.2.0](https://github.com/kickinrad/tokens/compare/v1.1.0...v1.2.0) (2026-10-28)
 
 

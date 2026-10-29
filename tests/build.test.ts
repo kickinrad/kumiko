@@ -143,6 +143,83 @@ test("with no kit, a target's ctx carries no new keys", () => {
     ["media", "mediaTokens", "options", "readExisting", "tokens"]);
 });
 
+// With a kit, --check also validates the token sources against the official DTCG 2025.10 schema.
+const srgb = (hex: string, components: number[]) => ({ colorSpace: "srgb", components, hex });
+const kitTokens = (ink: unknown) => ({
+  color: { $type: "color", ink: { $value: ink }, text: { $value: "{color.ink}" } },
+  space: { md: { $type: "dimension", $value: { value: 16, unit: "px" } } },
+});
+const schemaProject = (ink: unknown = srgb("#121416", [0.07, 0.08, 0.09])) => {
+  const dir = mkdtempSync(join(tmpdir(), "tokens-schema-"));
+  mkdirSync(join(dir, "tokens"));
+  mkdirSync(join(dir, "vendor"));
+  writeFileSync(join(dir, "tokens/brand.tokens.json"), JSON.stringify(kitTokens(ink)));
+  writeFileSync(join(dir, "vendor/base.tokens.json"), JSON.stringify({ base: { gap: { $type: "dimension", $value: { value: 1, unit: "px" } } } }));
+  writeFileSync(join(dir, "VERSION"), "1.0.0\n");
+  writeFileSync(join(dir, "tokens.config.mjs"),
+    'export default { targets: ["css"], include: ["vendor/*.tokens.json"], kit: { name: "acme" } };\n');
+  return dir;
+};
+const check = (dir: string) => { expect(run(dir).exitCode).toBe(0); return run(dir, "--check"); };
+
+test("a kit whose colours are objects passes --check", () => {
+  const result = check(schemaProject());
+  expect(result.stderr.toString()).toBe("");
+  expect(result.exitCode).toBe(0);
+});
+
+test("a kit with one hex-string colour fails --check naming the file and the path", () => {
+  const result = check(schemaProject("#121416"));
+  expect(result.exitCode).toBe(1);
+  const message = result.stderr.toString();
+  expect(message).toContain("tokens/brand.tokens.json");
+  expect(message).toContain("$.color.ink.$value");
+});
+
+test("a hex-string colour fails when the token carries its own $type too", () => {
+  const dir = schemaProject();
+  writeFileSync(join(dir, "tokens/brand.tokens.json"),
+    JSON.stringify({ color: { ink: { $type: "color", $value: "#121416" } } }));
+  const result = check(dir);
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr.toString()).toContain("$.color.ink.$value");
+});
+
+test("every error is named, across files, and the include layer and media files are read", () => {
+  const dir = schemaProject("#121416");
+  writeFileSync(join(dir, "vendor/base.tokens.json"),
+    JSON.stringify({ base: { gap: { $type: "dimension", $value: "1px" } } }));
+  writeFileSync(join(dir, "tokens/narrow.tokens.json"),
+    JSON.stringify({ color: { ink: { $type: "color", $value: "#000000" } } }));
+  writeFileSync(join(dir, "tokens.config.mjs"),
+    'export default { targets: ["css"], include: ["vendor/*.tokens.json"], media: { "(max-width: 600px)": ["tokens/narrow.tokens.json"] }, kit: { name: "acme" } };\n');
+  const message = check(dir).stderr.toString();
+  expect(message).toContain("vendor/base.tokens.json: $.base.gap.$value");
+  expect(message).toContain("tokens/brand.tokens.json: $.color.ink.$value");
+  expect(message).toContain("tokens/narrow.tokens.json: $.color.ink.$value");
+});
+
+test("a kit file that is not JSON fails --check naming the file", () => {
+  const dir = schemaProject();
+  expect(run(dir).exitCode).toBe(0);
+  writeFileSync(join(dir, "tokens/brand.tokens.json"), "{ nope");
+  const result = run(dir, "--check");
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr.toString()).toContain("tokens/brand.tokens.json");
+});
+
+test("without a kit, hex-string colours still pass --check", () => {
+  const dir = schemaProject("#121416");
+  writeFileSync(join(dir, "tokens.config.mjs"), 'export default { targets: ["css"], include: ["vendor/*.tokens.json"] };\n');
+  const result = check(dir);
+  expect(result.stderr.toString()).toBe("");
+  expect(result.exitCode).toBe(0);
+});
+
+test("a kit's plain build does not run the schema check", () => {
+  expect(run(schemaProject("#121416")).exitCode).toBe(0);
+});
+
 // The built-in Material 3 baseline: `builtin:material` in include, read from the engine, never from the project.
 const materialProject = (include: string) => {
   const dir = mkdtempSync(join(tmpdir(), "tokens-material-"));
