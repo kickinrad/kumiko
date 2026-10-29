@@ -95,12 +95,17 @@ const cssTransforms = [
 ];
 const cssTypes = new Set(["color", "dimension", "duration", "fontFamily", "fontWeight", "number", "string", "typography", "shadow", "cubicBezier"]);
 
-const makeDictionary = (source, include = [], tokens = {}) => new StyleDictionary({
-  // Inline tokens are Style Dictionary's lowest layer: under include files, which sit under source.
-  tokens, include, source,
-  log: { warnings: "error", verbosity: "verbose" },
-  platforms: { raw: {}, css: { transforms: cssTransforms } },
-});
+// Initialised here, not in the constructor, so a file that fails to load rejects instead of hanging the build.
+const makeDictionary = async (source, include = [], tokens = {}) => {
+  const dictionary = new StyleDictionary({
+    // Inline tokens are Style Dictionary's lowest layer: under include files, which sit under source.
+    tokens, include, source,
+    log: { warnings: "error", verbosity: "verbose" },
+    platforms: { raw: {}, css: { transforms: cssTransforms } },
+  }, { init: false });
+  await dictionary.init();
+  return dictionary;
+};
 const resolvedType = (token, tokenMap, seen = new Set()) => {
   if (token.$type) return token.$type;
   const path = token.path.join(".");
@@ -179,7 +184,7 @@ export const build = async (config = {}, { check = false } = {}) => {
     Object.assign(builtin, layers[spec].tokens());
   }
   include.push(...theme.include);
-  const dictionary = makeDictionary(baseFiles, include, builtin);
+  const dictionary = await makeDictionary(baseFiles, include, builtin);
   const raw = await dictionary.getPlatformTokens("raw");
   const rawTokens = new Map(raw.allTokens.map((token) => [token.path.join("."), token]));
   // A kit's theme maps the roles it picks; once the layers merge, every Material colour role must be set.
@@ -220,7 +225,7 @@ export const build = async (config = {}, { check = false } = {}) => {
       if (!rawTokens.has(path)) throw new Error(`Media token ${path} does not override a base token`);
     }
     // Order matters: among include files the later wins, so the project's base files beat the include layer.
-    const mediaDictionary = makeDictionary(files, [...include, ...baseFiles], builtin);
+    const mediaDictionary = await makeDictionary(files, [...include, ...baseFiles], builtin);
     const mediaRaw = await mediaDictionary.getPlatformTokens("raw");
     const mediaRawTokens = new Map(mediaRaw.allTokens.map((token) => [token.path.join("."), token]));
     const mediaResolved = await mediaDictionary.getPlatformTokens("css");
