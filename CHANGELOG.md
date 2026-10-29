@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.4.0](https://github.com/kickinrad/tokens/compare/v1.3.0...v1.4.0) (2026-10-29)
+
+
+### Features
+
+* a kit's generated text files carry a header, and the check fails without it ([#12](https://github.com/kickinrad/tokens/issues/12)) ([ebdbd33](https://github.com/kickinrad/tokens/commit/ebdbd332e2b59ecc3489dd4c1f938316cb314a5f))
+* a kit's theme.toml becomes DTCG 2025.10 tokens, palette per mode ([#20](https://github.com/kickinrad/tokens/issues/20)) ([c60add5](https://github.com/kickinrad/tokens/commit/c60add5cccd3ef57a43d1404adef379946e1ef64))
+* a kit's tokens are checked against the DTCG 2025.10 schema ([#13](https://github.com/kickinrad/tokens/issues/13)) ([7d8e856](https://github.com/kickinrad/tokens/commit/7d8e856cffaa7336262cc6d30073cb102bc34494))
+* the colour maths move in; a kit's contrast pairs are checked ([#14](https://github.com/kickinrad/tokens/issues/14)) ([3677242](https://github.com/kickinrad/tokens/commit/3677242faade4ce3e1a00b4f5d77f23d3afdb25e))
+* the Material 3 baseline is built in; re-vendor by hand ([#17](https://github.com/kickinrad/tokens/issues/17)) ([f2da579](https://github.com/kickinrad/tokens/commit/f2da57954e30e0bb3663af95cc094829fd55ab66))
+
 ## [1.3.0](https://github.com/kickinrad/tokens/compare/v1.2.0...v1.3.0) (2026-10-29)
 
 
