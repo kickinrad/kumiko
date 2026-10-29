@@ -97,9 +97,9 @@ describe("a kit's contrast pairs", () => {
   const colours = {
     c: {
       $type: "color",
-      bg: { $value: "#ffffff" },
+      bg: { $value: { colorSpace: "srgb", components: [1, 1, 1], hex: "#ffffff" } },
       fg: { $value: { colorSpace: "srgb", components: [0, 0, 0], hex: "#000000" } },
-      mark: { $value: "#767676" },
+      mark: { $value: { colorSpace: "srgb", components: [0.4627, 0.4627, 0.4627], hex: "#767676" } },
     },
     size: { $type: "dimension", gap: { $value: { value: 4, unit: "px" } } },
   };
@@ -108,7 +108,7 @@ describe("a kit's contrast pairs", () => {
     { fg: "c.mark", bg: "c.bg", min: 3 },
   ];
   // Base is light; the media set (a dark mode) swaps bg and fg, and may override fg further.
-  const kit = (contrast: unknown, dark: unknown = { c: { bg: { $value: "#000000" }, fg: { $value: "#ffffff" }, mark: { $value: "#999999" } } }) => {
+  const kit = (contrast: unknown, dark: unknown = { c: { bg: { $value: { colorSpace: "srgb", components: [0, 0, 0], hex: "#000000" } }, fg: { $value: { colorSpace: "srgb", components: [1, 1, 1], hex: "#ffffff" } }, mark: { $value: { colorSpace: "srgb", components: [0.6, 0.6, 0.6], hex: "#999999" } } } }) => {
     const dir = mkdtempSync(join(tmpdir(), "tokens-contrast-"));
     mkdirSync(join(dir, "tokens"));
     write(dir, "tokens/colors.tokens.json", colours);
@@ -128,7 +128,7 @@ describe("a kit's contrast pairs", () => {
   });
 
   test("a pair under its floor in a media mode fails, naming fg, bg, mode, ratio and floor", () => {
-    const dir = kit(pairs, { c: { bg: { $value: "#000000" }, fg: { $value: "#4e4e4e" }, mark: { $value: "#999999" } } });
+    const dir = kit(pairs, { c: { bg: { $value: { colorSpace: "srgb", components: [0, 0, 0], hex: "#000000" } }, fg: { $value: { colorSpace: "srgb", components: [0.3059, 0.3059, 0.3059], hex: "#4e4e4e" } }, mark: { $value: { colorSpace: "srgb", components: [0.6, 0.6, 0.6], hex: "#999999" } } } });
     for (const args of [[], ["--check"]]) {
       const result = run(dir, ...args);
       expect(result.exitCode).toBe(1);
@@ -137,6 +137,8 @@ describe("a kit's contrast pairs", () => {
       expect(message).toContain("c.bg");
       expect(message).toContain("(prefers-color-scheme: dark)");
       expect(message).toContain("2.52");
+      expect(message).toContain("c.fg (#4e4e4e)");
+      expect(message).toContain("c.bg (#000000)");
       expect(message).toContain("4.5");
       expect(message).not.toContain("base");
     }
@@ -181,5 +183,12 @@ describe("a kit's contrast pairs", () => {
       expect(readFileSync(join(dir, file), "utf8")).toBe(readFileSync(join(root, "tests/expected", file), "utf8"));
     }
     rmSync(dir, { recursive: true });
+  });
+  test("a hex string in a token that is not a colour is refused", () => {
+    const dir = kit([{ fg: "label.ink", bg: "c.bg", min: 4.5 }]);
+    write(dir, "tokens/label.tokens.json", { label: { $type: "string", ink: { $value: "#000000" } } });
+    const result = run(dir);
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr.toString()).toContain("label.ink is not an opaque colour");
   });
 });
