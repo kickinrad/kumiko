@@ -1,0 +1,22 @@
+{
+  "md": { "sys": { "color": {
+    "$type": "color",
+    "surface": { "$value": "#101418" },
+    "surface-container-lowest": { "$value": "#0b0e11" },
+    "surface-container-low": { "$value": "#181c20" },
+    "on-surface": { "$value": "#e1e2e8" },
+    "inverse-surface": { "$value": "#e1e2e8" },
+    "inverse-on-surface": { "$value": "#2e3135" },
+    "primary": { "$value": "#7aa2f7" }
+  } } },
+  "acme": {
+    "color": {
+      "amber": { "$type": "color", "$value": "#e0af68" },
+      "container-opacity": { "$type": "number", "$value": 0.12 }
+    },
+    "track": {
+      "fast": { "color": { "$type": "color", "$value": "#9ece6a" } },
+      "slow": { "color": { "$type": "color", "$value": "#ff9e64" } }
+    }
+  }
+}

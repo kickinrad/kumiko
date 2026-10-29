@@ -1,0 +1,74 @@
+{
+  "$schema": "https://www.designtokens.org/schemas/2025.10/format.json",
+  "md": {
+    "sys": {
+      "color": {
+        "$description": "Acme night roles; do not edit.",
+        "on-primary": {
+          "$type": "color",
+          "$value": "#0b0e11",
+          "$description": "The neutral that reads best on primary: 7.68:1"
+        },
+        "primary-container": {
+          "$type": "color",
+          "$value": "#242c3a",
+          "$description": "Acme: primary at 12 % over the card"
+        },
+        "on-primary-container": {
+          "$type": "color",
+          "$value": "#7aa2f7",
+          "$description": "primary: 5.57:1 on the card and the container"
+        },
+        "primary-fixed": {
+          "$type": "color",
+          "$value": "#d9e2ef",
+          "$description": "The Day primary-container, in both modes"
+        },
+        "primary-fixed-dim": {
+          "$type": "color",
+          "$value": "#7aa2f7",
+          "$description": "The base-mode primary, in both modes"
+        },
+        "on-primary-fixed": {
+          "$type": "color",
+          "$value": "#101418",
+          "$description": "Reads on primary-fixed and primary-fixed-dim: 7.35:1 at worst"
+        },
+        "on-primary-fixed-variant": {
+          "$type": "color",
+          "$value": "#213a5e",
+          "$description": "Day primary mixed 69 % toward Day on-surface: 4.55:1 at worst"
+        }
+      }
+    }
+  },
+  "acme": {
+    "color": {
+      "on-amber": {
+        "$type": "color",
+        "$value": "#0b0e11",
+        "$description": "The neutral that reads best on amber: 9.68:1"
+      },
+      "amber-container": {
+        "$type": "color",
+        "$value": "#302e29",
+        "$description": "Acme: amber at 12 % over the card"
+      },
+      "on-amber-container": {
+        "$type": "color",
+        "$value": "#e0af68",
+        "$description": "amber: 6.78:1 on the card and the container"
+      },
+      "track-fast-mark": {
+        "$type": "color",
+        "$value": "{acme.track.fast.color}",
+        "$description": "The fast mark on the surface: the accent"
+      },
+      "track-slow-mark": {
+        "$type": "color",
+        "$value": "{acme.track.slow.color}",
+        "$description": "The slow mark on the surface: the accent"
+      }
+    }
+  }
+}

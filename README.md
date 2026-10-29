@@ -60,3 +60,23 @@ mono = "Some Mono"
 ```
 
 `tokens` turns it into DTCG 2025.10 files (colours as `{ colorSpace, components, hex }` objects) beside the kit's other tokens: `<root>/tokens/theme.tokens.json` for the default mode (the palette under `<name>.palette.<colour>`, the faces under `<name>.font.<face>`, every role at its path) and `<root>/tokens/theme.<mode>.tokens.json` for each other mode (every role, in that mode's colour). They are build outputs, never hand-edited: `tokens --check` byte-compares and schema-checks them. The default file is an include layer above `include` and below the project's `tokens/`; each mode file joins the `media` set for its query. A role naming a colour a mode's palette lacks fails the build, naming the role, the colour and the mode. A kit with no `theme.toml` builds as before.
+
+## The `derived` target
+
+`"derived"` computes the Material colour roles a palette has no step for (the on-colours, the accent containers, the fixed roles, and a mark per item of a group) and writes them as token files, one for the base mode and one for the Day media. The Day file belongs in `media`; `tokens --check` keeps both current. A config without it builds as before. Every fact about the kit is an option:
+
+```js
+derived: {
+  prefix: "acme",                      // the kit's token prefix; ctx.name when a kit is declared
+  accents: ["primary", "amber"],       // roles that get an on-colour and a container
+  custom: ["amber"],                   // roles with no Material path: they sit under <prefix>.color
+  fixed: ["primary"],                  // accents that also get -fixed roles (optional)
+  blend: "acme.color.container-opacity", // the container's state-layer fraction (a token path)
+  marks: { group: "track", darkerInDay: ["slow"] }, // optional: <prefix>.<group>.<item>.color gets a mark role
+  dayFiles: ["tokens/day.tokens.json"], // the Day media files to read
+  out: { night: "tokens/derived.tokens.json", day: "tokens/derived-day.tokens.json" },
+  descriptions: {},                    // optional text overrides: night, day, container, mark, markDay, fixed, fixedDim
+}
+```
+
+A missing required option fails, naming it. The colour roles read are Material's: `surface`, `surface-container-lowest`, `surface-container-low`, `on-surface`, `inverse-surface`, `inverse-on-surface` and the accents. `src/motion.mjs` (springs as CSS `linear()` easings) and `src/type.mjs` (the fifteen type styles) are libraries for other outputs, not targets.
