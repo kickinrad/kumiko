@@ -11,4 +11,4 @@ run = "bun build bin/tokens.mjs --target=bun --outdir=dist/check >/dev/null"
 run = "bun test"
 
 [tasks.build]
-run = "bun build --compile --target=bun-linux-x64 bin/tokens.mjs --outfile dist/tokens-linux-x64"
+run = "bun build --compile --target=bun-linux-x64 --asset src/color.mjs bin/tokens.mjs --outfile dist/tokens-linux-x64"
