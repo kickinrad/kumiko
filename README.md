@@ -3,7 +3,7 @@
 DTCG design tokens → CSS, WordPress `theme.json`, `DESIGN.md`, and more, as one binary.
 
 ```sh
-mise use github:kickinrad/tokens
+mise use github:kickinrad/kumiko
 tokens          # build every target in tokens.config.mjs
 tokens --check  # fail if a committed output is stale
 ```
