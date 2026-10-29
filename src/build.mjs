@@ -7,6 +7,7 @@ import { pathToFileURL } from "node:url";
 import StyleDictionary from "style-dictionary";
 import material from "./material.mjs";
 import { checkHeader, stamp } from "./header.mjs";
+import { checkContrast } from "./checks/contrast.mjs";
 import { checkSchema } from "./checks/schema.mjs";
 import builtins from "./targets/index.mjs";
 
@@ -225,6 +226,8 @@ export const build = async (config = {}, { check = false } = {}) => {
       return result;
     });
   };
+
+  await checkContrast(config.kit?.contrast, { tokens, media, mediaTokens });
 
   const readExisting = async (path) => {
     try { return await readFile(path, "utf8"); }
