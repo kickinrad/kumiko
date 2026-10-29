@@ -6,6 +6,7 @@ import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import StyleDictionary from "style-dictionary";
 import builtins from "./targets/index.mjs";
+import { kitManifest } from "./checks/manifest.mjs";
 
 export const DEFAULT_TARGETS = ["css", "theme-json", "design-md"];
 
@@ -220,6 +221,7 @@ export const build = async (config = {}, { check = false } = {}) => {
     const options = config[target.name] ?? {};
     outputs.push(...await target.build({ tokens, media, mediaTokens, options, readExisting, ...kit }));
   }
+  if (kit.root) outputs.push(...await kitManifest({ root: kit.root, outputs, files: [...baseFiles, ...Object.values(media).flat()], include, check }));
   for (const { path, content } of outputs) {
     if (check) {
       if (await readExisting(path) !== content) throw new Error(`${path} is stale; run tokens`);
