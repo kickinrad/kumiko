@@ -3,6 +3,7 @@ import { expect, test } from "bun:test";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import material from "../src/material.mjs";
 
 const root = resolve(import.meta.dir, "..");
 const command = process.env.TOKENS_BIN ? [resolve(process.env.TOKENS_BIN)] : ["bun", join(root, "bin/tokens.mjs")];
@@ -10,6 +11,8 @@ const run = (cwd: string, ...args: string[]) => Bun.spawnSync([...command, ...ar
 const read = (dir: string, file: string) => readFileSync(join(dir, file), "utf8");
 const json = (dir: string, file: string) => JSON.parse(read(dir, file));
 
+// Every Material colour role needs a palette colour; the fixture fills them all with ink, but primary.
+const roles = Object.keys(material.tokens().md.sys.color).map((key) => `md.sys.color.${key}`);
 const theme = `name = "acme"
 default = "night"
 
@@ -25,8 +28,7 @@ ink = "#f6f6f6"
 blue = "#2e7de9"
 
 [roles]
-"md.sys.color.surface" = "ink"
-"md.sys.color.primary" = "blue"
+${roles.map((role) => `"${role}" = "${role === "md.sys.color.primary" ? "blue" : "ink"}"`).join("\n")}
 
 [faces]
 brand = "Some Sans"
@@ -74,10 +76,8 @@ test("the default file holds the palette, every role and the faces, colours as D
         mono: { $type: "fontFamily", $value: "Some Mono" },
       },
     },
-    md: { sys: { color: {
-      surface: { $type: "color", $value: ink },
-      primary: { $type: "color", $value: blue },
-    } } },
+    md: { sys: { color: Object.fromEntries(roles.map((role) => [role.split(".").at(-1),
+      { $type: "color", $value: role === "md.sys.color.primary" ? blue : ink }])) } },
   });
   expect(file).toBe(`${JSON.stringify(JSON.parse(file), null, 2)}\n`);
 });
@@ -201,4 +201,14 @@ test("each media mode carries its own palette, and it reaches the media output",
   expect(media).toContain("--acme-palette-blue: #2e7de9;");
   expect(media).toContain("--acme-palette-ink: #f6f6f6;");
   expect(css.slice(0, css.indexOf("@media"))).toContain("--acme-palette-blue: #7aa2f7;");
+});
+
+test("a missing [roles] table or Material colour role fails naming each missing role", () => {
+  const none = run(kitProject(theme.slice(0, theme.indexOf("[roles]")) + theme.slice(theme.indexOf("[faces]"))));
+  expect(none.exitCode).toBe(1);
+  for (const role of roles) expect(none.stderr.toString()).toContain(role);
+  const one = run(kitProject(theme.replace('"md.sys.color.scrim" = "ink"\n', "")));
+  expect(one.exitCode).toBe(1);
+  expect(one.stderr.toString()).toContain("md.sys.color.scrim");
+  expect(one.stderr.toString()).not.toContain("md.sys.color.surface,");
 });

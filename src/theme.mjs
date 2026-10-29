@@ -3,6 +3,7 @@
 // <root>/tokens/theme.<mode>.tokens.json for each media mode (role values for that mode).
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
+import material from "./material.mjs";
 
 const FACES = ["brand", "plain", "mono", "icon"];
 const KEYS = ["name", "default", "media", "palette", "roles", "faces"];
@@ -66,6 +67,11 @@ const validate = (toml, kitName) => {
       if (!Object.hasOwn(colours[mode], roles[role])) fail(`role ${role} names colour "${roles[role]}", which the ${mode} palette lacks`);
     }
   }
+  // Every Material colour role needs a palette colour: the engine never falls back to Material's own values.
+  const required = Object.entries(material.tokens().md.sys.color)
+    .filter(([, token]) => "$value" in token).map(([key]) => `md.sys.color.${key}`);
+  const missing = required.filter((role) => !Object.hasOwn(roles, role));
+  if (missing.length) fail(`[roles] lacks ${missing.length} Material colour role${missing.length === 1 ? "" : "s"}: ${missing.join(", ")}`);
   const faces = table(toml.faces ?? {}, "faces");
   for (const face of Object.keys(faces)) {
     if (!FACES.includes(face)) fail(`unknown face "${face}" (expected ${FACES.join(", ")})`);
