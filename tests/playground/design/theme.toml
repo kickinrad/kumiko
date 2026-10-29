@@ -1,0 +1,23 @@
+name = "acme"
+default = "night"
+
+[media]
+day = "(prefers-color-scheme: light)"
+
+[palette.night]
+ink = "#141414"
+paper = "#f2f2f2"
+blue = "#7aa2f7"
+navy = "#0b1b3a"
+
+[palette.day]
+ink = "#f6f6f6"
+paper = "#1a1a1a"
+blue = "#2e7de9"
+navy = "#ffffff"
+
+[roles]
+"md.sys.color.surface" = "ink"
+"md.sys.color.on-surface" = "paper"
+"md.sys.color.primary" = "blue"
+"md.sys.color.on-primary" = "navy"

@@ -122,7 +122,7 @@ const entry = (token, rawToken, type) => {
   const fluid = fluidValue(rawToken, path);
   const value = fluid ?? token.$value;
   return {
-    path, segments: token.path, name: token.name, type, fluid, value, scalar: token.$value,
+    path, segments: token.path, name: token.name, type, fluid, value, scalar: token.$value, description: token.$description,
     typography: type === "typography" ? typography(rawToken?.$value) : undefined,
   };
 };
@@ -246,7 +246,7 @@ export const build = async (config = {}, { check = false } = {}) => {
   const outputs = [];
   for (const target of targets) {
     const options = config[target.name] ?? {};
-    const made = await target.build({ tokens, media, mediaTokens, options, readExisting, ...kit });
+    const made = await target.build({ tokens, media, mediaTokens, options, readExisting, ...kit, ...(theme.modes && { modes: theme.modes }) });
     outputs.push(...(kit.name ? stamp(made, kit, target.name) : made));
   }
   for (const { path, content } of outputs) {

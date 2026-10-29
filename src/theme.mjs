@@ -125,7 +125,9 @@ export const loadTheme = async ({ root, name } = {}) => {
     files.push({ path, content: render(modeTree(mode)) });
     (media[theme.media[mode]] ??= []).push(path);
   }
-  return { include: [baseFile], media, files };
+  // The mode names a target may show: the base mode, and each other mode under its media query.
+  const modes = { base: theme.base, media: Object.fromEntries(theme.modes.filter((each) => each !== theme.base).map((each) => [theme.media[each], each])) };
+  return { include: [baseFile], media, files, modes };
 };
 
 // The theme's media come first so the project's own blocks for the same query follow and win.

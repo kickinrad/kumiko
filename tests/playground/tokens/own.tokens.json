@@ -1,0 +1,9 @@
+{
+  "acme": {
+    "gap": {
+      "$type": "dimension",
+      "$value": { "value": 8, "unit": "px" },
+      "$description": "The gap between two cards."
+    }
+  }
+}
