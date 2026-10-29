@@ -1,3 +1,0 @@
-https://www.designtokens.org/schemas/2025.10/format.json
-fetched 2026-10-29 by scripts/fetch-dtcg-schema.mjs
-A bundle: the sibling schemas (token, values/*, group, ...) are embedded in it under definitions, keyed by their $id.

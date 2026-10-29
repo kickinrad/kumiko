@@ -19,7 +19,6 @@
   "author": "wils <wils@bestfootforward.business>",
   "dependencies": {
     "@material/material-color-utilities": "latest",
-    "ajv": "latest",
     "style-dictionary": "latest",
     "yaml": "latest"
   }
