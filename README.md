@@ -102,9 +102,9 @@ modules/otto_control.yaml:68: motion: 120ms
 
 One line per finding, `path:line: rule: matched text`, then exit 1. A clean run prints nothing and exits 0; a missing path fails, naming it.
 
-## The `tailwind`, `compose-tv`, `obsidian` and `mealie` outputs
+## The `tailwind`, `compose-tv`, `obsidian`, `mealie` and `material-you` outputs
 
-Four more built-in outputs for a declared kit (they read `ctx.name` and `VERSION`, and fail without a `kit`). Each reads the resolved tokens, the kit's token prefix is its name, and the base mode comes first with the first `media` mode second. Every title, path and line of house wording is an option; `tests/outputs/` is a small kit with golden files for all four.
+Five more built-in outputs for a declared kit (they read `ctx.name` and `VERSION`, and fail without a `kit`). Each reads the resolved tokens, the kit's token prefix is its name, and the base mode comes first with the first `media` mode second. Every title, path and line of house wording is an option; `tests/outputs/` is a small kit with golden files for all five.
 
 | Output | Writes | Options (required first) |
 | --- | --- | --- |
@@ -112,5 +112,6 @@ Four more built-in outputs for a declared kit (they read `ctx.name` and `VERSION
 | `compose-tv` | `Color.kt`, `Type.kt`, `Shape.kt`, `Tokens.kt`, `Motion.kt` for androidx.tv.material3 | `out` (directory), `package`; `title` |
 | `obsidian` | a snippet per mode for the Minimal theme: `<out>-<mode>.css` | `out`, `modes` (the two mode names, base first); `title`, `font` |
 | `mealie` | `<out>.env` (Mealie's colour slots) and `<out>.css` (a full-look overlay) | `out`, `modes`, `palette`; `title` |
+| `material-you` | the theme file [Material You Theme](https://github.com/Nerwyn/material-you-theme) for Home Assistant reads: every `md.sys.color` role as `-light` and `-dark`, then on `html` the kit's own tokens and Material's typefaces, shape, type scale, motion and state (a colour that differs by mode follows HA's mode) | `path`; `title` |
 
 `mealie`'s `palette` names the kit's palette colours (`<name>.palette.*`): `slots` and `overlay` map Mealie's seven slots (`primary`, `accent`, `secondary`, `success`, `info`, `warning`, `error`) to a colour each, `layers` lists five colours darkest first (background, surface, base, raised, border), and `text`, `muted` and `stars` name three more. `compose-tv` needs the kit's `<name>.layout.card-gap`, `.card-inset` and `<name>.tv.safe-margin`, Material's focus-indicator thickness, and uses any `<name>.domain.*` colours. `obsidian` needs the kit's `on-surface-muted`, `comment`, `yellow`, `orange`, `cyan` and `green` roles (under `<name>.color`).
