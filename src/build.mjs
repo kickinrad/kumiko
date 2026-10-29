@@ -119,6 +119,20 @@ const entry = (token, rawToken, type) => {
   };
 };
 
+const semver = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+// A declared kit adds its root, version and name to every target's ctx; none declared, ctx is unchanged.
+const loadKit = async (kit) => {
+  if (kit === undefined) return {};
+  if (!kit || typeof kit !== "object" || typeof kit.name !== "string" || !kit.name) {
+    throw new Error("kit.name is required when kit is set");
+  }
+  let version;
+  try { version = (await readFile("VERSION", "utf8")).trim(); }
+  catch (error) { if (error.code === "ENOENT") throw new Error("VERSION is missing; a kit needs one"); throw error; }
+  if (!semver.test(version)) throw new Error(`VERSION must hold a semantic version, not "${version}"`);
+  return { root: resolve(kit.root ?? "design"), version, name: kit.name };
+};
+
 const loadTarget = async (spec) => {
   if (!spec.startsWith(".") && !spec.startsWith("/")) {
     if (!builtins[spec]) throw new Error(`Unknown token target ${spec}`);
@@ -133,6 +147,7 @@ export const build = async (config = {}, { check = false } = {}) => {
   const specs = config.targets ?? DEFAULT_TARGETS;
   const targets = [];
   for (const spec of specs) targets.push(await loadTarget(spec));
+  const kit = await loadKit(config.kit);
 
   const media = config.media ?? {};
   const mediaPaths = new Set(Object.values(media).flat().map((file) => resolve(file)));
@@ -203,7 +218,7 @@ export const build = async (config = {}, { check = false } = {}) => {
   const outputs = [];
   for (const target of targets) {
     const options = config[target.name] ?? {};
-    outputs.push(...await target.build({ tokens, media, mediaTokens, options, readExisting }));
+    outputs.push(...await target.build({ tokens, media, mediaTokens, options, readExisting, ...kit }));
   }
   for (const { path, content } of outputs) {
     if (check) {
