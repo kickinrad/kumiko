@@ -167,6 +167,81 @@ test("view: five destinations in a rail and a bar, the open item in a list-detai
   expect(open).toContain('<button data-mode="day">Day</button>');
 });
 
+// Every destination's module, as the built page loads them.
+const modules = async (dir: string) => {
+  const load = async (name: string) => (await import(join(dir, `docs/play/${name}.js`))).default as { id: string; name: string; body: (data: unknown, tokens: unknown) => string }[];
+  return { foundations: await load("foundations"), components: await load("components"), cards: await load("cards"), pages: await load("pages") };
+};
+// The tags of a fragment open and close in order (void elements and self-closing tags aside).
+const balanced = (html: string) => {
+  const voids = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);
+  const stack: string[] = [];
+  for (const [, close, tag] of html.matchAll(/<(\/?)([a-z][a-z0-9]*)\b[^>]*>/gi)) {
+    const name = tag.toLowerCase();
+    if (voids.has(name)) continue;
+    if (!close) stack.push(name);
+    else if (stack.pop() !== name) return false;
+  }
+  return stack.length === 0;
+};
+
+// Beer's documented components, by the id a component item carries (Grid, Layout, Main layout, Page and Typography are
+// layout and type, which the playground's own page and Foundations draw).
+const BEER = [
+  "badge", "button", "icon-button", "fab", "button-group", "chip", "card", "checkbox", "radio", "switch", "slider",
+  "text-field", "textarea", "select", "menu", "dialog", "snackbar", "tooltip", "progress", "overlay", "shape", "icon", "media",
+  "list", "divider", "expansion", "table", "tabs", "navigation-bar", "navigation-rail", "navigation-drawer", "top-app-bar",
+  "bottom-app-bar", "toolbar",
+];
+
+test("every item of every destination builds non-empty, balanced html with a unique id, and no inline style", async () => {
+  const dir = built();
+  const data = JSON.parse(read(dir, "docs/play/tokens.json"));
+  for (const [destination, items] of Object.entries(await modules(dir))) {
+    expect(new Set(items.map((item) => item.id)).size, destination).toBe(items.length);
+    for (const item of items) {
+      const html = item.body(data, data.modes.night);
+      expect(html.length, `${destination}/${item.id}`).toBeGreaterThan(0);
+      expect(balanced(html), `${destination}/${item.id} is balanced`).toBe(true);
+      if (destination !== "foundations") expect(html, `${destination}/${item.id}`).not.toContain("style=");
+    }
+  }
+});
+
+test("the component items cover Beer's documented components, each naming its Beer doc", async () => {
+  const dir = built();
+  const data = JSON.parse(read(dir, "docs/play/tokens.json"));
+  const { components } = await modules(dir);
+  expect(components.map((item) => item.id)).toEqual(expect.arrayContaining(BEER));
+  for (const item of components) expect(item.body(data, data.modes.night), item.id).toContain("github.com/beercss/beercss/blob/main/docs/");
+});
+
+test("cards are built from the components' builders, and pages from cards and components", async () => {
+  const dir = built();
+  const data = JSON.parse(read(dir, "docs/play/tokens.json"));
+  expect(read(dir, "docs/play/cards.js")).toMatch(/^import \{[^}]+\} from "\.\/components\.js";$/m);
+  expect(read(dir, "docs/play/pages.js")).toMatch(/^import \{[^}]+\} from "\.\/components\.js";$/m);
+  expect(read(dir, "docs/play/pages.js")).toMatch(/^import \{[^}]+\} from "\.\/cards\.js";$/m);
+  const { components } = await import(join(dir, "docs/play/components.js")).then((module) => ({ components: module }));
+  for (const builder of ["button", "iconButton", "chip", "field", "listItem", "list", "card", "switchRow"]) expect(typeof components[builder], builder).toBe("function");
+  const { cards, pages } = await modules(dir);
+  for (const item of cards) expect(item.body(data, data.modes.night), item.id).toMatch(/<article[ >]/);
+  // A page is a framed area holding cards and navigation.
+  for (const item of pages) {
+    const html = item.body(data, data.modes.night);
+    expect(html, item.id).toContain("<article");
+    expect(html, item.id).toContain("data-ui=");
+  }
+});
+
+test("the client's source names no kit and types no value", () => {
+  for (const file of ["components.js", "cards.js", "pages.js"]) {
+    const text = readFileSync(join(root, "src/web", file), "utf8");
+    expect(text, file).not.toMatch(/tokyo|wils|domain|cascadia|acme|\btm-/i);
+    expect(text, file).not.toMatch(/#[0-9a-f]{3,8}\b|\d(px|rem|ms)\b/i);
+  }
+});
+
 test("the page carries no CSS of its own: Beer's layer import is its only style", () => {
   expect(read(built(), "docs/play/index.html")).not.toMatch(/<style>(?!@import)/);
 });
