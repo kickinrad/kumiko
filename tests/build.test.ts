@@ -32,6 +32,14 @@ test("--check passes when current and names the stale file otherwise", () => {
   expect(stale.stderr.toString()).toContain("src/styles/tokens.css is stale");
 });
 
+test("a token file that isn't valid JSON fails the build with the parse error, not a hang", () => {
+  const dir = project();
+  writeFileSync(join(dir, "tokens/broken.tokens.json"), '{ "a": { "$type": "color", "$value": "#fff", "$description": "say "hi"" } }\n');
+  const result = Bun.spawnSync([...command], { cwd: dir, stderr: "pipe", timeout: 10_000 });
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr.toString()).toContain("invalid character");
+});
+
 test("a project target is one file named in tokens.config.mjs", () => {
   const dir = project();
   writeFileSync(join(dir, "local.mjs"),
