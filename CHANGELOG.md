@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/kickinrad/tokens/compare/v1.4.0...v1.5.0) (2026-10-29)
+
+
+### Features
+
+* the derived colour roles, spring easings and type scale are built in ([#22](https://github.com/kickinrad/tokens/issues/22)) ([09c7481](https://github.com/kickinrad/tokens/commit/09c7481f76bc8d0e60dab9a17ab078dc36976e25))
+
 ## [1.4.0](https://github.com/kickinrad/tokens/compare/v1.3.0...v1.4.0) (2026-10-29)
 
 
