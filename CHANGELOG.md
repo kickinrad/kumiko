@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.11.0](https://github.com/kickinrad/tokens/compare/v1.10.0...v1.11.0) (2026-10-29)
+
+
+### Features
+
+* the playground gains Foundations, Components, Cards and Pages ([#40](https://github.com/kickinrad/tokens/issues/40)) ([e96a2a5](https://github.com/kickinrad/tokens/commit/e96a2a5977fd9bbc83e669a483f45b41e9b3e870))
+
+
+### Bug Fixes
+
+* an invalid token file exits with its parse error instead of hanging ([#38](https://github.com/kickinrad/tokens/issues/38)) ([f25f009](https://github.com/kickinrad/tokens/commit/f25f0094f404b17db613d0670d5acfa12a3645f7)), closes [#37](https://github.com/kickinrad/tokens/issues/37)
+
 ## [1.10.0](https://github.com/kickinrad/tokens/compare/v1.9.0...v1.10.0) (2026-10-29)
 
 
