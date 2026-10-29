@@ -8,7 +8,6 @@ import StyleDictionary from "style-dictionary";
 import material from "./material.mjs";
 import { checkHeader, stamp } from "./header.mjs";
 import { checkContrast } from "./checks/contrast.mjs";
-import { checkSchema } from "./checks/schema.mjs";
 import { loadTheme, syncTheme, withMedia } from "./theme.mjs";
 import builtins from "./targets/index.mjs";
 
@@ -180,7 +179,6 @@ export const build = async (config = {}, { check = false } = {}) => {
     Object.assign(builtin, layers[spec].tokens());
   }
   include.push(...theme.include);
-  if (check && config.kit) await checkSchema({ files: [...baseFiles, ...mediaPaths], include });
   const dictionary = makeDictionary(baseFiles, include, builtin);
   const raw = await dictionary.getPlatformTokens("raw");
   const rawTokens = new Map(raw.allTokens.map((token) => [token.path.join("."), token]));

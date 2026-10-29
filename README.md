@@ -26,7 +26,6 @@ With a kit, every generated text file (`.css`, `.scss`, `.js`, `.mjs`, `.ts`, `.
 A kit may declare `contrast: [{ fg, bg, min }]` (token paths and a minimum ratio: 4.5 for text, 3 for marks). Every pair is resolved in the base tokens and in each `media` set, and a pair under its floor, or a path that is not a colour token, fails the build and `--check`, naming the pair, the mode, the ratio and the floor.
 The colour maths (`luminance`, `contrast`, `mix`, `bestOn`, `stateLayer`, `textSafe`, `hsl`, `rgb`) live in `src/color.mjs`.
 
-With a `kit`, `tokens --check` also validates the token sources (`tokens/*.tokens.json`, media files and `include` globs) against the official [DTCG 2025.10 format schema](https://www.designtokens.org/schemas/2025.10/format.json), vendored under `src/schema/2025.10/` (re-fetch with `node scripts/fetch-dtcg-schema.mjs`). Each error names the file and the path, e.g. `tokens/brand.tokens.json: $.color.ink.$value must be object`; a hex-string colour fails because 2025.10 colours are objects.
 
 ## Built-in Material 3 baseline
 
@@ -63,7 +62,7 @@ brand = "Some Sans"
 mono = ["Some Mono", "monospace"]
 ```
 
-`tokens` turns it into DTCG 2025.10 files (colours as `{ colorSpace, components, hex }` objects) beside the kit's other tokens: `<root>/tokens/theme.tokens.json` for the default mode (the palette under `<name>.palette.<colour>`, brand and plain in Material's `md.ref.typeface` slots, mono and icon under `<name>.typeface`, each role at its path) and `<root>/tokens/theme.<mode>.tokens.json` for each other mode (its palette and each role, in that mode's colour). A role the kit doesn't pick comes from its other layers (its own tokens, `include`, `builtin:material`). They are build outputs, never hand-edited: `tokens --check` byte-compares and schema-checks them. The default file is an include layer above `include` and below the project's `tokens/`; each mode file joins the `media` set for its query. A role naming a colour a palette lacks, or a mode with no palette, fails the build, naming the role, the colour and the mode; so do `[roles.<mode>]` for an unknown mode, and an override of a role `[roles]` doesn't set. A kit with no `theme.toml` builds as before.
+`tokens` turns it into DTCG 2025.10 files (colours as `{ colorSpace, components, hex }` objects) beside the kit's other tokens: `<root>/tokens/theme.tokens.json` for the default mode (the palette under `<name>.palette.<colour>`, brand and plain in Material's `md.ref.typeface` slots, mono and icon under `<name>.typeface`, each role at its path) and `<root>/tokens/theme.<mode>.tokens.json` for each other mode (its palette and each role, in that mode's colour). A role the kit doesn't pick comes from its other layers (its own tokens, `include`, `builtin:material`). They are build outputs, never hand-edited: `tokens --check` byte-compares them. The default file is an include layer above `include` and below the project's `tokens/`; each mode file joins the `media` set for its query. A role naming a colour a palette lacks, or a mode with no palette, fails the build, naming the role, the colour and the mode; so do `[roles.<mode>]` for an unknown mode, and an override of a role `[roles]` doesn't set. A kit with no `theme.toml` builds as before.
 
 ## The `derived` target
 

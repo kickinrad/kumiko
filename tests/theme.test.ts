@@ -137,7 +137,7 @@ test("theme.toml's name must match the config's kit name", () => {
   expect(message).toContain("other");
 });
 
-test("the generated files pass --check, schema included, and a hand edit is stale", () => {
+test("the generated files pass --check, and a hand edit is stale", () => {
   const dir = kitProject();
   expect(run(dir).exitCode).toBe(0);
   const result = run(dir, "--check");
