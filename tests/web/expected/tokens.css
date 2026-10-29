@@ -1,0 +1,35 @@
+:root, [data-theme] {
+  color-scheme: dark;
+  --md-sys-color-surface: #101418;
+  --md-sys-color-on-surface: #e1e2e8;
+  --md-sys-color-primary: #7aa2f7;
+  --md-sys-typescale-label-large-font: 'Acme Sans';
+  --md-sys-typescale-label-large-size: 14px;
+  --md-sys-typescale-label-large-line-height: 20px;
+  --md-sys-typescale-label-large-weight: 500;
+  --md-sys-typescale-label-large-tracking: 0.1px;
+  --md-comp-acme-button-label-text-font: var(--md-sys-typescale-label-large-font);
+  --md-comp-acme-button-label-text-size: var(--md-sys-typescale-label-large-size);
+  --md-comp-acme-button-label-text-line-height: var(--md-sys-typescale-label-large-line-height);
+  --md-comp-acme-button-label-text-weight: var(--md-sys-typescale-label-large-weight);
+  --md-comp-acme-button-label-text-tracking: var(--md-sys-typescale-label-large-tracking);
+  --acme-gap: 8px;
+  --acme-typeface-icon: 'Acme Symbols';
+  --acme-elevation-shadow-opacity: 0.3;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --md-sys-color-surface: #f6f6f6;
+    --md-sys-color-on-surface: #1b1c1f;
+    --md-sys-color-primary: #2e7de9;
+  }
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --md-sys-color-surface: #f6f6f6;
+  --md-sys-color-on-surface: #1b1c1f;
+  --md-sys-color-primary: #2e7de9;
+}

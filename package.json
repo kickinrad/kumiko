@@ -19,6 +19,7 @@
   "author": "wils <wils@bestfootforward.business>",
   "dependencies": {
     "@material/material-color-utilities": "latest",
+    "beercss": "latest",
     "style-dictionary": "latest",
     "yaml": "latest"
   }
