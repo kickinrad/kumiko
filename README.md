@@ -85,7 +85,7 @@ A missing required option fails, naming it. The colour roles read are Material's
 
 | Rule | Finding |
 | --- | --- |
-| colour | `#rrggbb` or `#rrggbbaa`; `rgb(`, `rgba(`, `hsl(`, `hsla(` followed by a digit; Kotlin `Color(0x…)` |
+| colour | a 3, 4, 6 or 8-digit hex (`#fff`, `#rrggbbaa`; not a `repo#123` reference); `rgb(`, `rgba(`, `hsl(`, `hsla(` followed by a digit; Kotlin `Color(0x…)` |
 | motion | a literal duration (`120ms`, `6s`) in a CSS `transition` or `animation` declaration; any `cubic-bezier(`; Compose `tween(` with a number first argument |
 | type size | CSS `font-size:` in px; a Kotlin `.sp` literal |
 | radius | CSS `border-radius:` with a non-zero px; Compose `RoundedCornerShape(` with a `.dp` literal |

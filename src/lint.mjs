@@ -8,7 +8,7 @@ const OWN = /lint: own\s+[^\s*/>-]/; // a reason, not just a comment closer
 const NUM = String.raw`(?<![\w.])\d*\.?\d+`;
 // Each rule: [name, pattern]. A match whose number is zero is not a finding.
 const RULES = [
-  ["colour", /#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?(?![0-9a-zA-Z])/g],
+  ["colour", /(?<!\w)#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})(?![0-9a-zA-Z])/g], // not repo#123
   ["colour", /\b(?:rgba?|hsla?)\(\s*\d/g],
   ["colour", /\bColor\(\s*0x[0-9a-fA-F]+/g],
   ["motion", new RegExp(String.raw`(?<=\b(?:transition|animation)[\w-]*\s*:[^;}]*?)${NUM}m?s\b`, "g")],

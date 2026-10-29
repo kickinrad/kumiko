@@ -24,12 +24,14 @@ const flagged = (name: string, content: string, line: string) => {
   expect(result.out.trim()).toBe(`${name}:${line}`);
 };
 
-test("colour: hex, rgb() and Kotlin Color(0x) fail; 3-digit hex and var() pass", () => {
+test("colour: 3, 4, 6 and 8-digit hex, rgb() and Kotlin Color(0x) fail; var() and repo#123 refs pass", () => {
+  flagged("a.css", "a { color: #fff; }\n", "1: colour: #fff");
+  flagged("a.css", "a { color: #000a; }\n", "1: colour: #000a");
   flagged("a.css", "a { color: #1a2b3c; }\n", "1: colour: #1a2b3c");
   flagged("a.css", "a { color: #1a2b3cff; }\n", "1: colour: #1a2b3cff");
   flagged("a.css", "a { color: rgba(0, 0, 0, .5); }\n", "1: colour: rgba(0");
   flagged("A.kt", "val c = Color(0xFF112233)\n", "1: colour: Color(0xFF112233");
-  expect(lint(project({ "a.css": "a { color: var(--md-primary); } /* see #107 */\n" }), "a.css").code).toBe(0);
+  expect(lint(project({ "a.css": "a { color: var(--md-primary); } /* see otto#107 */\n" }), "a.css").code).toBe(0);
 });
 
 test("motion: literal durations in transition/animation, cubic-bezier and tween(n) fail", () => {
