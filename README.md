@@ -15,7 +15,7 @@ export default {
   media: { "(max-width: 850px)": ["tokens/responsive.tokens.json"] },
   include: ["builtin:material", "vendor/*.tokens.json"], // optional silent base layers; tokens/ overrides them
   kit: { name: "acme", root: "design" }, // optional; targets also get ctx.root (absolute), ctx.version (from ./VERSION), ctx.name
-  css: { path: "src/styles/tokens.css", layer: "base", prelude: "" },
+  css: { path: "src/styles/tokens.css", layer: "base", prelude: "", scheme: "dark" }, // scheme is optional
 };
 ```
 
@@ -78,4 +78,22 @@ derived: {
 }
 ```
 
-A missing required option fails, naming it. The colour roles read are Material's: `surface`, `surface-container-lowest`, `surface-container-low`, `on-surface`, `inverse-surface`, `inverse-on-surface` and the accents. `src/motion.mjs` (springs as CSS `linear()` easings) and `src/type.mjs` (the fifteen type styles) are libraries for other outputs, not targets.
+A missing required option fails, naming it. The colour roles read are Material's: `surface`, `surface-container-lowest`, `surface-container-low`, `on-surface`, `inverse-surface`, `inverse-on-surface` and the accents. `src/motion.mjs` (springs as CSS `linear()` easings) and `src/type.mjs` (the fifteen type styles) are libraries, not targets (the `css` target uses the first).
+
+## The `css` target's modes and springs
+
+`css: { scheme: "dark" }` names the base mode (`"dark"` or `"light"`). The output then sets `color-scheme`, and `data-theme` pins a mode on the root or any element: the base tokens sit on `:root, [data-theme]`, the `prefers-color-scheme` media set on `:root:not([data-theme="<base>"])`, and the other mode again on `[data-theme="<other>"]`. Without `scheme` the output is unchanged. When the tokens hold Material's springs (`md.sys.motion.spring.*.damping` and `.stiffness`), each spring also gets a `-easing` (a CSS `linear()` curve) and a `-settle` time.
+
+## The `beer` target
+
+`"beer"` themes [Beer CSS](https://github.com/beercss/beercss) (a dependency at latest, bundled as text so the binary carries it) with the kit's tokens: every Beer colour role set to `var(--md-sys-color-<role>)`, Beer's system variables (size, font, speeds, state layer, overlay) set from Material's, the label-large type on buttons and chips, and Material's values where Beer draws its own (focus ring, slider handles, large buttons, in `src/web/material.css`). Load it after Beer and the `css` output, and set the mode with `data-theme`.
+
+```js
+beer: {
+  path: "src/styles/beer.css",
+  iconFont: "acme.typeface.icon",                // optional: a token path for Beer's --font-icon
+  shadowOpacity: "acme.elevation.shadow-opacity", // optional: a token path for the opacity of Beer's --elevate1..3
+}
+```
+
+With an option absent, Beer keeps its own value for what it sets. An option naming a path that is no token fails the build.

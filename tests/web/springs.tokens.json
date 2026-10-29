@@ -1,0 +1,6 @@
+{
+  "md": { "sys": { "motion": { "spring": { "snappy": { "spatial": {
+    "damping": { "$type": "number", "$value": 0.8 },
+    "stiffness": { "$type": "number", "$value": 380 }
+  } } } } } }
+}

@@ -1,0 +1,43 @@
+/* Material 3 where Beer CSS draws its own value: the focus ring, the slider handles, the elevated button's label,
+ * the slider's inset icon, and the large and extra-large buttons. The beer target ends its
+ * output with this. Each rule reads the kit's Material tokens and types no value;
+ * Beer sits in its cascade layer, so these unlayered rules win without !important (Beer's own !important ones
+ * cannot be beaten from outside the layer, so the markup works around those). */
+
+/* The focus ring: Material's 3px secondary ring, 2px outside the control (Beer's is 2px primary, 4px out). */
+:is(a, button, .button, .chip, summary):focus-visible,
+.switch > :focus-visible + span::after,
+:is(.checkbox, .radio) > :focus-visible + span::before { outline: var(--md-sys-state-focus-indicator-thickness) solid var(--md-sys-color-secondary); outline-offset: var(--md-sys-state-focus-indicator-outer-offset); }
+.slider > input:focus-visible::-webkit-slider-thumb { outline: var(--md-sys-state-focus-indicator-thickness) solid var(--md-sys-color-secondary); outline-offset: var(--md-sys-state-focus-indicator-outer-offset); }
+.slider > input:focus-visible::-moz-range-thumb { outline: var(--md-sys-state-focus-indicator-thickness) solid var(--md-sys-color-secondary); outline-offset: var(--md-sys-state-focus-indicator-outer-offset); }
+/* Inside a list item, a tab and a full-width slider the ring sits at the inner edge, as Beer draws them inward. */
+.list > li:focus-visible, .list > li > a:only-child:focus-visible,
+:is(.scroll, .no-scroll, .no-space, .tabs, .tabbed) > :focus-visible,
+.slider.max > input:focus-visible { outline: var(--md-sys-state-focus-indicator-thickness) solid var(--md-sys-color-secondary); outline-offset: calc(-1 * var(--md-sys-state-focus-indicator-thickness)); }
+
+/* The slider handle: Material's height per size, 44 to 108 (Beer's is its track plus 8, at least 40). */
+.slider { --_thumb: var(--md-comp-slider-xsmall-active-handle-height); }
+.slider.small { --_thumb: var(--md-comp-slider-small-active-handle-height); }
+.slider.medium { --_thumb: var(--md-comp-slider-medium-active-handle-height); }
+.slider.large { --_thumb: var(--md-comp-slider-large-active-handle-height); }
+.slider.extra { --_thumb: var(--md-comp-slider-xlarge-active-handle-height); }
+/* The inset icon sits on the active track, so it is the on-colour of primary (Beer's inverse-primary falls
+ * under 3:1 on primary in Night), at Material's icon size per slider size. */
+.slider > span > i { color: var(--md-sys-color-on-primary); --_size: var(--md-comp-slider-medium-icon-size); }
+.slider.large > span > i { --_size: var(--md-comp-slider-large-icon-size); }
+.slider.extra > span > i { --_size: var(--md-comp-slider-xlarge-icon-size); }
+
+/* The elevated button: Beer's surface-container-low helper forces on-surface text (!important), so the label
+ * and icon carry Beer's primary-text; this tints the state layer to match. */
+:is(button, .button).elevate::after { color: var(--md-sys-color-primary); }
+
+/* Material's large and extra-large buttons, 96 and 136 high: `large` (Beer's is 48, not a Material size) and the
+ * added `xlarge`. Labels at headline small and large in the label-large face. With Beer's small (XS 32), its
+ * default (S 40) and `extra` (M 56) that is Material's five. */
+:is(button, .button):not(.chip).large { --_size: var(--md-comp-button-large-container-height); --_padding: var(--md-comp-button-large-leading-space); gap: var(--md-comp-button-large-icon-label-space); font-size: var(--md-sys-typescale-headline-small-size); line-height: var(--md-sys-typescale-headline-small-line-height); }
+:is(button, .button):not(.chip).xlarge { --_size: var(--md-comp-button-xlarge-container-height); --_padding: var(--md-comp-button-xlarge-leading-space); gap: var(--md-comp-button-xlarge-icon-label-space); font-size: var(--md-sys-typescale-headline-large-size); line-height: var(--md-sys-typescale-headline-large-line-height); }
+:is(button, .button):is(.large, .xlarge):is(.circle, .square) { --_padding: 0; }
+:is(button, .button):not(.chip).large > i { --_size: var(--md-comp-button-large-icon-size); }
+:is(button, .button):not(.chip).xlarge > i { --_size: var(--md-comp-button-xlarge-icon-size); }
+:is(button, .button):not(.chip).border.large { border-width: var(--md-comp-button-large-outlined-outline-width); }
+:is(button, .button):not(.chip).border.xlarge { border-width: var(--md-comp-button-xlarge-outlined-outline-width); }
