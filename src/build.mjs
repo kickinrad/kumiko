@@ -5,7 +5,11 @@ import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import StyleDictionary from "style-dictionary";
+import material from "./material.mjs";
 import builtins from "./targets/index.mjs";
+
+// Built-in include layers, named in a config's `include` beside its file globs.
+const layers = { [material.name]: material };
 
 export const DEFAULT_TARGETS = ["css", "theme-json", "design-md"];
 
@@ -88,8 +92,9 @@ const cssTransforms = [
 ];
 const cssTypes = new Set(["color", "dimension", "duration", "fontFamily", "fontWeight", "number", "string", "typography", "shadow", "cubicBezier"]);
 
-const makeDictionary = (source, include = []) => new StyleDictionary({
-  include, source,
+const makeDictionary = (source, include = [], tokens = {}) => new StyleDictionary({
+  // Inline tokens are Style Dictionary's lowest layer: under include files, which sit under source.
+  tokens, include, source,
   log: { warnings: "error", verbosity: "verbose" },
   platforms: { raw: {}, css: { transforms: cssTransforms } },
 });
@@ -157,9 +162,16 @@ export const build = async (config = {}, { check = false } = {}) => {
     .sort()
     .map((file) => `tokens/${file}`)
     .filter((file) => !mediaPaths.has(resolve(file)));
-  // Include files (globs) are a silent base layer under the project's own tokens, which override them.
-  const include = config.include ?? [];
-  const dictionary = makeDictionary(baseFiles, include);
+  // Includes are a silent base layer under the project's own tokens, which override them: file globs, and
+  // built-in layers (builtin:<name>), which sit beneath the globs.
+  const include = [];
+  const builtin = {};
+  for (const spec of config.include ?? []) {
+    if (!spec.startsWith("builtin:")) { include.push(spec); continue; }
+    if (!layers[spec]) throw new Error(`Unknown built-in include ${spec}`);
+    Object.assign(builtin, layers[spec].tokens());
+  }
+  const dictionary = makeDictionary(baseFiles, include, builtin);
   const raw = await dictionary.getPlatformTokens("raw");
   const rawTokens = new Map(raw.allTokens.map((token) => [token.path.join("."), token]));
   for (const token of raw.allTokens) {
@@ -194,7 +206,7 @@ export const build = async (config = {}, { check = false } = {}) => {
       if (!rawTokens.has(path)) throw new Error(`Media token ${path} does not override a base token`);
     }
     // Order matters: among include files the later wins, so the project's base files beat the include layer.
-    const mediaDictionary = makeDictionary(files, [...include, ...baseFiles]);
+    const mediaDictionary = makeDictionary(files, [...include, ...baseFiles], builtin);
     const mediaRaw = await mediaDictionary.getPlatformTokens("raw");
     const mediaRawTokens = new Map(mediaRaw.allTokens.map((token) => [token.path.join("."), token]));
     const mediaResolved = await mediaDictionary.getPlatformTokens("css");
