@@ -430,9 +430,29 @@ test("view: five destinations in a rail and a bar, the open item in a list-detai
   expect(list).not.toContain('class="button circle transparent s"');
   // Nothing named: the first destination's first item.
   expect(view(data, { mode: "night" })).toContain("<h1>Colour</h1>");
-  // The mode switch names the modes and marks the current one.
-  expect(open).toContain('<button class="active" data-mode="night">Night</button>');
-  expect(open).toContain('<button data-mode="day">Day</button>');
+  // The mode switch is one icon button to the next mode, its icon that mode's scheme; the list pane is Material's
+  // segmented list with the open item marked.
+  expect(open).toContain('<button class="circle transparent" data-mode="day" aria-label="Day mode"><i>light_mode</i></button>');
+  expect(view(data, { ...state, mode: "day" })).toContain('data-mode="night" aria-label="Night mode"><i>dark_mode</i>');
+  expect(open).not.toContain('class="group connected"');
+  expect(open).toContain('<ul class="list segmented">');
+  expect(open).toContain('<li><a class="wave active" href="#rules/notes">');
+  expect(open).not.toContain("secondary-container");
+});
+
+test("rules: the notes, then the kit's exceptions: every Material token with a description, grouped", async () => {
+  const dir = built();
+  const { view } = await client(dir);
+  const rules: string = view(tokensOf(dir), { tab: "rules", item: "notes", mode: "night" });
+  expect(rules).toContain("<h2>Exceptions</h2>");
+  expect(rules).toContain("<h3>md.sys.typescale</h3>");
+  expect(rules).toContain("<li><code>md.sys.typescale.label-large.weight</code> Fixture exception: labels at 600.</li>");
+  const section = rules.slice(rules.indexOf("<h2>Exceptions</h2>"));
+  expect(section).not.toContain("acme.gap");
+  // The engine's derived tokens describe what they are, not an exception.
+  expect(section).not.toContain("primary-container");
+  expect(tokensOf(dir).modes.night.find((token: { path: string }) => token.path === "md.sys.color.primary-container").derived).toBe(true);
+  expect(rules.indexOf("<h2>Exceptions</h2>")).toBeGreaterThan(rules.indexOf("<h3>Don't</h3>"));
 });
 
 // Every destination's module, as the built page loads them.

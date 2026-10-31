@@ -54,8 +54,21 @@ const TABS = [
   { id: "components", name: "Components", icon: "widgets", items: components },
   { id: "cards", name: "Cards", icon: "dashboard", items: cards },
   { id: "pages", name: "Pages", icon: "devices", items: pages },
-  { id: "rules", name: "Rules", icon: "rule", items: [{ id: "notes", name: "Notes", body: (data) => (data.notes ? markdown(data.notes) : "<p>This kit has no notes.md.</p>") }] },
+  { id: "rules", name: "Rules", icon: "rule", items: [{ id: "notes", name: "Notes", body: (data, tokens) => (data.notes ? markdown(data.notes) : "<p>This kit has no notes.md.</p>") + exceptions(tokens) }] },
 ];
+
+// The kit's exceptions: every Material token the kit describes by hand (a description on a Material path says why
+// the kit differs; the engine's derived tokens say what they are, and are skipped), grouped, after the notes.
+export const exceptions = (tokens) => {
+  const groups = new Map();
+  for (const token of tokens) {
+    if (!token.path.startsWith("md.") || !token.description || token.derived) continue;
+    const group = token.path.split(".").slice(0, 3).join(".");
+    (groups.get(group) ?? groups.set(group, []).get(group)).push(token);
+  }
+  if (!groups.size) return "";
+  return `<h2>Exceptions</h2>${[...groups].map(([group, each]) => `<h3>${esc(group)}</h3><ul>${each.map((token) => `<li><code>${esc(token.path)}</code> ${esc(token.description)}</li>`).join("")}</ul>`).join("")}`;
+};
 
 // The whole page for a place and a mode. The rail is Beer's left navigation from medium up and its bottom bar on
 // small; the panes sit side by side from medium up, and on small only the list (a tab named) or the open
@@ -65,12 +78,15 @@ export const view = (data, { tab: tabId, item: itemId, mode = Object.keys(data.m
   const item = tab.items.find((each) => each.id === itemId) ?? tab.items[0];
   const open = tab.id === tabId && item.id === itemId;
   const destinations = TABS.map((each) => `<a href="#${each.id}"${each === tab ? ' class="active"' : ""}><i>${each.icon}</i><div>${each.name}</div></a>`).join("");
-  const modes = Object.keys(data.modes).map((each) => `<button${each === mode ? ' class="active"' : ""} data-mode="${esc(each)}">${esc(each[0].toUpperCase() + each.slice(1))}</button>`).join("");
-  const items = tab.items.map((each) => `<li><a class="wave round${each === item ? " secondary-container" : ""}" href="#${tab.id}/${each.id}"><span class="max">${each.name}</span></a></li>`).join("");
+  // One icon button steps to the next mode; its icon is that mode's scheme.
+  const names = Object.keys(data.modes);
+  const next = names[(names.indexOf(mode) + 1) % names.length];
+  const switcher = `<button class="circle transparent" data-mode="${esc(next)}" aria-label="${esc(next[0].toUpperCase() + next.slice(1))} mode"><i>${scheme(data.modes[next]) === "light" ? "light_mode" : "dark_mode"}</i></button>`;
+  const items = tab.items.map((each) => `<li><a class="wave${each === item ? " active" : ""}" href="#${tab.id}/${each.id}"><span class="max">${each.name}</span></a></li>`).join("");
   return `<nav class="left m l">${destinations}</nav>
-<header><nav>${open ? `<a class="button circle transparent s" href="#${tab.id}" aria-label="Back"><i>arrow_back</i></a>` : ""}<h6 class="max">${esc(data.name)}</h6><nav class="group connected">${modes}</nav></nav></header>
+<header><nav>${open ? `<a class="button circle transparent s" href="#${tab.id}" aria-label="Back"><i>arrow_back</i></a>` : ""}<h6 class="max">${esc(data.name)}</h6>${switcher}</nav></header>
 <main><div class="grid">
-<div class="s12 m4 l3${open ? " m l" : ""}"><ul class="list">${items}</ul></div>
+<div class="s12 m4 l3${open ? " m l" : ""}"><ul class="list segmented">${items}</ul></div>
 <div class="s12 m8 l9${open ? "" : " m l"}"><h1>${item.name}</h1>${item.body(data, data.modes[mode])}</div>
 </div></main>
 <nav class="bottom s">${destinations}</nav>`;

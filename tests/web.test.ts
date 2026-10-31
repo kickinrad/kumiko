@@ -112,3 +112,16 @@ test("Beer's rem is body-large, so its buttons are Material's: small XS 32, the 
   expect(size(/:is\(button, \.button\)\.small \{[^}]*?--_size: ([0-9.]+)rem/) * rem).toBe(px(tokens.comp["button-xsmall"]["container-height"]));
   expect(size(/:is\(\.button, button\):is\(\.extra, \.extend\) \{[^}]*?--_size: ([0-9.]+)rem/) * rem).toBe(px(tokens.comp["button-medium"]["container-height"]));
 });
+
+test("material.css draws the rail's top space and gap, the hover layer and the segmented list from Material's tokens, typing no value", () => {
+  const css = readFileSync(join(root, "src/web/material.css"), "utf8");
+  for (const name of [
+    "md-comp-navigation-rail-collapsed-top-space", "md-comp-navigation-rail-collapsed-item-vertical-space", "md-comp-navigation-rail-baseline-item-container-vertical-space", "md-sys-state-hover-state-layer-opacity",
+    "md-comp-list-segmented-gap", "md-comp-list-item-one-line-container-height", "md-comp-list-item-container-expressive-shape",
+    "md-comp-list-item-hovered-container-expressive-shape", "md-comp-list-item-selected-container-expressive-shape", "md-comp-list-item-selected-container-color",
+  ]) expect(css).toContain(`var(--${name})`);
+  expect(css.replace(/\/\*[\s\S]*?\*\//g, "")).not.toMatch(/#[0-9a-f]{3,8}\b|\d(px|rem|ms)\b/i);
+  const dir = project();
+  run(dir);
+  expect(read(dir, "out/beer.css")).toContain("var(--md-comp-list-segmented-gap)");
+});

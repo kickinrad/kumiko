@@ -7,17 +7,26 @@
         "on-primary": {
           "$type": "color",
           "$value": "#1b1c1f",
-          "$description": "The neutral that reads best on primary: 4.24:1"
+          "$description": "The neutral that reads best on primary: 4.24:1",
+          "$extensions": {
+            "com.kickinrad.derived": true
+          }
         },
         "primary-container": {
           "$type": "color",
           "$value": "#d9e2ef",
-          "$description": "primary at 12 % over surface-container-low, a state layer"
+          "$description": "primary at 12 % over surface-container-low, a state layer",
+          "$extensions": {
+            "com.kickinrad.derived": true
+          }
         },
         "on-primary-container": {
           "$type": "color",
           "$value": "#2963b2",
-          "$description": "primary mixed 27 % toward on-surface: 4.56:1 on the card and the container"
+          "$description": "primary mixed 27 % toward on-surface: 4.56:1 on the card and the container",
+          "$extensions": {
+            "com.kickinrad.derived": true
+          }
         }
       }
     }
@@ -27,22 +36,34 @@
       "on-amber": {
         "$type": "color",
         "$value": "#ffffff",
-        "$description": "The neutral that reads best on amber: 4.85:1"
+        "$description": "The neutral that reads best on amber: 4.85:1",
+        "$extensions": {
+          "com.kickinrad.derived": true
+        }
       },
       "amber-container": {
         "$type": "color",
         "$value": "#e4e0db",
-        "$description": "amber at 12 % over surface-container-low, a state layer"
+        "$description": "amber at 12 % over surface-container-low, a state layer",
+        "$extensions": {
+          "com.kickinrad.derived": true
+        }
       },
       "on-amber-container": {
         "$type": "color",
         "$value": "#7a5f39",
-        "$description": "amber mixed 16 % toward on-surface: 4.54:1 on the card and the container"
+        "$description": "amber mixed 16 % toward on-surface: 4.54:1 on the card and the container",
+        "$extensions": {
+          "com.kickinrad.derived": true
+        }
       },
       "track-slow-mark": {
         "$type": "color",
         "$value": "#934b00",
-        "$description": "The slow mark on the surface, darker in Day: tone 40 of the accent's hue"
+        "$description": "The slow mark on the surface, darker in Day: tone 40 of the accent's hue",
+        "$extensions": {
+          "com.kickinrad.derived": true
+        }
       }
     }
   }

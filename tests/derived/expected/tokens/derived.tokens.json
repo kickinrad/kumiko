@@ -7,37 +7,58 @@
         "on-primary": {
           "$type": "color",
           "$value": "#0b0e11",
-          "$description": "The neutral that reads best on primary: 7.68:1"
+          "$description": "The neutral that reads best on primary: 7.68:1",
+          "$extensions": {
+            "com.kickinrad.derived": true
+          }
         },
         "primary-container": {
           "$type": "color",
           "$value": "#242c3a",
-          "$description": "primary at 12 % over surface-container-low, a state layer"
+          "$description": "primary at 12 % over surface-container-low, a state layer",
+          "$extensions": {
+            "com.kickinrad.derived": true
+          }
         },
         "on-primary-container": {
           "$type": "color",
           "$value": "#7aa2f7",
-          "$description": "primary: 5.57:1 on the card and the container"
+          "$description": "primary: 5.57:1 on the card and the container",
+          "$extensions": {
+            "com.kickinrad.derived": true
+          }
         },
         "primary-fixed": {
           "$type": "color",
           "$value": "#d9e2ef",
-          "$description": "The Day primary-container, in both modes"
+          "$description": "The Day primary-container, in both modes",
+          "$extensions": {
+            "com.kickinrad.derived": true
+          }
         },
         "primary-fixed-dim": {
           "$type": "color",
           "$value": "#7aa2f7",
-          "$description": "The base-mode primary, in both modes"
+          "$description": "The base-mode primary, in both modes",
+          "$extensions": {
+            "com.kickinrad.derived": true
+          }
         },
         "on-primary-fixed": {
           "$type": "color",
           "$value": "#101418",
-          "$description": "Reads on primary-fixed and primary-fixed-dim: 7.35:1 at worst"
+          "$description": "Reads on primary-fixed and primary-fixed-dim: 7.35:1 at worst",
+          "$extensions": {
+            "com.kickinrad.derived": true
+          }
         },
         "on-primary-fixed-variant": {
           "$type": "color",
           "$value": "#213a5e",
-          "$description": "Day primary mixed 69 % toward Day on-surface: 4.55:1 at worst"
+          "$description": "Day primary mixed 69 % toward Day on-surface: 4.55:1 at worst",
+          "$extensions": {
+            "com.kickinrad.derived": true
+          }
         }
       }
     }
@@ -47,27 +68,42 @@
       "on-amber": {
         "$type": "color",
         "$value": "#0b0e11",
-        "$description": "The neutral that reads best on amber: 9.68:1"
+        "$description": "The neutral that reads best on amber: 9.68:1",
+        "$extensions": {
+          "com.kickinrad.derived": true
+        }
       },
       "amber-container": {
         "$type": "color",
         "$value": "#302e29",
-        "$description": "amber at 12 % over surface-container-low, a state layer"
+        "$description": "amber at 12 % over surface-container-low, a state layer",
+        "$extensions": {
+          "com.kickinrad.derived": true
+        }
       },
       "on-amber-container": {
         "$type": "color",
         "$value": "#e0af68",
-        "$description": "amber: 6.78:1 on the card and the container"
+        "$description": "amber: 6.78:1 on the card and the container",
+        "$extensions": {
+          "com.kickinrad.derived": true
+        }
       },
       "track-fast-mark": {
         "$type": "color",
         "$value": "{acme.track.fast.color}",
-        "$description": "The fast mark on the surface: the accent"
+        "$description": "The fast mark on the surface: the accent",
+        "$extensions": {
+          "com.kickinrad.derived": true
+        }
       },
       "track-slow-mark": {
         "$type": "color",
         "$value": "{acme.track.slow.color}",
-        "$description": "The slow mark on the surface: the accent"
+        "$description": "The slow mark on the surface: the accent",
+        "$extensions": {
+          "com.kickinrad.derived": true
+        }
       }
     }
   }

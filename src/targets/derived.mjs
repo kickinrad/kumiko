@@ -92,7 +92,8 @@ const derive = (options, prefix) => {
   // The note sits on the colour group: a root $description would collide with the other source files'.
   const file = (description, entries) => {
     const tree = { $schema: SCHEMA, md: { sys: { color: { $description: description } } }, [prefix]: { color: {} } };
-    for (const [r, t] of Object.entries(entries)) (rolePath(r).startsWith('md.') ? tree.md.sys.color : tree[prefix].color)[r] = t;
+    // Each token says it is derived, so a consumer can tell it from one the kit wrote by hand.
+    for (const [r, t] of Object.entries(entries)) (rolePath(r).startsWith('md.') ? tree.md.sys.color : tree[prefix].color)[r] = { ...t, $extensions: { 'com.kickinrad.derived': true } };
     return `${JSON.stringify(tree, null, 2)}\n`;
   };
 
