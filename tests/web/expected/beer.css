@@ -99,9 +99,11 @@
 :is(button, .button):not(.chip).border.large { border-width: var(--md-comp-button-large-outlined-outline-width); }
 :is(button, .button):not(.chip).border.xlarge { border-width: var(--md-comp-button-xlarge-outlined-outline-width); }
 
-/* The navigation rail: Material's top space before the first destination and gap between them (Beer starts at
- * its padding and gaps 1rem), and the hover state layer at Material's opacity (Beer's ripple is 10%). */
+/* The navigation rail: Material's top space before the first destination, each item's vertical space and the gap
+ * between items (Beer starts at its padding and gaps 1rem), and the hover state layer at Material's opacity (Beer's
+ * ripple is 10%). */
 nav:is(.left, .right):not(.max) { padding-block-start: calc(var(--top, 0) + var(--md-comp-navigation-rail-collapsed-top-space)); gap: var(--md-comp-navigation-rail-collapsed-item-vertical-space); }
+nav:is(.left, .right):not(.max) a:not(.button, .chip) { padding-block: var(--md-comp-navigation-rail-baseline-item-container-vertical-space); }
 nav:is(.left, .right, .bottom, .top):not(.max) a:not(.button, .chip):hover:not(:focus-visible) > i::after { opacity: var(--md-sys-state-hover-state-layer-opacity); }
 
 /* Beer's list as Material's: a one-line item is 56 high, and a selected one (`active`) sits on the selected

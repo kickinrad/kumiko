@@ -116,7 +116,7 @@ test("Beer's rem is body-large, so its buttons are Material's: small XS 32, the 
 test("material.css draws the rail's top space and gap, the hover layer and the segmented list from Material's tokens, typing no value", () => {
   const css = readFileSync(join(root, "src/web/material.css"), "utf8");
   for (const name of [
-    "md-comp-navigation-rail-collapsed-top-space", "md-comp-navigation-rail-collapsed-item-vertical-space", "md-sys-state-hover-state-layer-opacity",
+    "md-comp-navigation-rail-collapsed-top-space", "md-comp-navigation-rail-collapsed-item-vertical-space", "md-comp-navigation-rail-baseline-item-container-vertical-space", "md-sys-state-hover-state-layer-opacity",
     "md-comp-list-segmented-gap", "md-comp-list-item-one-line-container-height", "md-comp-list-item-container-expressive-shape",
     "md-comp-list-item-hovered-container-expressive-shape", "md-comp-list-item-selected-container-expressive-shape", "md-comp-list-item-selected-container-color",
   ]) expect(css).toContain(`var(--${name})`);
