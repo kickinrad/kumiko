@@ -122,6 +122,7 @@ nav.max:is(.left, .right) a:not(.button, .chip):hover:not(:focus-visible)::after
 .list > li > a:only-child:hover::after { opacity: var(--md-sys-state-hover-state-layer-opacity); }
 .list > li > a:only-child.active { background-color: var(--md-comp-list-item-selected-container-color); color: var(--md-comp-list-item-selected-label-text-color); border-radius: var(--md-comp-list-item-selected-container-shape); }
 .list.segmented { gap: var(--md-comp-list-segmented-gap); }
+.list.segmented > li > a:only-child:not(.active) { background-color: var(--md-comp-list-item-container-color); }
 .list.segmented > li > a:only-child { border-radius: var(--md-comp-list-item-container-expressive-shape); transition: border-radius var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard); }
 .list.segmented > li > a:only-child:hover { border-radius: var(--md-comp-list-item-hovered-container-expressive-shape); }
 .list.segmented > li > a:only-child.active { border-radius: var(--md-comp-list-item-selected-container-expressive-shape); }
@@ -136,3 +137,28 @@ nav.top { block-size: var(--md-comp-app-bar-small-container-height); min-block-s
 :has(> nav.top) > nav:is(.left, .right) { inset-block-start: var(--md-comp-app-bar-small-container-height); block-size: calc(100dvh - var(--md-comp-app-bar-small-container-height)); }
 nav.top > i:first-child { inline-size: var(--md-comp-navigation-rail-collapsed-container-width); }
 nav.top > :is(h1, h2, h3, h4, h5, h6) { text-align: start; font-family: var(--md-comp-app-bar-small-title-font); font-size: var(--md-comp-app-bar-small-title-size); line-height: var(--md-comp-app-bar-small-title-line-height); font-weight: var(--md-comp-app-bar-small-title-weight); letter-spacing: var(--md-comp-app-bar-small-title-tracking); }
+
+/* A pane (a child of `main > .panes`, laid out by layout.css) is an explicit group: the low surface container in
+ * Material's large corner, padded by the list's leading space. */
+main > .panes > * { background-color: var(--md-sys-color-surface-container-low); border-radius: var(--md-sys-shape-corner-large); padding: var(--md-comp-list-item-leading-space); min-inline-size: 0; }
+
+
+/* Material 3's layout scaffold where Beer has none: panes. Bars and rails are Beer's page grid (top, left, main,
+ * bottom); panes are the main region, the children of `main > .panes`. Material gives these numbers in prose and
+ * no token (m3.material.io, Foundations > Layout > Scaffold, Breakpoints and Spacing), so each is typed here once.
+ * The breakpoints are Material's: compact under 600, medium to 839, expanded to 1199, large from 1200. Beer's `s`
+ * edge is the compact edge, so its bottom bar (`s`) and rail (`m l`) already follow. The beer target ends its output
+ * with this, after material.css. */
+
+/* One flexible pane, with Material's compact margins (16). */
+main > .panes { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; }
+main:has(> .panes) { --_padding: 16px; }
+/* Below expanded a single pane shows: the first (a list) unless an item is open (`data-open`); the back button
+ * (`data-back`) belongs to that single pane. */
+@media (max-width: 839px) { main > .panes[data-open] > :first-child, main > .panes:not([data-open]) > :last-child { display: none; } }
+/* From medium, Material's margins are 24. */
+@media (min-width: 600px) { main:has(> .panes) { --_padding: 24px; } }
+/* From expanded, two panes: one fixed at Material's pane width (360), one flexible, a 24 spacer between them. */
+@media (min-width: 840px) { main > .panes { grid-template-columns: 360px minmax(0, 1fr); gap: 24px; } nav.top > [data-back] { display: none; } }
+/* From large, the fixed pane is 412. */
+@media (min-width: 1200px) { main > .panes { grid-template-columns: 412px minmax(0, 1fr); } }
