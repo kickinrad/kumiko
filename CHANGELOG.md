@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.0](https://github.com/kickinrad/kumiko/compare/v1.12.0...v1.13.0) (2026-10-31)
+
+
+### Features
+
+* **playground:** a full-width top app bar with the kit's mark, and a rail that expands ([#46](https://github.com/kickinrad/kumiko/issues/46)) ([7bcdf44](https://github.com/kickinrad/kumiko/commit/7bcdf44053e7570fe5493d8074cbe4fd020c5201))
+
 ## [1.12.0](https://github.com/kickinrad/kumiko/compare/v1.11.0...v1.12.0) (2026-10-31)
 
 
