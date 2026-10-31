@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.0](https://github.com/kickinrad/kumiko/compare/v1.11.0...v1.12.0) (2026-10-31)
+
+
+### Features
+
+* **playground:** the rail, the list, the mode switch and the Rules item follow Material ([#44](https://github.com/kickinrad/kumiko/issues/44)) ([9d14605](https://github.com/kickinrad/kumiko/commit/9d14605652ae23198775d87868e4f8923d207247))
+
 ## [1.11.0](https://github.com/kickinrad/tokens/compare/v1.10.0...v1.11.0) (2026-10-29)
 
 
