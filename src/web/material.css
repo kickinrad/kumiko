@@ -45,9 +45,17 @@
 /* The navigation rail: Material's top space before the first destination, each item's vertical space and the gap
  * between items (Beer starts at its padding and gaps 1rem), and the hover state layer at Material's opacity (Beer's
  * ripple is 10%). */
-nav:is(.left, .right):not(.max) { padding-block-start: calc(var(--top, 0) + var(--md-comp-navigation-rail-collapsed-top-space)); gap: var(--md-comp-navigation-rail-collapsed-item-vertical-space); }
+nav:is(.left, .right) { padding-block-start: calc(var(--top, 0) + var(--md-comp-navigation-rail-collapsed-top-space)); }
+nav:is(.left, .right):not(.max) { gap: var(--md-comp-navigation-rail-collapsed-item-vertical-space); }
 nav:is(.left, .right):not(.max) a:not(.button, .chip) { padding-block: var(--md-comp-navigation-rail-baseline-item-container-vertical-space); }
 nav:is(.left, .right, .bottom, .top):not(.max) a:not(.button, .chip):hover:not(:focus-visible) > i::after { opacity: var(--md-sys-state-hover-state-layer-opacity); }
+/* The rail's header (its menu button) sits Material's space above the first destination; expanded (`max`), the rail
+ * is Material's expanded rail: its minimum width, each destination a row the active indicator's height with
+ * Material's leading space and icon-to-label space, in the label-large face. */
+nav:is(.left, .right) > header { margin-block-end: var(--md-comp-navigation-rail-baseline-item-header-space-minimum); }
+nav.max:is(.left, .right) { min-inline-size: var(--md-comp-navigation-rail-expanded-container-width-minimum); }
+nav.max:is(.left, .right) a:not(.button, .chip) { block-size: var(--md-comp-navigation-rail-horizontal-item-active-indicator-height); padding-inline: var(--md-comp-navigation-rail-horizontal-item-leading-space); gap: var(--md-comp-navigation-rail-horizontal-item-icon-label-space); font-family: var(--md-comp-navigation-rail-horizontal-item-label-text-font); font-size: var(--md-comp-navigation-rail-horizontal-item-label-text-size); line-height: var(--md-comp-navigation-rail-horizontal-item-label-text-line-height); font-weight: var(--md-comp-navigation-rail-horizontal-item-label-text-weight); }
+nav.max:is(.left, .right) a:not(.button, .chip):hover:not(:focus-visible)::after { opacity: var(--md-sys-state-hover-state-layer-opacity); }
 
 /* Beer's list as Material's: a one-line item is 56 high, and a selected one (`active`) sits on the selected
  * container colour in the selected shape. `segmented` is Material's segmented list: a gap between items, each in
@@ -61,3 +69,13 @@ nav:is(.left, .right, .bottom, .top):not(.max) a:not(.button, .chip):hover:not(:
 .list.segmented > li > a:only-child:hover { border-radius: var(--md-comp-list-item-hovered-container-expressive-shape); }
 .list.segmented > li > a:only-child.active { border-radius: var(--md-comp-list-item-selected-container-expressive-shape); }
 @media (prefers-reduced-motion: reduce) { .list.segmented > li > a:only-child { transition: none; } }
+
+/* The top app bar spans the window and the rail sits beneath it, as m3.material.io lays itself out (Beer runs the
+ * rail full height beside the bar). Its height and title are Material's small top app bar; its leading icon sits
+ * over the rail's icons, in a box the rail's width. */
+:has(> main):has(> nav.top) { grid-template-areas: "top top top" "left header right" "left main right" "left footer right" "left bottom right"; }
+nav.top { block-size: var(--md-comp-app-bar-small-container-height); min-block-size: var(--md-comp-app-bar-small-container-height); padding-block: 0; padding-inline-start: 0; }
+/* Beer pins the rail to the window's top edge; under the bar it starts at the bar's height and fills the rest. */
+:has(> nav.top) > nav:is(.left, .right) { inset-block-start: var(--md-comp-app-bar-small-container-height); block-size: calc(100dvh - var(--md-comp-app-bar-small-container-height)); }
+nav.top > i:first-child { inline-size: var(--md-comp-navigation-rail-collapsed-container-width); }
+nav.top > :is(h1, h2, h3, h4, h5, h6) { text-align: start; font-family: var(--md-comp-app-bar-small-title-font); font-size: var(--md-comp-app-bar-small-title-size); line-height: var(--md-comp-app-bar-small-title-line-height); font-weight: var(--md-comp-app-bar-small-title-weight); letter-spacing: var(--md-comp-app-bar-small-title-tracking); }
