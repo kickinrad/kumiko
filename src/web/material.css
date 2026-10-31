@@ -74,6 +74,8 @@ nav.max:is(.left, .right) a:not(.button, .chip):hover:not(:focus-visible)::after
  * rail full height beside the bar). Its height and title are Material's small top app bar; its leading icon sits
  * over the rail's icons, in a box the rail's width. */
 :has(> main):has(> nav.top) { grid-template-areas: "top top top" "left header right" "left main right" "left footer right" "left bottom right"; }
-nav.top { min-block-size: var(--md-comp-app-bar-small-container-height); padding-inline-start: 0; }
+nav.top { block-size: var(--md-comp-app-bar-small-container-height); min-block-size: var(--md-comp-app-bar-small-container-height); padding-block: 0; padding-inline-start: 0; }
+/* Beer pins the rail to the window's top edge; under the bar it starts at the bar's height and fills the rest. */
+:has(> nav.top) > nav:is(.left, .right) { inset-block-start: var(--md-comp-app-bar-small-container-height); block-size: calc(100dvh - var(--md-comp-app-bar-small-container-height)); }
 nav.top > i:first-child { inline-size: var(--md-comp-navigation-rail-collapsed-container-width); }
-nav.top > :is(h1, h2, h3, h4, h5, h6) { font-family: var(--md-comp-app-bar-small-title-font); font-size: var(--md-comp-app-bar-small-title-size); line-height: var(--md-comp-app-bar-small-title-line-height); font-weight: var(--md-comp-app-bar-small-title-weight); letter-spacing: var(--md-comp-app-bar-small-title-tracking); }
+nav.top > :is(h1, h2, h3, h4, h5, h6) { text-align: start; font-family: var(--md-comp-app-bar-small-title-font); font-size: var(--md-comp-app-bar-small-title-size); line-height: var(--md-comp-app-bar-small-title-line-height); font-weight: var(--md-comp-app-bar-small-title-weight); letter-spacing: var(--md-comp-app-bar-small-title-tracking); }
