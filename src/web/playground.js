@@ -70,10 +70,10 @@ export const exceptions = (tokens) => {
   return `<h2>Exceptions</h2>${[...groups].map(([group, each]) => `<h3>${esc(group)}</h3><ul>${each.map((token) => `<li><code>${esc(token.path)}</code> ${esc(token.description)}</li>`).join("")}</ul>`).join("")}`;
 };
 
-// The whole page for a place and a mode. The rail is Beer's left navigation from medium up and its bottom bar on
-// small; the panes sit side by side from medium up, and on small only the list (a tab named) or the open
-// item (an item named, with a back button) shows.
-export const view = (data, { tab: tabId, item: itemId, mode = Object.keys(data.modes)[0] }) => {
+// The whole page for a place and a mode. The top app bar spans the window; the rail is Beer's left navigation
+// beneath it from medium up and its bottom bar on small; the panes sit side by side from medium up, and on small
+// only the list (a tab named) or the open item (an item named, with a back button) shows.
+export const view = (data, { tab: tabId, item: itemId, mode = Object.keys(data.modes)[0], expanded = false }) => {
   const tab = TABS.find((each) => each.id === tabId) ?? TABS[0];
   const item = tab.items.find((each) => each.id === itemId) ?? tab.items[0];
   const open = tab.id === tabId && item.id === itemId;
@@ -83,8 +83,11 @@ export const view = (data, { tab: tabId, item: itemId, mode = Object.keys(data.m
   const next = names[(names.indexOf(mode) + 1) % names.length];
   const switcher = `<button class="circle transparent" data-mode="${esc(next)}" aria-label="${esc(next[0].toUpperCase() + next.slice(1))} mode"><i>${scheme(data.modes[next]) === "light" ? "light_mode" : "dark_mode"}</i></button>`;
   const items = tab.items.map((each) => `<li><a class="wave${each === item ? " active" : ""}" href="#${tab.id}/${each.id}"><span class="max">${each.name}</span></a></li>`).join("");
-  return `<nav class="left m l">${destinations}</nav>
-<header><nav>${open ? `<a class="button circle transparent s" href="#${tab.id}" aria-label="Back"><i>arrow_back</i></a>` : ""}<h6 class="max">${esc(data.name)}</h6>${switcher}</nav></header>
+  // The top app bar spans the window: the kit's mark, its name, and the mode switch; on small, a back button when an item is open.
+  // The rail's header holds the menu button; expanded, the rail is Material's expanded rail (Beer's `max`).
+  const menu = `<header><button class="circle transparent" data-rail aria-label="${expanded ? "Collapse" : "Expand"} the navigation"><i>${expanded ? "menu_open" : "menu"}</i></button></header>`;
+  return `<nav class="left m l${expanded ? " max" : ""}">${menu}${destinations}</nav>
+<nav class="top"><i>${esc(data.icon ?? "style")}</i>${open ? `<a class="button circle transparent s" href="#${tab.id}" aria-label="Back"><i>arrow_back</i></a>` : ""}<h6 class="max">${esc(data.name)}</h6>${switcher}</nav>
 <main><div class="grid">
 <div class="s12 m4 l3${open ? " m l" : ""}"><ul class="list segmented">${items}</ul></div>
 <div class="s12 m8 l9${open ? "" : " m l"}"><h1>${item.name}</h1>${item.body(data, data.modes[mode])}</div>
@@ -98,18 +101,27 @@ const boot = async () => {
   const schemes = Object.fromEntries(modes.map((mode) => [mode, scheme(data.modes[mode])]));
   const root = document.documentElement;
   let mode = modes.find((each) => schemes[each] === getComputedStyle(root).colorScheme) ?? modes[0];
+  // Whether the rail is expanded, remembered per browser (a convenience; storage may be absent).
+  const remember = (key, value) => { try { localStorage.setItem(key, value); } catch {} };
+  let expanded = false;
+  try { expanded = localStorage.getItem("rail") === "expanded"; } catch {}
   document.title = `${data.name} playground`;
   // The kit's faces, one stylesheet each, so a family Google Fonts lacks fails alone.
   for (const href of new Set(modes.flatMap((each) => fontLinks(data.modes[each])))) document.head.append(Object.assign(document.createElement("link"), { rel: "stylesheet", href }));
   const draw = () => {
     const [tab, item] = location.hash.slice(1).split("/");
-    document.getElementById("app").innerHTML = view(data, { tab, item, mode });
+    document.getElementById("app").innerHTML = view(data, { tab, item, mode, expanded });
     // A frame follows the mode through its address: the hash is the data-theme it sets.
     for (const frame of document.querySelectorAll("[data-frame]")) frame.src = `${frame.dataset.frame}#${schemes[mode]}`;
   };
   window.addEventListener("hashchange", draw);
   document.addEventListener("click", (event) => {
     if (event.target.closest("[data-replay]")) return replay(document);
+    if (event.target.closest("[data-rail]")) {
+      expanded = !expanded;
+      remember("rail", expanded ? "expanded" : "collapsed");
+      return draw();
+    }
     const button = event.target.closest("[data-mode]");
     if (!button) return;
     mode = button.dataset.mode;
