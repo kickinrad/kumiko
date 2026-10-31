@@ -98,3 +98,21 @@
 :is(button, .button):not(.chip).xlarge > i { --_size: var(--md-comp-button-xlarge-icon-size); }
 :is(button, .button):not(.chip).border.large { border-width: var(--md-comp-button-large-outlined-outline-width); }
 :is(button, .button):not(.chip).border.xlarge { border-width: var(--md-comp-button-xlarge-outlined-outline-width); }
+
+/* The navigation rail: Material's top space before the first destination and gap between them (Beer starts at
+ * its padding and gaps 1rem), and the hover state layer at Material's opacity (Beer's ripple is 10%). */
+nav:is(.left, .right):not(.max) { padding-block-start: calc(var(--top, 0) + var(--md-comp-navigation-rail-collapsed-top-space)); gap: var(--md-comp-navigation-rail-collapsed-item-vertical-space); }
+nav:is(.left, .right, .bottom, .top):not(.max) a:not(.button, .chip):hover:not(:focus-visible) > i::after { opacity: var(--md-sys-state-hover-state-layer-opacity); }
+
+/* Beer's list as Material's: a one-line item is 56 high, and a selected one (`active`) sits on the selected
+ * container colour in the selected shape. `segmented` is Material's segmented list: a gap between items, each in
+ * its own container, corner 4 at rest, 12 hovered and 16 selected, morphing with Material's motion and still
+ * under reduced motion. */
+.list > li > a:only-child { min-block-size: var(--md-comp-list-item-one-line-container-height); }
+.list > li > a:only-child:hover::after { opacity: var(--md-sys-state-hover-state-layer-opacity); }
+.list > li > a:only-child.active { background-color: var(--md-comp-list-item-selected-container-color); color: var(--md-comp-list-item-selected-label-text-color); border-radius: var(--md-comp-list-item-selected-container-shape); }
+.list.segmented { gap: var(--md-comp-list-segmented-gap); }
+.list.segmented > li > a:only-child { border-radius: var(--md-comp-list-item-container-expressive-shape); transition: border-radius var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard); }
+.list.segmented > li > a:only-child:hover { border-radius: var(--md-comp-list-item-hovered-container-expressive-shape); }
+.list.segmented > li > a:only-child.active { border-radius: var(--md-comp-list-item-selected-container-expressive-shape); }
+@media (prefers-reduced-motion: reduce) { .list.segmented > li > a:only-child { transition: none; } }
