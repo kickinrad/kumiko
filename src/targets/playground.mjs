@@ -2,7 +2,8 @@
 // Writes into options.path: index.html (fixed, names no kit), the engine's client (src/web: playground.js and a
 // module per destination, with color.mjs, the engine's colour maths, beside them) and tokens.json (the kit's name,
 // version, tokens per mode and notes: the only per-kit data the page reads).
-// Options: path (a directory), css and beer (the kit's css and beer outputs, as the config gives them), and
+// Options: path (a directory), css and beer (the kit's css and beer outputs, as the config gives them),
+// optionally icon (a Material Symbol name, the kit's mark in the top app bar; "style" otherwise) and
 // optionally tailwind (the kit's Tailwind output): with it the page also writes tailwind.html, which proves
 // the output in a frame of its own (Tailwind's reset would restyle the page) and tokens.json names it.
 import { join, relative, resolve } from "node:path";
@@ -34,6 +35,7 @@ export default {
     const css = href("css");
     const beer = href("beer");
     const notes = await readExisting(join(root, "notes.md"));
+    if (options.icon !== undefined && typeof options.icon !== "string") throw new Error('playground option "icon" must be a Material Symbol name');
     // The Tailwind output as this run made it (list it before the playground), else the file on disk.
     const output = options.tailwind && (built(options.tailwind) ?? (await readExisting(options.tailwind)));
     if (options.tailwind && output === undefined) throw new Error(`playground option "tailwind" names ${options.tailwind}, which no output built and is not a file`);
@@ -67,6 +69,7 @@ export default {
       `"name": ${JSON.stringify(name)}`,
       `"version": ${JSON.stringify(version)}`,
       `"modes": {\n${byMode.map(([mode, each]) => `    ${JSON.stringify(mode)}: ${lines(each)}`).join(",\n")}\n  }`,
+      ...(options.icon === undefined ? [] : [`"icon": ${JSON.stringify(options.icon)}`]),
       ...(output === undefined ? [] : [`"tailwind": "tailwind.html"`]),
       ...(notes === undefined ? [] : [`"notes": ${JSON.stringify(notes)}`]),
     ];

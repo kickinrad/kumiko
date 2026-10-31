@@ -118,3 +118,11 @@ nav:is(.left, .right, .bottom, .top):not(.max) a:not(.button, .chip):hover:not(:
 .list.segmented > li > a:only-child:hover { border-radius: var(--md-comp-list-item-hovered-container-expressive-shape); }
 .list.segmented > li > a:only-child.active { border-radius: var(--md-comp-list-item-selected-container-expressive-shape); }
 @media (prefers-reduced-motion: reduce) { .list.segmented > li > a:only-child { transition: none; } }
+
+/* The top app bar spans the window and the rail sits beneath it, as m3.material.io lays itself out (Beer runs the
+ * rail full height beside the bar). Its height and title are Material's small top app bar; its leading icon sits
+ * over the rail's icons, in a box the rail's width. */
+:has(> main):has(> nav.top) { grid-template-areas: "top top top" "left header right" "left main right" "left footer right" "left bottom right"; }
+nav.top { min-block-size: var(--md-comp-app-bar-small-container-height); padding-inline-start: 0; }
+nav.top > i:first-child { inline-size: var(--md-comp-navigation-rail-collapsed-container-width); }
+nav.top > :is(h1, h2, h3, h4, h5, h6) { font-family: var(--md-comp-app-bar-small-title-font); font-size: var(--md-comp-app-bar-small-title-size); line-height: var(--md-comp-app-bar-small-title-line-height); font-weight: var(--md-comp-app-bar-small-title-weight); letter-spacing: var(--md-comp-app-bar-small-title-tracking); }

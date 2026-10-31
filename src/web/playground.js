@@ -70,9 +70,9 @@ export const exceptions = (tokens) => {
   return `<h2>Exceptions</h2>${[...groups].map(([group, each]) => `<h3>${esc(group)}</h3><ul>${each.map((token) => `<li><code>${esc(token.path)}</code> ${esc(token.description)}</li>`).join("")}</ul>`).join("")}`;
 };
 
-// The whole page for a place and a mode. The rail is Beer's left navigation from medium up and its bottom bar on
-// small; the panes sit side by side from medium up, and on small only the list (a tab named) or the open
-// item (an item named, with a back button) shows.
+// The whole page for a place and a mode. The top app bar spans the window; the rail is Beer's left navigation
+// beneath it from medium up and its bottom bar on small; the panes sit side by side from medium up, and on small
+// only the list (a tab named) or the open item (an item named, with a back button) shows.
 export const view = (data, { tab: tabId, item: itemId, mode = Object.keys(data.modes)[0] }) => {
   const tab = TABS.find((each) => each.id === tabId) ?? TABS[0];
   const item = tab.items.find((each) => each.id === itemId) ?? tab.items[0];
@@ -83,8 +83,9 @@ export const view = (data, { tab: tabId, item: itemId, mode = Object.keys(data.m
   const next = names[(names.indexOf(mode) + 1) % names.length];
   const switcher = `<button class="circle transparent" data-mode="${esc(next)}" aria-label="${esc(next[0].toUpperCase() + next.slice(1))} mode"><i>${scheme(data.modes[next]) === "light" ? "light_mode" : "dark_mode"}</i></button>`;
   const items = tab.items.map((each) => `<li><a class="wave${each === item ? " active" : ""}" href="#${tab.id}/${each.id}"><span class="max">${each.name}</span></a></li>`).join("");
+  // The top app bar spans the window: the kit's mark, its name, and the mode switch; on small, a back button when an item is open.
   return `<nav class="left m l">${destinations}</nav>
-<header><nav>${open ? `<a class="button circle transparent s" href="#${tab.id}" aria-label="Back"><i>arrow_back</i></a>` : ""}<h6 class="max">${esc(data.name)}</h6>${switcher}</nav></header>
+<nav class="top"><i>${esc(data.icon ?? "style")}</i>${open ? `<a class="button circle transparent s" href="#${tab.id}" aria-label="Back"><i>arrow_back</i></a>` : ""}<h6 class="max">${esc(data.name)}</h6>${switcher}</nav>
 <main><div class="grid">
 <div class="s12 m4 l3${open ? " m l" : ""}"><ul class="list segmented">${items}</ul></div>
 <div class="s12 m8 l9${open ? "" : " m l"}"><h1>${item.name}</h1>${item.body(data, data.modes[mode])}</div>
