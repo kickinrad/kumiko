@@ -19,6 +19,16 @@
             "$description": "Fixture exception: labels at 600."
           }
         }
+      },
+      "color": {
+        "primary-container": {
+          "$type": "color",
+          "$value": "#334455",
+          "$description": "primary at 16 % over surface, a state layer",
+          "$extensions": {
+            "com.kickinrad.derived": true
+          }
+        }
       }
     }
   }

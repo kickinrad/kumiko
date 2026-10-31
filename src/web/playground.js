@@ -57,12 +57,12 @@ const TABS = [
   { id: "rules", name: "Rules", icon: "rule", items: [{ id: "notes", name: "Notes", body: (data, tokens) => (data.notes ? markdown(data.notes) : "<p>This kit has no notes.md.</p>") + exceptions(tokens) }] },
 ];
 
-// The kit's exceptions: every Material token the kit describes (a description on a Material path says why the kit
-// differs), grouped by the token's group, after the notes.
+// The kit's exceptions: every Material token the kit describes by hand (a description on a Material path says why
+// the kit differs; the engine's derived tokens say what they are, and are skipped), grouped, after the notes.
 export const exceptions = (tokens) => {
   const groups = new Map();
   for (const token of tokens) {
-    if (!token.path.startsWith("md.") || !token.description) continue;
+    if (!token.path.startsWith("md.") || !token.description || token.derived) continue;
     const group = token.path.split(".").slice(0, 3).join(".");
     (groups.get(group) ?? groups.set(group, []).get(group)).push(token);
   }

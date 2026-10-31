@@ -22,7 +22,7 @@ const withoutComments = (css) => css.replace(/\/\*[\s\S]*?\*\//g, "");
 const attribute = (text) => text.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 
 // Each token on its own line, so a change to one token is one line of diff.
-const lines = (tokens) => `[\n${tokens.map(({ path, value, type, description }) => `      ${JSON.stringify({ path, value, type, description })}`).join(",\n")}\n    ]`;
+const lines = (tokens) => `[\n${tokens.map(({ path, value, type, description, derived }) => `      ${JSON.stringify({ path, value, type, description, derived })}`).join(",\n")}\n    ]`;
 
 export default {
   name: "playground",

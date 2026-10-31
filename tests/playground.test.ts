@@ -449,6 +449,9 @@ test("rules: the notes, then the kit's exceptions: every Material token with a d
   expect(rules).toContain("<li><code>md.sys.typescale.label-large.weight</code> Fixture exception: labels at 600.</li>");
   const section = rules.slice(rules.indexOf("<h2>Exceptions</h2>"));
   expect(section).not.toContain("acme.gap");
+  // The engine's derived tokens describe what they are, not an exception.
+  expect(section).not.toContain("primary-container");
+  expect(tokensOf(dir).modes.night.find((token: { path: string }) => token.path === "md.sys.color.primary-container").derived).toBe(true);
   expect(rules.indexOf("<h2>Exceptions</h2>")).toBeGreaterThan(rules.indexOf("<h3>Don't</h3>"));
 });
 

@@ -128,6 +128,7 @@ const entry = (token, rawToken, type) => {
   const value = fluid ?? token.$value;
   return {
     path, segments: token.path, name: token.name, type, fluid, value, scalar: token.$value, description: token.$description,
+    derived: rawToken?.$extensions?.["com.kickinrad.derived"] === true || undefined,
     typography: type === "typography" ? typography(rawToken?.$value) : undefined,
   };
 };
