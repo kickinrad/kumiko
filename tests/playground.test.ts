@@ -437,7 +437,10 @@ test("view: five destinations in a rail and a bar, the open item in a list-detai
   expect(open).not.toContain('class="group connected"');
   // The top app bar: the kit's mark ("style" unless the config names an icon), its name, the switch.
   expect(open).toContain('<nav class="top"><i>style</i><a class="button circle transparent s" href="#rules" aria-label="Back"><i>arrow_back</i></a><h6 class="max">acme</h6><button class="circle transparent"');
-  expect(open).not.toContain("<header>");
+  expect(open).not.toContain("<header><nav>");
+  // The rail's header holds the menu button; `expanded` makes it Material's expanded rail.
+  expect(open).toContain('<nav class="left m l"><header><button class="circle transparent" data-rail aria-label="Expand the navigation"><i>menu</i></button></header><a href="#foundations">');
+  expect(view(data, { ...state, expanded: true })).toContain('<nav class="left m l max"><header><button class="circle transparent" data-rail aria-label="Collapse the navigation"><i>menu_open</i></button></header>');
   const marked = built(edited('c.playground.icon = "contrast";'));
   expect(tokensOf(marked).icon).toBe("contrast");
   expect((await client(marked)).view(tokensOf(marked), state)).toContain('<nav class="top"><i>contrast</i>');

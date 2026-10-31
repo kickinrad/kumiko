@@ -120,6 +120,7 @@ test("material.css draws the rail's top space and gap, the hover layer and the s
     "md-comp-list-segmented-gap", "md-comp-list-item-one-line-container-height", "md-comp-list-item-container-expressive-shape",
     "md-comp-list-item-hovered-container-expressive-shape", "md-comp-list-item-selected-container-expressive-shape", "md-comp-list-item-selected-container-color",
     "md-comp-app-bar-small-container-height", "md-comp-app-bar-small-title-size", "md-comp-navigation-rail-collapsed-container-width",
+    "md-comp-navigation-rail-expanded-container-width-minimum", "md-comp-navigation-rail-horizontal-item-active-indicator-height", "md-comp-navigation-rail-baseline-item-header-space-minimum",
   ]) expect(css).toContain(`var(--${name})`);
   expect(css.replace(/\/\*[\s\S]*?\*\//g, "")).not.toMatch(/#[0-9a-f]{3,8}\b|\d(px|rem|ms)\b/i);
   const dir = project();

@@ -102,9 +102,17 @@
 /* The navigation rail: Material's top space before the first destination, each item's vertical space and the gap
  * between items (Beer starts at its padding and gaps 1rem), and the hover state layer at Material's opacity (Beer's
  * ripple is 10%). */
-nav:is(.left, .right):not(.max) { padding-block-start: calc(var(--top, 0) + var(--md-comp-navigation-rail-collapsed-top-space)); gap: var(--md-comp-navigation-rail-collapsed-item-vertical-space); }
+nav:is(.left, .right) { padding-block-start: calc(var(--top, 0) + var(--md-comp-navigation-rail-collapsed-top-space)); }
+nav:is(.left, .right):not(.max) { gap: var(--md-comp-navigation-rail-collapsed-item-vertical-space); }
 nav:is(.left, .right):not(.max) a:not(.button, .chip) { padding-block: var(--md-comp-navigation-rail-baseline-item-container-vertical-space); }
 nav:is(.left, .right, .bottom, .top):not(.max) a:not(.button, .chip):hover:not(:focus-visible) > i::after { opacity: var(--md-sys-state-hover-state-layer-opacity); }
+/* The rail's header (its menu button) sits Material's space above the first destination; expanded (`max`), the rail
+ * is Material's expanded rail: its minimum width, each destination a row the active indicator's height with
+ * Material's leading space and icon-to-label space, in the label-large face. */
+nav:is(.left, .right) > header { margin-block-end: var(--md-comp-navigation-rail-baseline-item-header-space-minimum); }
+nav.max:is(.left, .right) { min-inline-size: var(--md-comp-navigation-rail-expanded-container-width-minimum); }
+nav.max:is(.left, .right) a:not(.button, .chip) { block-size: var(--md-comp-navigation-rail-horizontal-item-active-indicator-height); padding-inline: var(--md-comp-navigation-rail-horizontal-item-leading-space); gap: var(--md-comp-navigation-rail-horizontal-item-icon-label-space); font-family: var(--md-comp-navigation-rail-horizontal-item-label-text-font); font-size: var(--md-comp-navigation-rail-horizontal-item-label-text-size); line-height: var(--md-comp-navigation-rail-horizontal-item-label-text-line-height); font-weight: var(--md-comp-navigation-rail-horizontal-item-label-text-weight); }
+nav.max:is(.left, .right) a:not(.button, .chip):hover:not(:focus-visible)::after { opacity: var(--md-sys-state-hover-state-layer-opacity); }
 
 /* Beer's list as Material's: a one-line item is 56 high, and a selected one (`active`) sits on the selected
  * container colour in the selected shape. `segmented` is Material's segmented list: a gap between items, each in
