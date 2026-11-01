@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.14.0](https://github.com/kickinrad/kumiko/compare/v1.13.0...v1.14.0) (2026-11-01)
+
+
+### Features
+
+* **playground:** Material's panes inside Beer's main, and a list item's own container ([#48](https://github.com/kickinrad/kumiko/issues/48)) ([ec6dfde](https://github.com/kickinrad/kumiko/commit/ec6dfde10bad7334e3d38b8c80a9b311591d32a4))
+
 ## [1.13.0](https://github.com/kickinrad/kumiko/compare/v1.12.0...v1.13.0) (2026-10-31)
 
 
