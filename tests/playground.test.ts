@@ -419,15 +419,13 @@ test("view: five destinations in a rail and a bar, the open item in a list-detai
   expect(open).toContain('href="#rules"');
   expect(open).toContain("acme");
   expect(open.match(/<h1>/g)).toHaveLength(1);
-  // An item is named: the list hides on small, and a back button shows there.
-  expect(open).toContain('<div class="s12 m4 l3 m l">');
-  expect(open).toContain('class="button circle transparent s"');
-  expect(open).toContain('<div class="s12 m8 l9">');
-  // Only a tab is named: the detail hides on small, and there is nothing to go back to.
+  // An item is named: the panes are open (below expanded only the detail shows), and a back button shows there.
+  expect(open).toContain('<main><div class="panes" data-open>\n<div><ul class="list segmented">');
+  expect(open).toContain('data-back href="#rules" aria-label="Back"');
+  // Only a tab is named: the panes are not open (below expanded only the list shows), and there is nothing to go back to.
   const list: string = view(data, { ...state, item: undefined });
-  expect(list).toContain('<div class="s12 m4 l3">');
-  expect(list).toContain('<div class="s12 m8 l9 m l">');
-  expect(list).not.toContain('class="button circle transparent s"');
+  expect(list).toContain('<main><div class="panes">');
+  expect(list).not.toContain("data-back");
   // Nothing named: the first destination's first item.
   expect(view(data, { mode: "night" })).toContain("<h1>Colour</h1>");
   // The mode switch is one icon button to the next mode, its icon that mode's scheme; the list pane is Material's
@@ -436,7 +434,7 @@ test("view: five destinations in a rail and a bar, the open item in a list-detai
   expect(view(data, { ...state, mode: "day" })).toContain('data-mode="night" aria-label="Night mode"><i>dark_mode</i>');
   expect(open).not.toContain('class="group connected"');
   // The top app bar: the kit's mark ("style" unless the config names an icon), its name, the switch.
-  expect(open).toContain('<nav class="top"><i>style</i><a class="button circle transparent s" href="#rules" aria-label="Back"><i>arrow_back</i></a><h6 class="max">acme</h6><button class="circle transparent"');
+  expect(open).toContain('<nav class="top"><i>style</i><a class="button circle transparent" data-back href="#rules" aria-label="Back"><i>arrow_back</i></a><h6 class="max">acme</h6><button class="circle transparent"');
   expect(open).not.toContain("<header><nav>");
   // The rail's header holds the menu button; `expanded` makes it Material's expanded rail.
   expect(open).toContain('<nav class="left m l"><header><button class="circle transparent" data-rail aria-label="Expand the navigation"><i>menu</i></button></header><a href="#foundations">');

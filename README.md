@@ -89,7 +89,7 @@ A missing required option fails, naming it. The colour roles read are Material's
 
 ## The `beer` target
 
-`"beer"` themes [Beer CSS](https://github.com/beercss/beercss) (a dependency at latest, bundled as text so the binary carries it) with the kit's tokens: every Beer colour role set to `var(--md-sys-color-<role>)`, Beer's system variables (size, font, speeds, state layer, overlay) set from Material's, the label-large type on buttons and chips, and Material's values where Beer draws its own (focus ring, slider handles, large buttons, in `src/web/material.css`). Load it after Beer and the `css` output, and set the mode with `data-theme`.
+`"beer"` themes [Beer CSS](https://github.com/beercss/beercss) (a dependency at latest, bundled as text so the binary carries it) with the kit's tokens: every Beer colour role set to `var(--md-sys-color-<role>)`, Beer's system variables (size, font, speeds, state layer, overlay) set from Material's, the label-large type on buttons and chips, Material's values where Beer draws its own (focus ring, slider handles, large buttons, rail, list, app bar, in `src/web/material.css`), and Material's panes inside Beer's main (`main > .panes`, Material's breakpoints, pane widths and spacer, in `src/web/layout.css`). Load it after Beer and the `css` output, and set the mode with `data-theme`.
 
 ```js
 beer: {

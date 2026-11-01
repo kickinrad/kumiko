@@ -121,9 +121,23 @@ test("material.css draws the rail's top space and gap, the hover layer and the s
     "md-comp-list-item-hovered-container-expressive-shape", "md-comp-list-item-selected-container-expressive-shape", "md-comp-list-item-selected-container-color",
     "md-comp-app-bar-small-container-height", "md-comp-app-bar-small-title-size", "md-comp-navigation-rail-collapsed-container-width",
     "md-comp-navigation-rail-expanded-container-width-minimum", "md-comp-navigation-rail-horizontal-item-active-indicator-height", "md-comp-navigation-rail-baseline-item-header-space-minimum",
+    "md-sys-color-surface-container-low", "md-sys-shape-corner-large", "md-comp-list-item-leading-space", "md-comp-list-item-container-color",
   ]) expect(css).toContain(`var(--${name})`);
   expect(css.replace(/\/\*[\s\S]*?\*\//g, "")).not.toMatch(/#[0-9a-f]{3,8}\b|\d(px|rem|ms)\b/i);
   const dir = project();
   run(dir);
   expect(read(dir, "out/beer.css")).toContain("var(--md-comp-list-segmented-gap)");
+});
+
+test("layout.css lays out Material's panes inside Beer's main with Material's guidance numbers, and ends the beer output", () => {
+  const css = readFileSync(join(root, "src/web/layout.css"), "utf8");
+  expect(css).toContain("main > .panes { display: grid;");
+  // Material's breakpoints (compact under 600, expanded from 840, large from 1200), pane widths (360, 412), spacer (24) and margins (16, 24).
+  for (const literal of ["(max-width: 839px)", "(min-width: 600px)", "(min-width: 840px)", "(min-width: 1200px)", "360px minmax(0, 1fr); gap: 24px;", "412px minmax(0, 1fr);", "--_padding: 16px;", "--_padding: 24px;"]) expect(css).toContain(literal);
+  expect(css.replace(/\/\*[\s\S]*?\*\//g, "")).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+  const dir = project();
+  run(dir);
+  const out = read(dir, "out/beer.css");
+  expect(out.indexOf("main > .panes > *")).toBeLessThan(out.indexOf("main > .panes { display: grid;"));
+  expect(out.trimEnd().endsWith("412px minmax(0, 1fr); } }")).toBe(true);
 });

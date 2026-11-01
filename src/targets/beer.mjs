@@ -4,6 +4,7 @@
 // and are options; with one absent, Beer keeps its own.
 import beerCss from "beercss/dist/cdn/beer.css" with { type: "text" };
 import materialCss from "../web/material.css" with { type: "text" };
+import layoutCss from "../web/layout.css" with { type: "text" };
 
 // Beer's colour roles: the variables of its light block, each a Material colour role of the same name.
 const roles = () => {
@@ -50,6 +51,8 @@ export default {
       ":is(button, .button, .chip) { font-family: var(--md-sys-typescale-label-large-font); font-weight: var(--md-sys-typescale-label-large-weight); letter-spacing: var(--md-sys-typescale-label-large-tracking); }",
       "",
       materialCss,
+      "",
+      layoutCss,
     ].join("\n");
     return [{ path, content }];
   },

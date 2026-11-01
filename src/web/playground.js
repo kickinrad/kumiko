@@ -71,8 +71,9 @@ export const exceptions = (tokens) => {
 };
 
 // The whole page for a place and a mode. The top app bar spans the window; the rail is Beer's left navigation
-// beneath it from medium up and its bottom bar on small; the panes sit side by side from medium up, and on small
-// only the list (a tab named) or the open item (an item named, with a back button) shows.
+// beneath it from medium up and its bottom bar on small; the list and the detail are Material's two panes
+// (layout.css): side by side from expanded, and below that only the list (a tab named) or the open item (an item
+// named, `data-open`, with a back button) shows.
 export const view = (data, { tab: tabId, item: itemId, mode = Object.keys(data.modes)[0], expanded = false }) => {
   const tab = TABS.find((each) => each.id === tabId) ?? TABS[0];
   const item = tab.items.find((each) => each.id === itemId) ?? tab.items[0];
@@ -87,10 +88,10 @@ export const view = (data, { tab: tabId, item: itemId, mode = Object.keys(data.m
   // The rail's header holds the menu button; expanded, the rail is Material's expanded rail (Beer's `max`).
   const menu = `<header><button class="circle transparent" data-rail aria-label="${expanded ? "Collapse" : "Expand"} the navigation"><i>${expanded ? "menu_open" : "menu"}</i></button></header>`;
   return `<nav class="left m l${expanded ? " max" : ""}">${menu}${destinations}</nav>
-<nav class="top"><i>${esc(data.icon ?? "style")}</i>${open ? `<a class="button circle transparent s" href="#${tab.id}" aria-label="Back"><i>arrow_back</i></a>` : ""}<h6 class="max">${esc(data.name)}</h6>${switcher}</nav>
-<main><div class="grid">
-<div class="s12 m4 l3${open ? " m l" : ""}"><ul class="list segmented">${items}</ul></div>
-<div class="s12 m8 l9${open ? "" : " m l"}"><h1>${item.name}</h1>${item.body(data, data.modes[mode])}</div>
+<nav class="top"><i>${esc(data.icon ?? "style")}</i>${open ? `<a class="button circle transparent" data-back href="#${tab.id}" aria-label="Back"><i>arrow_back</i></a>` : ""}<h6 class="max">${esc(data.name)}</h6>${switcher}</nav>
+<main><div class="panes"${open ? " data-open" : ""}>
+<div><ul class="list segmented">${items}</ul></div>
+<div><h1>${item.name}</h1>${item.body(data, data.modes[mode])}</div>
 </div></main>
 <nav class="bottom s">${destinations}</nav>`;
 };
