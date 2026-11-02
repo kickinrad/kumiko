@@ -1,5 +1,16 @@
 # Changelog
 
+## [5.0.0](https://github.com/kickinrad/kumiko/compare/v4.0.0...v5.0.0) (2026-11-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* in the beer output, below expanded .panes.supporting stacks both panes, and [data-close] inside panes hides from expanded up.
+
+### Features
+
+* the playground shows the apps' examples on Material's panes ([#56](https://github.com/kickinrad/kumiko/issues/56)) ([b53f940](https://github.com/kickinrad/kumiko/commit/b53f9401278ceeac8f4fe6144ac234729cea4150))
+
 ## [4.0.0](https://github.com/kickinrad/kumiko/compare/v3.0.0...v4.0.0) (2026-11-02)
 
 
