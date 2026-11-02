@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.0](https://github.com/kickinrad/kumiko/compare/v5.3.0...v5.4.0) (2026-11-02)
+
+
+### Features
+
+* template output, theme extends, and palette-only obsidian and mealie ([#65](https://github.com/kickinrad/kumiko/issues/65)) ([525650b](https://github.com/kickinrad/kumiko/commit/525650b4bc943f1f1b8cb14c6fe01c92fc7d4de6))
+
 ## [5.3.0](https://github.com/kickinrad/kumiko/compare/v5.2.0...v5.3.0) (2026-11-02)
 
 
