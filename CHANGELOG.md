@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.1](https://github.com/kickinrad/kumiko/compare/v5.4.0...v5.4.1) (2026-11-02)
+
+
+### Bug Fixes
+
+* **playground:** a pane's lists keep their markers inside the text column ([#68](https://github.com/kickinrad/kumiko/issues/68)) ([ca284ce](https://github.com/kickinrad/kumiko/commit/ca284ce316abff1eb332bb2e097dd06ddc1f5c85))
+
 ## [5.4.0](https://github.com/kickinrad/kumiko/compare/v5.3.0...v5.4.0) (2026-11-02)
 
 
