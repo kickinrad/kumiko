@@ -1,17 +1,11 @@
 // Beer CSS (github.com/beercss/beercss, MIT) themed by the kit: Beer's variables set from the kit's, so the
-// kit's stylesheet decides the mode. Beer's own CSS is bundled as text, so the binary carries it and a
-// release that adds or drops a colour role changes the output at the next build. Two values name kit tokens
-// and are options; with one absent, Beer keeps its own.
-import beerCss from "beercss/dist/cdn/beer.css" with { type: "text" };
+// kit's stylesheet decides the mode. Beer names its colour variables after Material's roles, so every
+// md.sys.color role the kit has becomes one; Beer reads the ones it knows. Two values name kit tokens and are
+// options; with one absent, Beer keeps its own.
 import materialCss from "../web/material.css" with { type: "text" };
 import layoutCss from "../web/layout.css" with { type: "text" };
 
-// Beer's colour roles: the variables of its light block, each a Material colour role of the same name.
-const roles = () => {
-  const block = beerCss.match(/:root,\s*body\.light\s*\{([^}]*)\}/)?.[1];
-  if (!block) throw new Error("Beer's light colour block was not found; its CSS has changed shape");
-  return [...block.matchAll(/--([a-z0-9-]+)\s*:/g)].map((match) => match[1]).sort();
-};
+const roles = (tokens) => tokens.filter((token) => token.segments.length === 4 && token.path.startsWith("md.sys.color.")).map((token) => token.segments[3]).sort();
 
 const variable = (path) => `var(--${path.replaceAll(".", "-")})`;
 // Beer's rem is body-large (16px), so its sizes land on Material's dp; its speeds 0.1 to 0.4s are Material's
@@ -43,7 +37,7 @@ export default {
       " * the mode the kit's way (data-theme), not with Beer's body classes. Load Beer in a cascade layer",
       " * (@import url(beer.min.css) layer(beer)) so the rules below win over its element reset. */",
       ":root, [data-theme], body.light, body.dark {",
-      ...roles().map((role) => `  --${role}: var(--md-sys-color-${role});`),
+      ...roles(tokens).map((role) => `  --${role}: var(--md-sys-color-${role});`),
       ...Object.entries(system({ iconFont, shadowOpacity })).map(([name, value]) => `  --${name}: ${value};`),
       "}",
       "",

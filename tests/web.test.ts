@@ -89,8 +89,10 @@ const beerRoles = (css: string) => {
 };
 
 test("every colour role the installed Beer declares is set to Material's role of the same name", () => {
-  const dir = project();
-  run(dir);
+  // A kit carries every Material colour role; shadow it adds at its Material path.
+  const dir = project(`export default { targets: ["beer"], include: ["builtin:material"], media: { "(prefers-color-scheme: light)": ["tokens/day.tokens.json"] }, beer: { path: "out/beer.css" } };\n`);
+  writeFileSync(join(dir, "tokens/shadow.tokens.json"), JSON.stringify({ md: { sys: { color: { shadow: { $type: "color", $value: "#000000" } } } } }));
+  expect(run(dir).exitCode).toBe(0);
   const set = new Map([...read(dir, "out/beer.css").matchAll(/^  --([a-z0-9-]+): (.+);$/gm)].map((m) => [m[1], m[2]]));
   const roles = beerRoles(beerCss);
   expect(roles.length).toBeGreaterThanOrEqual(36);
