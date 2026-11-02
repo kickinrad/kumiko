@@ -2,7 +2,7 @@
 // the other values it adds or changes, and the recipes and floors the build applies. The build reads it as token
 // trees in memory, one for the base mode and one per other mode; nothing is written beside it.
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 
 // Brand and plain fill Material's own typeface slots; mono and icon sit under the kit's name.
 const FACES = { brand: ["md", "ref", "typeface", "brand"], plain: ["md", "ref", "typeface", "plain"], mono: ["typeface", "mono"], icon: ["typeface", "icon"] };
@@ -182,10 +182,27 @@ export const loadTheme = async ({ root, name } = {}) => {
   let source;
   try { source = await readFile(join(root, "theme.toml"), "utf8"); }
   catch (error) { if (error.code === "ENOENT") return NONE; throw error; }
-  let toml;
-  try { toml = Bun.TOML.parse(source); }
-  catch (error) { fail(`not valid TOML (${error.message})`); }
-  const theme = validate(table(toml, "the file"), name);
+  const parse = (text, file) => {
+    try { return table(Bun.TOML.parse(text), "the file"); }
+    catch (error) { fail(`${file === "theme.toml" ? "" : `${file}: `}not valid TOML (${error.message})`); }
+  };
+  const toml = parse(source, "theme.toml");
+  // `extends`: another theme's file beside this one (a copy of it at the version this kit builds on). Its modes,
+  // palette and faces come first; this file's own add to them or change them.
+  if (toml.extends !== undefined) {
+    const file = join(root, text(toml.extends, "extends"));
+    let base;
+    try { base = parse(await readFile(file, "utf8"), file); }
+    catch (error) { if (error.code === "ENOENT") fail(`extends: no theme at ${relative(".", file)}`); throw error; }
+    toml.default ??= base.default;
+    toml.media = { ...base.media, ...toml.media };
+    toml.palette = Object.fromEntries([...new Set([...Object.keys(base.palette ?? {}), ...Object.keys(toml.palette ?? {})])]
+      .map((mode) => [mode, { ...base.palette?.[mode], ...toml.palette?.[mode] }]));
+    toml.faces = base.faces || toml.faces ? { ...base.faces, ...toml.faces } : undefined;
+    if (toml.faces === undefined) delete toml.faces;
+    delete toml.extends;
+  }
+  const theme = validate(toml, name);
 
   // One mode's tokens: its palette and every role in its colour; the base mode adds the faces and [tokens].
   const modeTree = (mode, base) => {

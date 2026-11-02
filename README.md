@@ -43,6 +43,8 @@ name = "acme"                          # must equal kit.name in the config
 title = "Acme"                         # optional: the name outputs show (default: name)
 tagline = "Ink on paper."              # optional: one line in the kit's voice, under the name on claude-design's cover
 icon = "style"                         # optional: a Material Symbol, the playground's mark on small screens
+extends = "base.toml"                  # optional: another theme's file beside this one (a copy at the version this kit
+                                       # builds on); its default, [media], [palette] and [faces] come first, this file's add or change them
 default = "night"                      # the base mode
 [media]
 day = "(prefers-color-scheme: light)"  # every other mode and its media query
@@ -159,6 +161,10 @@ A mode's `data-theme` is the colour scheme its surface is nearer to, so the swit
 | `skills/<name>/references/theme.toml` | the kit's `theme.toml`, under a `#` header line, for agents outside the kit's checkout |
 
 The plugin guides an agent; it enforces nothing. `--check` holds the files it writes current with `notes.md`, `theme.toml` and the config, like any output's; after `path` changes, the old directory stays until it is removed. Files the output does not write, such as a kit's own evaluations beside the skill, stay the kit's.
+
+## The `template` output
+
+`"template"` writes a kit's own files for apps the engine has no output for, such as terminal and editor themes, for a declared kit: `template: { from: "templates", to: "ports" }`. Every file under `from` is written to the same path under `to`. In each file, `{{<mode>.<colour>}}` becomes that mode's palette colour as `#rrggbb` (so `{{night.blue}}80` adds an alpha), and `{{name}}` becomes the kit's name; every other byte stays as written. A slot the theme lacks fails the build, naming the file. CSS, JS, Kotlin, Markdown and HTML files get the generated header; other formats are written as the template has them.
 
 ## Rendered check: `tokens audit`
 

@@ -209,10 +209,12 @@ export default {
     const out = need(options, 'mealie', 'out');
     const [{ name: base, label: dark }, { name: other, label: light, files }] = twoModes(ctx, 'mealie');
     if (!theme.mealie) throw new Error('mealie needs a [mealie] table in theme.toml');
-    // A role's palette colour, the same in both modes: Mealie's layers name one colour for both.
+    // A role's palette colour, the same in both modes: Mealie's layers name one colour for both. The role is
+    // Material's when theme.toml fills it, else the kit's own.
     const named = (role) => {
-      const [inBase, inOther] = [base, other].map((mode) => theme.roleColour(`md.sys.color.${role}`, mode));
-      if (!inBase || inBase !== inOther) throw new Error(`mealie: theme.toml's md.sys.color.${role} must name one palette colour in both modes`);
+      const path = theme.roleColour(`md.sys.color.${role}`, base) ? `md.sys.color.${role}` : `${name}.color.${role}`;
+      const [inBase, inOther] = [base, other].map((mode) => theme.roleColour(path, mode));
+      if (!inBase || inBase !== inOther) throw new Error(`mealie: theme.toml's ${path} must name one palette colour in both modes`);
       return inBase;
     };
     const given = { ...theme.mealie, layers: LAYERS.map(named), text: named('on-surface'), muted: named('on-surface-variant') };
