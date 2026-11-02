@@ -43,7 +43,7 @@ test("the skill's front matter is its name and a trigger, with the header after 
   expect(skill[0]).toBe("---");
   expect(skill[1]).toBe("name: acme");
   const description = JSON.parse(skill[2].replace(/^description: /, ""));
-  expect(description).toStartWith("Build UI on the acme kit: Material 3 with its own theme. Use when building or changing web pages");
+  expect(description).toStartWith("Build UI on the acme kit: Material 3 with its own theme. Use when building or changing UI, even a quick one-file page, for web pages unless another kit is selected");
   expect(description.length).toBeLessThanOrEqual(350);
   expect(description).not.toMatch(/[<>]/);
   expect(skill[3]).toBe("---");
@@ -120,7 +120,7 @@ test("an output's default path and a project's own output are listed as the buil
   const skill = read(built(dir), "agent/tern/skills/tern/SKILL.md");
   expect(skill).toContain("   - css: `src/styles/tokens.css`: ");
   expect(skill).toContain("   - notes-page: `site/notes.txt`, the project's own output.");
-  expect(skill).toMatch(/description: "[^"]*Obsidian themes/);
+  expect(skill).toMatch(/description: "[^"]*web pages, Home Assistant dashboards, Compose for TV screens or Obsidian unless/);
 });
 
 test("theme.toml beside the skill is the kit's own under the header", () => {

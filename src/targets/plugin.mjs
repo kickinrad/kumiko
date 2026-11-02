@@ -16,8 +16,8 @@ const M3 = "https://m3.material.io/";
 const BEER_DOCS = "https://github.com/beercss/beercss/blob/main/docs/";
 
 // The surfaces a kit's outputs build UI on, for the skill's trigger.
-const SURFACES = { css: "web pages", beer: "web pages", tailwind: "web pages", "material-you": "Home Assistant dashboards and cards",
-  "compose-tv": "Compose for TV screens", obsidian: "Obsidian themes", mealie: "Mealie themes" };
+const SURFACES = { css: "web pages", beer: "web pages", tailwind: "web pages", "material-you": "Home Assistant dashboards",
+  "compose-tv": "Compose for TV screens", obsidian: "Obsidian", mealie: "Mealie" };
 
 // Each built-in output as the skill lists it, those that build UI first: its files, from its own options (with the
 // output's own defaults), and its use.
@@ -74,10 +74,11 @@ export default {
     });
     const material = (config.include ?? []).includes("builtin:material");
     const web = targets.includes("beer");
+    const css = targets.includes("css");
     const surfaces = [...new Set(Object.keys(SURFACES).filter((target) => targets.includes(target)).map((target) => SURFACES[target]))];
     const list = (items) => items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} or ${items.at(-1)}`;
     const base = material ? "Material 3 with its own theme" : "its own tokens";
-    const description = `Build UI on the ${title} kit: ${base}. Use when building or changing ${surfaces.length ? list(surfaces) : `UI on ${title}`} and no other kit is selected, or for ${title}'s colours, tokens, type, shape or state layers. Not for a project with its own kit or design system.`;
+    const description = `Build UI on the ${title} kit: ${base}. Use when building or changing ${surfaces.length ? `UI${css ? ", even a quick one-file page," : ""} for ${list(surfaces)}` : `UI on ${title}`} unless another kit is selected, or for ${title}'s colours, tokens, type or shapes. Not for a project's own kit or design system.`;
     if (/[<>]/.test(description) || description.length > 350) throw new Error(`plugin: the skill's description must be at most 350 characters with no angle brackets: ${description}`);
 
     const outputs = Object.keys(OUTPUTS).filter((target) => targets.includes(target))
@@ -102,6 +103,10 @@ ${title} ${version} is a UI kit: ${base}${theme.tagline ? `. ${theme.tagline}` :
 
 Use ${title} when the user names it or the project selects it: the project is the kit's repository, loads its outputs, or its agent instructions name it. When the user or the project selects another kit or design system, use that one and stop here. When nothing selects a kit, use ${title} only if no other kit is installed; otherwise ask which. Never mix two kits in one UI.
 
+## Under time pressure
+
+A quick ${css ? "page" : "screen"} is still the kit. ${css ? `Link ${web ? "Beer, then the css and beer outputs," : "the css output"} and use ${web ? "Beer's markup for every control" : "the documented components"}; inline styles may only lay out the page.` : "Use the documented components and the outputs."} "In a hurry", "one file", "inline styles" and "no dependencies" never justify a hand-drawn control or a value copied out of theme.toml. If the ${css ? "page" : "screen"} truly cannot load the outputs, say so and ask.
+
 ## ${title}'s rules
 
 These are \`${notesPath}\` at ${version}. Every screen follows them and adds none of its own.
@@ -111,10 +116,10 @@ ${demote(notes.replace(/^# .*\n+/, "").trim())}
 ## Build
 
 1. **Read the kit, never memory.** In the kit's checkout, read \`${notesPath}\` and \`${themePath}\`; elsewhere the rules are above and [theme.toml](references/theme.toml) is the kit's copy. theme.toml holds the kit's choices: the palette, the colour each role takes, the faces and the kit's own tokens. A token at a Material path is an exception, and its \`why\` says why. Every other value is ${material ? "Material 3's" : "the kit's other layers'"}; the outputs below hold each resolved one.
-2. **Pick documented components.** Before writing code, map every part of the UI to a component in [components.md](references/components.md). For an unfamiliar control, first read its ${material ? "Material 3 guidance" : "guidance"}${web ? " and its Beer markup" : ""}. Use the component's own markup, behaviour and states, and add only the theme. Never imitate a component or copy a value out of theme.toml.${web ? " A quick page, one file or inline styles still loads Beer and the kit's css and beer outputs and uses Beer's markup; inline styles may lay out the page, never draw a control. If the page truly cannot load them, say so and ask." : ""} When none fits, tell the user what is missing; in the kit's repository, add it to the kit, never a one-off.
+2. **Pick documented components.** Before writing code, map every part of the UI to a component in [components.md](references/components.md). For an unfamiliar control, first read its ${material ? "Material 3 guidance" : "guidance"}${web ? " and its Beer markup" : ""}. Use the component's own markup, behaviour and states, and add only the theme. When none fits, tell the user what is missing; in the kit's repository, add it to the kit, never a one-off.
 3. **Wire the outputs**, files in ${where}:
 ${outputs.join("\n")}
-4. **Write token names, never values:** ${material ? "\`md.*\` for Material 3, " : ""}\`${name}.*\` for the kit's own. In CSS a name is its path with dashes, as \`${material ? "md.sys.color.primary" : `${name}.color.primary`}\` is \`--${material ? "md-sys-color-primary" : `${name}-color-primary`}\`${targets.includes("css") ? "; the css output lists each one" : ""}. The modes are ${[modes.base, ...Object.values(modes.media)].map((mode) => `\`${mode}\``).join(" and ")}; a value that differs by mode keeps one name.
+4. **Write token names, never values:** ${material ? "\`md.*\` for Material 3, " : ""}\`${name}.*\` for the kit's own. In CSS a name is its path with dashes, as \`${material ? "md.sys.color.primary" : `${name}.color.primary`}\` is \`--${material ? "md-sys-color-primary" : `${name}-color-primary`}\`${css ? "; the css output lists each one" : ""}. The modes are ${[modes.base, ...Object.values(modes.media)].map((mode) => `\`${mode}\``).join(" and ")}; a value that differs by mode keeps one name.
 5. **Name your choices.** Say which component each part uses and its source, in the answer or the change description.
 
 Done when each part of the UI is a documented component, named with its source. Every colour, size, shape, type and motion value is a token name.
