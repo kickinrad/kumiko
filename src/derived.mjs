@@ -11,7 +11,7 @@ import { bestOn, byPath, contrast, stateLayer, textSafe } from './color.mjs';
 const colour = ($value, $description) => ({ $type: 'color', $value, $description, $extensions: { 'com.kickinrad.derived': true } });
 
 // recipe: the theme's [derived] ({ accents, custom, fixed, blend, marks }); prefix: the kit's name.
-export const derive = ({ accents, custom: own, fixed, blend, marks }, prefix, { tokens, day }) => {
+export const derive = ({ accents, custom: own, fixed, blend, marks }, prefix, { tokens, other }) => {
   const custom = new Set(own);
 
   // A role's token path: custom colours and their on- and -container roles, and marks, sit under the prefix.
@@ -42,14 +42,14 @@ export const derive = ({ accents, custom: own, fixed, blend, marks }, prefix, { 
 
   // The mark of each group item, a colour role (<prefix>.<group>.<item>.color names it): the base mode's
   // is written once as an alias that follows the item in every mode; the other mode overrides only the listed ones.
-  const itemMarks = (tokens, day) => {
+  const itemMarks = (tokens, inOther) => {
     if (!marks) return {};
     const result = {};
     const head = `${prefix}.${marks.group}.`;
     for (const { path, value } of tokens) {
       const item = path.startsWith(head) && path.endsWith('.color') ? path.slice(head.length, -'.color'.length) : undefined;
-      if (!item || !/^[a-z]+$/.test(item) || (day && !marks.darker.includes(item))) continue;
-      if (!day) { result[`${marks.group}-${item}-mark`] = colour(`{${path}}`, `The ${item} mark on the surface: the accent`); continue; }
+      if (!item || !/^[a-z]+$/.test(item) || (inOther && !marks.darker.includes(item))) continue;
+      if (!inOther) { result[`${marks.group}-${item}-mark`] = colour(`{${path}}`, `The ${item} mark on the surface: the accent`); continue; }
       const { hue, chroma } = Hct.fromInt(argbFromHex(value));
       const dark = hexFromArgb(Hct.from(hue, chroma, 40).toInt()).slice(0, 7);
       result[`${marks.group}-${item}-mark`] = colour(dark, `The ${item} mark on the surface, darker in the other mode: tone 40 of the accent's hue`);
@@ -59,10 +59,10 @@ export const derive = ({ accents, custom: own, fixed, blend, marks }, prefix, { 
 
   // Fixed roles keep one value in both modes: the other mode's container (Material's tone 90) and the base-mode
   // accent (tone 80, Material's dark-scheme primary), with text that reads on both.
-  const fixedRoles = (night, day) => {
-    const n = roles(night); const d = roles(day); const dayRoles = modeRoles(day); const result = {};
+  const fixedRoles = (base, other) => {
+    const n = roles(base); const d = roles(other); const otherRoles = modeRoles(other); const result = {};
     for (const a of fixed) {
-      const fix = dayRoles[`${a}-container`].$value; const dim = n(a);
+      const fix = otherRoles[`${a}-container`].$value; const dim = n(a);
       const [on] = [n('surface'), d('on-surface')].map((h) => [h, Math.min(contrast(h, fix), contrast(h, dim))]).sort((x, y) => y[1] - x[1])[0];
       const variant = textSafe(d(a), d('on-surface'), [fix, dim]);
       result[`${a}-fixed`] = colour(fix, `The other mode's ${a}-container, in both modes`);
@@ -80,7 +80,7 @@ export const derive = ({ accents, custom: own, fixed, blend, marks }, prefix, { 
     return result;
   };
   return {
-    base: tree({ ...modeRoles(tokens), ...fixedRoles(tokens, day), ...itemMarks(tokens, false) }),
-    media: tree({ ...modeRoles(day), ...itemMarks(day, true) }),
+    base: tree({ ...modeRoles(tokens), ...fixedRoles(tokens, other), ...itemMarks(tokens, false) }),
+    media: tree({ ...modeRoles(other), ...itemMarks(other, true) }),
   };
 };

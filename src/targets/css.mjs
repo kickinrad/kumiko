@@ -6,8 +6,8 @@
 // With `scheme` ("dark" or "light", the base mode), the colour-scheme media override also applies wherever
 // data-theme pins a mode, on the root or any element.
 import { springVars } from "../motion.mjs";
+import { typeRole } from "../system.mjs";
 
-const TYPE_PARTS = ["font", "size", "line-height", "weight", "tracking"];
 const declare = (indent, declarations) => declarations.map((line) => `${indent}${line}`).join("\n");
 
 export default {
@@ -20,9 +20,9 @@ export default {
     const baseLetterSpacing = new Map();
     const paths = new Set(tokens.map((token) => token.path));
     for (const token of tokens) {
-      if (token.type === "string" && token.path.startsWith("md.comp.") && token.path.endsWith("-font") && paths.has(`md.sys.typescale.${token.value}.font`)) {
-        for (const part of TYPE_PARTS) declarations.push(`--${token.name.replace(/-font$/, `-${part}`)}: var(--md-sys-typescale-${token.value}-${part});`);
-      } else declarations.push(`--${token.name}: ${token.value};`);
+      const role = typeRole(token, paths);
+      if (role) for (const [name, value] of role) declarations.push(`--${name}: ${value};`);
+      else declarations.push(`--${token.name}: ${token.value};`);
       base.set(token.path, String(token.value));
       if (token.typography?.letterSpacing !== undefined) {
         declarations.push(`--${token.name}-letter-spacing: ${token.typography.letterSpacing};`);

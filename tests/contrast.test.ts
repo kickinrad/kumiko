@@ -6,7 +6,7 @@ import { join, resolve } from "node:path";
 import {
   bestOn, byPath, contrast, hsl, linear, luminance, mix, rgb, stateLayer, textSafe,
 } from "../src/color.mjs";
-import { toHex } from "../src/checks/contrast.mjs";
+import { contrastPairs, toHex } from "../src/checks/contrast.mjs";
 
 describe("colour maths", () => {
   test("luminance runs from 0 (black) to 1 (white)", () => {
@@ -204,4 +204,11 @@ ${contrast}`);
     expect(result.exitCode).toBe(1);
     expect(result.stderr.toString()).toContain("label.ink is not an opaque colour");
   });
+});
+
+test("a derived group's mark is checked on the page, the card and the filled card", () => {
+  const tokens = ["acme.track.fast.color", "acme.track.fast.mark"].map((path) => ({ path }));
+  const pairs = contrastPairs({ name: "acme", contrast: { graphics: 3, exceptions: [], pairs: [] }, derived: { marks: { group: "track" } } }, tokens);
+  expect(pairs.filter((pair) => pair.fg === "acme.track.fast.mark").map((pair) => pair.bg))
+    .toEqual(["md.sys.color.surface", "md.sys.color.surface-container-low", "md.sys.color.surface-container-highest"]);
 });

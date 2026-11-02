@@ -1,7 +1,9 @@
 // Obsidian output: a CSS snippet per mode for the Minimal theme, from the Material roles. Minimal's contract
 // is eight accent slots, an interactive accent as HSL parts, three backgrounds, three UI tints, three text
-// tiers, two highlights and the monospace face. The base mode comes first, the first media mode second.
-// Reads the kit's own roles on-surface-muted, comment, yellow, orange, cyan and green (under <name>.color).
+// tiers, two highlights, the code colours and the monospace face. The base mode comes first, the first media mode second.
+// Minimal's hue slots take Material's accents, and the kit's own colour roles of the other hues (<name>.color.orange,
+// yellow, green, cyan) when it has them; a slot without one keeps Minimal's. The third text tier and the strong
+// border take the kit's on-surface-muted and comment roles when it has them, else Material's outline and outline-variant.
 // Options: out (path prefix: <out>-<mode>.css). The title, the mode names and the monospace face are the theme's.
 import { byPath, contrast, hsl, rgb } from '../color.mjs';
 import { need, needKit, rolePath, twoModes } from '../system.mjs';
@@ -12,12 +14,22 @@ const HIGHLIGHT = 0.24;
 
 const snippet = (tokens, name, { scope, mode, title, font, extra }) => {
   const role = (r) => byPath(tokens).get(rolePath(tokens, name, r)).value;
+  const has = (r) => byPath(tokens).has(rolePath(tokens, name, r));
+  const or = (own, material) => has(own) ? own : material;
+  const slots = Object.entries(SLOTS).filter(([, r]) => has(r));
+  const [muted, strong, marker] = [or('on-surface-muted', 'outline'), or('comment', 'outline-variant'), or('yellow', 'tertiary')];
+  // Minimal's code colours (--code-*), each a role: the text roles, the accents, and the kit's hues when it has them.
+  const code = {
+    normal: 'on-surface', background: 'surface-container-low', comment: muted, function: 'primary', important: 'error',
+    keyword: 'tertiary', operator: or('cyan', 'primary'), property: 'secondary', punctuation: 'on-surface-variant',
+    string: or('green', 'secondary'), tag: 'error', value: or('orange', 'tertiary'),
+  };
   const [ah, as, al] = hsl(role('primary'));
   const [bh, bs, bl] = hsl(role('surface-container'));
   const alpha = (r, a) => `rgba(${rgb(role(r)).join(', ')}, ${a})`;
   const ratio = (a, b) => `${contrast(role(a), role(b)).toFixed(2)}:1`;
   // Minimal's ui3 is the strong border; in a light mode the palette's overlay may be lighter than surface1.
-  const [ui2, ui3] = ['surface-container-highest', 'comment'].sort((a, b) => contrast(role(a), role('surface-container')) - contrast(role(b), role('surface-container')));
+  const [ui2, ui3] = ['surface-container-highest', strong].sort((a, b) => contrast(role(a), role('surface-container')) - contrast(role(b), role('surface-container')));
   return [
     '/*',
     `${title} — ${mode}`,
@@ -31,9 +43,9 @@ const snippet = (tokens, name, { scope, mode, title, font, extra }) => {
     '',
     `${scope} {`,
     '  /* Accent colors — 8-slot Minimal contract (secondary, teal, takes the pink slot) */',
-    ...Object.entries(SLOTS).map(([slot, r]) => `  --color-${slot}-rgb: ${rgb(role(r)).join(', ')};  /* ${r} */`),
+    ...slots.map(([slot, r]) => `  --color-${slot}-rgb: ${rgb(role(r)).join(', ')};  /* ${r} */`),
     '',
-    ...Object.entries(SLOTS).map(([slot, r]) => `  --color-${slot}: ${role(r)};  /* ${r} */`),
+    ...slots.map(([slot, r]) => `  --color-${slot}: ${role(r)};  /* ${r} */`),
     '',
     '  /* Interactive accent — primary */',
     `  --accent-h: ${ah};`, `  --accent-s: ${as}%;`, `  --accent-l: ${al}%;`,
@@ -51,10 +63,13 @@ const snippet = (tokens, name, { scope, mode, title, font, extra }) => {
     '',
     `  --tx1: ${role('on-surface')};   /* on-surface, ${ratio('on-surface', 'surface-container')} on bg1 */`,
     `  --tx2: ${role('on-surface-variant')};   /* on-surface-variant, ${ratio('on-surface-variant', 'surface-container')} on bg1 */`,
-    `  --tx3: ${role('on-surface-muted')};   /* on-surface-muted, ${ratio('on-surface-muted', 'surface-container')} on bg1 */`,
+    `  --tx3: ${role(muted)};   /* ${muted}, ${ratio(muted, 'surface-container')} on bg1 */`,
     '',
     `  --hl1: ${alpha('primary', HIGHLIGHT)};  /* primary highlight */`,
-    `  --hl2: ${alpha('yellow', HIGHLIGHT)};  /* yellow — secondary highlight */`,
+    `  --hl2: ${alpha(marker, HIGHLIGHT)};  /* ${marker} — secondary highlight */`,
+    '',
+    '  /* Code — Minimal\'s syntax colours from the roles */',
+    ...Object.entries(code).map(([part, r]) => `  --code-${part}: ${role(r)};  /* ${r} */`),
     '',
     '  /* Typography — monospace only; the body face stays Minimal\'s (Spectral), a local exception */',
     `  --font-monospace-theme: ${font};`,

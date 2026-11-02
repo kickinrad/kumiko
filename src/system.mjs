@@ -37,6 +37,13 @@ export const rolePath = (tokens, name, role) => {
   return byPath(tokens).has(material) ? material : `${name}.color.${role}`;
 };
 
+// A component's type role: Material names it as a string on an md.comp *-font token (such as "label-large"), and
+// it stands for the five typescale variables of that role. The [name, value] pairs, or undefined for any other token.
+const TYPE_PARTS = ['font', 'size', 'line-height', 'weight', 'tracking'];
+export const typeRole = (token, paths) => token.type === 'string' && token.path.startsWith('md.comp.') && token.path.endsWith('-font') && paths.has(`md.sys.typescale.${token.value}.font`)
+  ? TYPE_PARTS.map((part) => [token.name.replace(/-font$/, `-${part}`), `var(--md-sys-typescale-${token.value}-${part})`])
+  : undefined;
+
 export const CORNERS = ['none', 'extra-small', 'small', 'medium', 'large', 'large-increased', 'extra-large', 'full'];
 // Corner name to px for the scale above.
 export const corners = (tokens) => {

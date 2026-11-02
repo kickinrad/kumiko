@@ -82,6 +82,25 @@ test("compose-tv: the package, five files, no Shapes, a font per face and the ki
   expect(read2("Motion.kt")).toMatch(/^object Motion \{/m);
 });
 
+test("material-you: Material's components, elevation and spring curves, an alias as its variable so it follows HA's mode", () => {
+  const shared = read(golden, "ports/home-assistant/acme.css").split("html {")[1];
+  expect(shared).toContain("--md-comp-assist-chip-container-height: 32px;");
+  expect(shared).toContain("--md-comp-filled-card-container-color: var(--md-sys-color-surface-container-highest);");
+  expect(shared).toContain("--md-comp-list-item-leading-image-expressive-shape: var(--md-sys-shape-corner-small);");
+  expect(shared).toContain("--md-sys-elevation-level2: 3px;");
+  expect(shared).toMatch(/--md-sys-motion-spring-expressive-default-spatial-easing: linear\(/);
+  expect(shared).toMatch(/--md-sys-motion-spring-expressive-default-spatial-settle: \d+ms;/);
+  // A component's type role is the five typescale variables it stands for, as in the css output.
+  expect(shared).not.toMatch(/-font: (label|body|title|headline|display)-(large|medium|small);/);
+});
+
+test("obsidian: Minimal's code colours, each from a role", () => {
+  const night = read(golden, "ports/obsidian/acme-night.css");
+  expect(night).toContain("--code-function: #7aa2f7;  /* primary */");
+  expect(night).toContain("--code-string: #9ece6a;  /* green */");
+  expect(night).toContain("--code-comment: #adadad;  /* on-surface-muted */");
+});
+
 test("mealie: an env file without a header and an overlay with the engine's", () => {
   const env = read(golden, "ports/mealie/acme.env");
   const css = read(golden, "ports/mealie/acme.css");
@@ -144,6 +163,27 @@ test("mealie: a layer role naming a different colour in the other mode fails, na
   const result = run(themed((toml) => `${toml.replace("[mealie]", '[roles.day]\n"md.sys.color.surface-container-high" = "base"\n\n[mealie]')}`));
   expect(result.exitCode).toBe(1);
   expect(result.stderr.toString()).toContain("md.sys.color.surface-container-high must name one palette colour in both modes");
+});
+
+// The fixture as a plain Material kit: none of its own colour roles, layout or TV tokens.
+const plain = () => themed((toml) => toml.split("\n").filter((line) => !/^"acme\.(color|layout|tv)\./.test(line)).join("\n"));
+
+test("obsidian on a plain Material kit: the hue slots it lacks keep Minimal's, the tiers take Material's outline roles", () => {
+  const dir = plain();
+  expect(run(dir).stderr.toString()).toBe("");
+  const night = read(dir, "ports/obsidian/acme-night.css");
+  expect(night).toContain("--color-blue: #7aa2f7;");
+  expect(night).not.toMatch(/--color-(orange|yellow|green|cyan)/);
+  expect(night).toMatch(/--tx3: #[0-9a-f]{6};   \/\* outline,/);
+  expect(night).toMatch(/--hl2: rgba\([^)]+\);  \/\* tertiary/);
+});
+
+test("compose-tv on a plain Material kit exports no layout values it lacks, and the menu at Material's elevation", () => {
+  const dir = plain();
+  expect(run(dir).stderr.toString()).toBe("");
+  const kt = read(dir, "ports/compose-tv/Tokens.kt");
+  expect(kt).not.toMatch(/val (CardGap|CardInset|SafeMargin)/);
+  expect(kt).toMatch(/^val MenuElevation = 3\.dp$/m);
 });
 
 test("an output without a declared kit fails, saying so", () => {
