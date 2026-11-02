@@ -1,6 +1,6 @@
 {
   "name": "kumiko",
-  "version": "5.3.0",
+  "version": "5.4.0",
   "description": "Build DTCG 2025.10 design tokens into each platform's native theme files, as one binary named tokens.",
   "type": "module",
   "bin": {
