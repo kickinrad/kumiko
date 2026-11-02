@@ -40,8 +40,9 @@ export default {
     const shared = [...dark.values()].filter(({ path: p }) => (p.startsWith(kit) && !p.startsWith(`${kit}palette.`)) || MATERIAL.some((m) => p.startsWith(m)));
     const emitted = new Set([...roles, ...shared.map((t) => t.path)]);
     const paths = new Set(dark.keys());
+    // An alias stays a variable only when the light mode aliases the same token; otherwise its values are picked by mode.
     const value = ({ path: p, value: v, alias }) => {
-      if (alias && emitted.has(alias)) return `var(--${alias.replaceAll('.', '-')})`;
+      if (alias && emitted.has(alias) && light.get(p)?.alias === alias) return `var(--${alias.replaceAll('.', '-')})`;
       const l = light.get(p)?.value ?? v;
       return l !== v && HEX.test(l) && HEX.test(v) ? byMode(l, v, dark.get(`${ROLE}surface`).value) : v;
     };

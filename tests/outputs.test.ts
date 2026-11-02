@@ -216,3 +216,16 @@ test("obsidian and mealie build from the palette alone: the kit's own roles in p
   expect(result.stderr.toString()).toBe("");
   for (const file of outputs.filter((each) => /\/(obsidian|mealie)\//.test(each))) expect(read(dir, file), file).toBe(readFileSync(join(golden, file), "utf8"));
 });
+
+test("material-you keeps a token's own Day value when its Night value is an alias Day does not share (a darker Day mark)", () => {
+  const dir = edited('c.targets = ["material-you"];');
+  const theme = join(dir, "design/theme.toml");
+  writeFileSync(theme, read(dir, "design/theme.toml").replace("[tokens]\n", '[derived]\naccents = ["orange"]\ncontainer-opacity = 0.16\nmarks = { group = "domain", darker = ["heat"] }\n\n[tokens]\n"acme.domain.heat.color" = "{acme.color.orange}"\n'));
+  const result = run(dir);
+  expect(result.stderr.toString()).toBe("");
+  const css = read(dir, "ports/home-assistant/acme.css");
+  const mark = css.match(/^ {2}--acme-color-domain-heat-mark: (.*);$/m)![1];
+  // Night's mark is the heat colour; Day's is darker, so the file picks between the two by HA's mode.
+  expect(mark).not.toBe("var(--acme-domain-heat-color)");
+  expect(mark).toStartWith("rgb(from var(--md-sys-color-surface");
+});
