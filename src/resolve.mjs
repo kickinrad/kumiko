@@ -122,17 +122,10 @@ export const resolve = (layers, { lenient = false } = {}) => {
 };
 
 const unit = (value) => isObject(value) && "value" in value && "unit" in value ? `${value.value}${value.unit}` : value;
-const WEIGHTS = {
-  thin: 100, hairline: 100, extralight: 200, ultralight: 200, light: 300,
-  normal: 400, regular: 400, medium: 500, semibold: 600, demibold: 600,
-  bold: 700, extrabold: 800, ultrabold: 800, black: 900, heavy: 900,
-};
 const fontWeight = (value) => {
   if (typeof value === "number") return value;
-  const key = String(value).replace(/[-_\s]/g, "").toLowerCase();
-  if (key in WEIGHTS) return WEIGHTS[key];
-  if (/^[1-9]00$/.test(key)) return Number(key);
-  throw new Error(`Unsupported fontWeight ${value}`);
+  if (/^[1-9]00$/.test(value)) return Number(value);
+  throw new Error(`Unsupported fontWeight ${value}: use a number from 100 to 900`);
 };
 const dimension = (value, field) => {
   if (typeof value === "string" && /^-?\d+(?:\.\d+)?(?:px|rem)$/.test(value)) return value;

@@ -17,7 +17,7 @@ const read = (dir: string, file: string) => readFileSync(join(dir, file), "utf8"
 test("builds byte-identical outputs to the 2.1.0 template", () => {
   const dir = project();
   expect(run(dir).exitCode).toBe(0);
-  for (const file of ["src/styles/tokens.css", "theme.json", "DESIGN.md"]) {
+  for (const file of ["src/styles/tokens.css", "DESIGN.md"]) {
     expect(read(dir, file)).toBe(read(join(root, "tests/expected"), file));
   }
 });
@@ -51,11 +51,11 @@ test("a token set in two source files fails the build naming both, not a hang (#
   expect(result.stderr.toString()).toContain("x is set in both tokens/a.tokens.json and tokens/b.tokens.json");
 });
 
-test("a project target is one file named in tokens.config.mjs", () => {
+test("a project target is a module the config imports and lists", () => {
   const dir = project();
   writeFileSync(join(dir, "local.mjs"),
     'export default { name: "local", build: async (ctx) => [{ path: "local.txt", content: `${ctx.tokens.length}\\n` }] };\n');
-  writeFileSync(join(dir, "tokens.config.mjs"), 'export default { targets: ["css", "./local.mjs"] };\n');
+  writeFileSync(join(dir, "tokens.config.mjs"), 'import local from "./local.mjs";\nexport default { targets: ["css", local] };\n');
   rmSync(join(dir, "tokens/stack.tokens.json"));
   expect(run(dir).exitCode).toBe(0);
   expect(Number(read(dir, "local.txt"))).toBeGreaterThan(0);
@@ -117,7 +117,7 @@ const kitProject = (kit: string | undefined, version: string | null = "1.2.3\n")
   rmSync(join(dir, "tokens/stack.tokens.json"));
   writeFileSync(join(dir, "echo.mjs"), echoTarget);
   writeFileSync(join(dir, "tokens.config.mjs"),
-    `export default { targets: ["./echo.mjs"]${kit === undefined ? "" : `, kit: ${kit}`} };\n`);
+    `import echo from "./echo.mjs";\nexport default { targets: [echo]${kit === undefined ? "" : `, kit: ${kit}`} };\n`);
   if (version !== null) writeFileSync(join(dir, "VERSION"), version);
   return dir;
 };

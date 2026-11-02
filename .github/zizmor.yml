@@ -1,6 +1,0 @@
-# House rule: track latest, no SHA pins. Major-version refs are the accepted pin level.
-rules:
-  unpinned-uses:
-    config:
-      policies:
-        "*": ref-pin

@@ -170,7 +170,7 @@ test("without a kit a theme.toml is ignored and the golden outputs are byte-iden
   mkdirSync(join(dir, "design"));
   writeFileSync(join(dir, "design/theme.toml"), theme);
   expect(run(dir).exitCode).toBe(0);
-  for (const file of ["src/styles/tokens.css", "theme.json", "DESIGN.md"]) {
+  for (const file of ["src/styles/tokens.css", "DESIGN.md"]) {
     expect(read(dir, file)).toBe(read(join(root, "tests/expected"), file));
   }
   expect(existsSync(join(dir, "design/tokens"))).toBe(false);

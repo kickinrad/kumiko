@@ -6,18 +6,12 @@ const WINDOW = 10;
 const block = (text) => `/* ${text} */`;
 const line = (prefix) => (text) => `${prefix} ${text}`;
 const html = (text) => `<!-- ${text} -->`;
-const styles = {
-  ".css": block, ".scss": block,
-  ".js": line("//"), ".mjs": line("//"), ".ts": line("//"), ".kt": line("//"), ".kts": line("//"), ".swift": line("//"),
-  ".yaml": line("#"), ".yml": line("#"), ".toml": line("#"), ".sh": line("#"), ".py": line("#"), ".conf": line("#"),
-  ".md": html, ".html": html, ".svg": html, ".xml": html,
-};
-// What must stay first: front matter, doctype, xml declaration, shebang, @charset.
+// The file types the outputs use.
+const styles = { ".css": block, ".js": line("//"), ".mjs": line("//"), ".kt": line("//"), ".md": html, ".html": html };
+// What must stay first: front matter, doctype, @charset.
 const leading = [
   /^---\r?\n(?:[\s\S]*?\r?\n)?---[ \t]*(?:\r?\n|$)/,
-  /^<\?xml[^>]*\?>[ \t]*(?:\r?\n|$)/i,
   /^<!doctype[^>]*>[ \t]*(?:\r?\n|$)/i,
-  /^#!.*(?:\r?\n|$)/,
   /^@charset[^;]*;[ \t]*(?:\r?\n|$)/,
 ];
 

@@ -1,6 +1,5 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // Build tokens/*.tokens.json into the targets named in ./tokens.config.mjs.
-import { access } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "../src/build.mjs";
@@ -18,13 +17,11 @@ if (process.argv[2] === "lint") {
 }
 
 const configPath = resolve("tokens.config.mjs");
-let config = {};
-try {
-  await access(configPath);
-  config = (await import(pathToFileURL(configPath).href)).default ?? {};
-} catch (error) {
-  if (error.code !== "ENOENT") throw error;
+if (!(await Bun.file(configPath).exists())) {
+  console.error("No tokens.config.mjs in this directory");
+  process.exit(1);
 }
+const config = (await import(pathToFileURL(configPath).href)).default ?? {};
 try {
   await build(config, { check: process.argv.includes("--check") });
 } catch (error) {

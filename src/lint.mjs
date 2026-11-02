@@ -1,5 +1,5 @@
 // Drift guard: flag a value a consumer hand-typed that the theme defines. Text scanning, line by line.
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { extname, join } from "node:path";
 import { hasHeader } from "./header.mjs";
 
@@ -20,21 +20,19 @@ const RULES = [
   ["radius", /(?<=RoundedCornerShape\(\s*)\d+(?:\.\d+)?\.dp\b/g],
 ];
 
-const files = (path, out) => {
+// A file, or every file under a directory with a linted extension, skipping hidden folders and node_modules.
+const files = (path) => {
   let stat;
   try { stat = statSync(path); } catch { throw new Error(`${path}: no such file or directory`); }
-  if (!stat.isDirectory()) { if (EXTENSIONS.has(extname(path))) out.push(path); return out; }
-  for (const entry of readdirSync(path, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-    if (entry.isDirectory() ? entry.name === "node_modules" || entry.name.startsWith(".") : false) continue;
-    files(join(path, entry.name), out);
-  }
-  return out;
+  if (!stat.isFile()) return [...new Bun.Glob("**/*").scanSync({ cwd: path })].sort()
+    .filter((file) => EXTENSIONS.has(extname(file)) && !file.split("/").includes("node_modules")).map((file) => join(path, file));
+  return EXTENSIONS.has(extname(path)) ? [path] : [];
 };
 
 // Returns one "path:line: rule: text" string per finding; throws on a missing path.
 export const lint = (paths) => {
   const found = [];
-  for (const file of paths.flatMap((path) => files(path, []))) {
+  for (const file of paths.flatMap(files)) {
     const text = readFileSync(file, "utf8");
     if (hasHeader(text)) continue;
     text.split("\n").forEach((line, index) => {

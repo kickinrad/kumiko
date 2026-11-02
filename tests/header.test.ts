@@ -14,12 +14,10 @@ const line = (target: string) =>
 
 const files: Record<string, string> = {
   "out/a.css": ":root { --a: 1px; }\n",
-  "out/b.yaml": "key: value\n",
+  "out/b.js": "export const a = 1;\n",
   "out/c.md": "---\ntitle: C\n---\n\n# C\n",
   "out/d.html": "<!doctype html>\n<html></html>\n",
   "out/e.json": '{"a":1}\n',
-  "out/f.sh": "#!/bin/sh\necho hi\n",
-  "out/g.svg": '<?xml version="1.0"?>\n<svg/>\n',
   "out/h.txt": "plain\n",
 };
 const filesTarget = `export default { name: "files", build: async () => ${JSON.stringify(
@@ -30,7 +28,7 @@ const kitProject = (kit = true) => {
   writeFileSync(join(dir, "tokens/kit.tokens.json"), JSON.stringify({ size: { $type: "dimension", gap: { $value: { value: 8, unit: "px" } } } }));
   writeFileSync(join(dir, "files.mjs"), filesTarget);
   writeFileSync(join(dir, "tokens.config.mjs"),
-    `export default { targets: ["./files.mjs"]${kit ? ', kit: { name: "acme" }' : ""} };\n`);
+    `import files from "./files.mjs";\nexport default { targets: [files]${kit ? ', kit: { name: "acme" }' : ""} };\n`);
   if (kit) writeFileSync(join(dir, "VERSION"), "1.2.3\n");
   return dir;
 };
@@ -40,11 +38,9 @@ test("a kit's text outputs start with the header, placed by file type", () => {
   expect(run(dir).exitCode).toBe(0);
   const h = line("files");
   expect(read(dir, "out/a.css")).toBe(`/* ${h} */\n${files["out/a.css"]}`);
-  expect(read(dir, "out/b.yaml")).toBe(`# ${h}\n${files["out/b.yaml"]}`);
+  expect(read(dir, "out/b.js")).toBe(`// ${h}\n${files["out/b.js"]}`);
   expect(read(dir, "out/c.md")).toBe(`---\ntitle: C\n---\n<!-- ${h} -->\n\n# C\n`);
   expect(read(dir, "out/d.html")).toBe(`<!doctype html>\n<!-- ${h} -->\n<html></html>\n`);
-  expect(read(dir, "out/f.sh")).toBe(`#!/bin/sh\n# ${h}\necho hi\n`);
-  expect(read(dir, "out/g.svg")).toBe(`<?xml version="1.0"?>\n<!-- ${h} -->\n<svg/>\n`);
 });
 
 test("json and unknown extensions get no header", () => {
@@ -80,10 +76,10 @@ test("--check fails a kit output whose header is gone, naming the path", () => {
 test("--check fails a header past the tenth line, naming the path", () => {
   const dir = kitProject();
   run(dir);
-  writeFileSync(join(dir, "out/b.yaml"), `${"x: 1\n".repeat(10)}# ${line("files")}\n${files["out/b.yaml"]}`);
+  writeFileSync(join(dir, "out/b.js"), `${"let x;\n".repeat(10)}// ${line("files")}\n${files["out/b.js"]}`);
   const result = run(dir, "--check");
   expect(result.exitCode).toBe(1);
-  expect(result.stderr.toString()).toContain("out/b.yaml");
+  expect(result.stderr.toString()).toContain("out/b.js");
   expect(result.stderr.toString()).toContain("header");
 });
 

@@ -19,8 +19,7 @@ export default {
     }
     const frontmatter = { colors: {}, typography: {}, rounded: {}, spacing: {} };
     for (const token of tokens) {
-      if (token.fluid !== undefined) continue;
-      const slug = (token.segments.length > 1 && ["color", "colors", "typography"].includes(token.segments[0])
+        const slug = (token.segments.length > 1 && ["color", "colors", "typography"].includes(token.segments[0])
         ? token.segments.slice(1) : token.segments).join("-");
       if (token.type === "color") frontmatter.colors[slug] = token.value;
       if (token.type === "typography") frontmatter.typography[slug] = token.typography;

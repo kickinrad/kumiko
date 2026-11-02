@@ -2,23 +2,8 @@
 // Every pair is resolved in the base tokens and in each media set, and a pair under its floor fails.
 import { contrast } from "../color.mjs";
 
-const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
-const hex2 = (n) => Math.round(n * 255).toString(16).padStart(2, "0");
-// An opaque sRGB colour as #rrggbb, from a hex string or a DTCG 2025.10 colour object; else undefined.
-export const toHex = (value) => {
-  let hex = value;
-  if (value && typeof value === "object") {
-    if (value.alpha !== undefined && value.alpha !== 1) return undefined;
-    const { hex: given, colorSpace, components } = value;
-    if (typeof given === "string") hex = given;
-    else if (colorSpace === "srgb" && Array.isArray(components) && components.length === 3 &&
-        components.every((c) => typeof c === "number" && c >= 0 && c <= 1)) hex = `#${components.map(hex2).join("")}`;
-    else return undefined;
-  }
-  if (typeof hex !== "string" || !HEX.test(hex)) return undefined;
-  hex = hex.toLowerCase();
-  return hex.length === 4 ? `#${[...hex.slice(1)].map((c) => c + c).join("")}` : hex;
-};
+// An opaque colour as the build writes it (#rrggbb), else undefined.
+export const toHex = (value) => typeof value === "string" && /^#[0-9a-f]{6}$/.test(value) ? value : undefined;
 
 export const checkContrast = async (pairs, { tokens, media, mediaTokens }) => {
   if (pairs === undefined) return;
@@ -37,8 +22,8 @@ export const checkContrast = async (pairs, { tokens, media, mediaTokens }) => {
       const colours = [fg, bg].map((path) => {
         const token = byPath.get(path);
         if (!token) failures.push(`${path} is not a token (${mode})`);
-        else if (token.type !== "color" || !toHex(token.scalar)) failures.push(`${path} is not an opaque colour (${mode})`);
-        else return toHex(token.scalar);
+        else if (token.type !== "color" || !toHex(token.value)) failures.push(`${path} is not an opaque colour (${mode})`);
+        else return toHex(token.value);
         return undefined;
       });
       if (colours.includes(undefined)) continue;

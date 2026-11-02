@@ -1,9 +1,8 @@
 // DTCG 2025.10 tokens/*.tokens.json is the only value source.
-// A target is one module exporting { name, build(ctx) → [{ path, content }] }:
-// built in under ./targets (listed in its index) or a project path in tokens.config.mjs.
+// A target is a module exporting { name, build(ctx) → [{ path, content }] }: built in under ./targets (listed in its
+// index), or a project's own, imported by tokens.config.mjs and listed as an object.
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, relative, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
 import material from "./material.mjs";
 import { readTokens, resolve as resolveTokens, typography } from "./resolve.mjs";
 import { checkHeader, stamp } from "./header.mjs";
@@ -14,23 +13,15 @@ import builtins from "./targets/index.mjs";
 // Built-in include layers, named in a config's `include` beside its file globs.
 const layers = { [material.name]: material };
 
-export const DEFAULT_TARGETS = ["css", "theme-json", "design-md"];
-
 const cssTypes = new Set(["color", "dimension", "duration", "fontFamily", "fontWeight", "number", "string", "typography", "shadow", "cubicBezier"]);
-const fluidValue = (token) => {
-  const fluid = token.extensions?.["com.kickinrad.css"]?.value;
-  if (fluid !== undefined && typeof fluid !== "string") throw new Error(`Invalid CSS extension for ${token.path}`);
-  return fluid;
-};
-// One resolved token as targets see it: value is the CSS scalar (fluid wins).
+// One resolved token as targets see it: value is the CSS scalar.
 const entry = (token) => {
-  const fluid = fluidValue(token);
   if (!cssTypes.has(token.type)) throw new Error(`No lossless CSS scalar mapping for ${token.path} (${token.type})`);
   if (!["string", "number"].includes(typeof token.css) || String(token.css).includes("[object Object]")) {
     throw new Error(`No CSS scalar for ${token.path} (${token.type}); resolve this token before handoff`);
   }
   return {
-    path: token.path, segments: token.segments, name: token.name, type: token.type, fluid, value: fluid ?? token.css, scalar: token.css,
+    path: token.path, segments: token.segments, name: token.name, type: token.type, value: token.css,
     description: token.description, derived: token.extensions?.["com.kickinrad.derived"] === true || undefined,
     typography: token.type === "typography" ? typography(token.raw) : undefined,
   };
@@ -63,20 +54,15 @@ const loadKit = async (kit) => {
   return { root: resolve(kit.root ?? "design"), version, name: kit.name };
 };
 
-const loadTarget = async (spec) => {
-  if (!spec.startsWith(".") && !spec.startsWith("/")) {
-    if (!builtins[spec]) throw new Error(`Unknown token target ${spec}`);
-    return builtins[spec];
-  }
-  const target = (await import(pathToFileURL(resolve(spec)).href)).default;
-  if (!target || typeof (target.build ?? target.derive) !== "function") throw new Error(`Token target ${spec} exports no build()`);
-  return target;
-};
-
 export const build = async (config = {}, { check = false } = {}) => {
-  const specs = config.targets ?? DEFAULT_TARGETS;
-  const targets = [];
-  for (const spec of specs) targets.push(await loadTarget(spec));
+  if (!Array.isArray(config.targets) || !config.targets.length) throw new Error("tokens.config.mjs names no targets");
+  // A built-in by name, or a project's own target: a module the config imports, listed as its object.
+  const targets = config.targets.map((spec) => {
+    const target = typeof spec === "string" ? builtins[spec] : spec;
+    if (!target) throw new Error(`Unknown token target ${spec}`);
+    if (typeof (target.build ?? target.derive) !== "function") throw new Error(`Token target ${target.name ?? spec} has no build()`);
+    return target;
+  });
   const kit = await loadKit(config.kit);
 
   // The kit's theme.toml becomes token files: its default is an include layer, its modes join their media query.

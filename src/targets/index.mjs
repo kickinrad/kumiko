@@ -9,8 +9,7 @@ import mealie from "./mealie.mjs";
 import obsidian from "./obsidian.mjs";
 import playground from "./playground.mjs";
 import tailwind from "./tailwind.mjs";
-import themeJson from "./theme-json.mjs";
 
-export default { [css.name]: css, [themeJson.name]: themeJson, [designMd.name]: designMd, [derived.name]: derived,
+export default { [css.name]: css, [designMd.name]: designMd, [derived.name]: derived,
   [tailwind.name]: tailwind, [composeTv.name]: composeTv, [obsidian.name]: obsidian, [mealie.name]: mealie,
   [materialYou.name]: materialYou, [beer.name]: beer, [playground.name]: playground };
