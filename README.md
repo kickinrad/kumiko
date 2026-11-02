@@ -66,7 +66,7 @@ mono = ["Some Mono", "monospace"]
 
 ## The `derived` target
 
-`"derived"` computes the Material colour roles a palette has no step for (the on-colours, the accent containers, the fixed roles, and a mark per item of a group) and writes them as token files, one for the base mode and one for the Day media. The Day file belongs in `media`; `tokens --check` keeps both current. A config without it builds as before. Every fact about the kit is an option:
+`"derived"` computes the Material colour roles a palette has no step for (the on-colours, the accent containers, the fixed roles, and a mark per item of a group) and writes them as token files, one for the base mode and one for the other mode (the config's one media query). The build computes them before it resolves anything else, so one run is final; the files are also inputs at their paths, and the Day file belongs in `media`. `tokens --check` keeps both current. A config without it builds as before. Every fact about the kit is an option:
 
 ```js
 derived: {
@@ -76,7 +76,6 @@ derived: {
   fixed: ["primary"],                  // accents that also get -fixed roles (optional)
   blend: "acme.color.container-opacity", // the container's state-layer fraction (a token path)
   marks: { group: "track", darkerInDay: ["slow"] }, // optional: <prefix>.<group>.<item>.color gets a mark role
-  dayFiles: ["tokens/day.tokens.json"], // the Day media files to read
   out: { night: "tokens/derived.tokens.json", day: "tokens/derived-day.tokens.json" },
 }
 ```

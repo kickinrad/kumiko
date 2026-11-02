@@ -2,7 +2,7 @@
 // A target is one module exporting { name, build(ctx) → [{ path, content }] }:
 // built in under ./targets (listed in its index) or a project path in tokens.config.mjs.
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import material from "./material.mjs";
 import { readTokens, resolve as resolveTokens, typography } from "./resolve.mjs";
@@ -39,11 +39,15 @@ const entry = (token) => {
 // where a token set twice is an error.
 // An include may be a glob; its matches join in sorted order.
 const expand = (patterns) => patterns.flatMap((pattern) => /[*?[{]/.test(pattern) ? [...new Bun.Glob(pattern).scanSync()].sort() : [pattern]);
-const layered = async (builtin, include, source) => [
-  ...builtin.map((tree) => ({ tree })),
-  ...await Promise.all(expand(include).map(async (file) => ({ tree: await readTokens(file), file }))),
-  ...await Promise.all(source.map(async (file) => ({ tree: await readTokens(file), file, strict: true }))),
-];
+// `made` holds token files this run computed, by absolute path: they stand in for what is on disk.
+const layered = async (builtin, include, source, made = new Map()) => {
+  const read = (file) => made.get(resolve(file)) ?? readTokens(file);
+  return [
+    ...builtin.map((tree) => ({ tree })),
+    ...await Promise.all(expand(include).map(async (file) => ({ tree: await read(file), file }))),
+    ...await Promise.all(source.map(async (file) => ({ tree: await read(file), file, strict: true }))),
+  ];
+};
 
 const semver = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 // A declared kit adds its root, version and name to every target's ctx; none declared, ctx is unchanged.
@@ -65,7 +69,7 @@ const loadTarget = async (spec) => {
     return builtins[spec];
   }
   const target = (await import(pathToFileURL(resolve(spec)).href)).default;
-  if (!target || typeof target.build !== "function") throw new Error(`Token target ${spec} exports no build()`);
+  if (!target || typeof (target.build ?? target.derive) !== "function") throw new Error(`Token target ${spec} exports no build()`);
   return target;
 };
 
@@ -97,7 +101,35 @@ export const build = async (config = {}, { check = false } = {}) => {
     builtin.push(layers[spec].tokens());
   }
   include.push(...theme.include);
-  const resolved = resolveTokens(await layered(builtin, include, baseFiles));
+
+  // A target that derives token files (the derived roles) runs first, on everything but its own files, so the
+  // build reads what it computes now rather than what an earlier run wrote. Those files join the inputs.
+  const made = new Map();
+  const derived = [];
+  for (const target of targets.filter((each) => each.derive)) {
+    const queries = Object.entries(media);
+    if (queries.length !== 1) throw new Error(`${target.name} needs exactly one media query, the other mode; the config has ${queries.length}`);
+    const [[, modeFiles]] = queries;
+    const step = target.derive({ options: config[target.name] ?? {}, name: kit.name });
+    const own = new Set(step.paths.map((file) => resolve(file)));
+    const without = (files) => files.filter((file) => !own.has(resolve(file)));
+    const first = async (files, source) => resolveTokens(await layered(builtin, files, source, made), { lenient: true }).flatMap((token) => {
+      try { return [entry(token)]; } catch { return []; }
+    });
+    const files = step.run({
+      tokens: await first(include, without(baseFiles)), day: await first([...include, ...without(baseFiles)], without(modeFiles)),
+    });
+    for (const file of files) made.set(resolve(file.path), JSON.parse(file.content));
+    derived.push([target, files]);
+  }
+  // A computed file in tokens/ is a source even before it is first written.
+  for (const path of made.keys()) {
+    const file = relative(process.cwd(), path);
+    if (dirname(file) === "tokens" && !mediaPaths.has(path) && !baseFiles.includes(file)) baseFiles.push(file);
+  }
+  baseFiles.sort();
+
+  const resolved = resolveTokens(await layered(builtin, include, baseFiles, made));
   const paths = new Set(resolved.map((token) => token.path));
   // A kit's theme maps the roles it picks; once the layers merge, every Material colour role must be set.
   if (theme.files.length) {
@@ -117,12 +149,12 @@ export const build = async (config = {}, { check = false } = {}) => {
         if (!part.startsWith("$")) visit(child, [...path, part]);
       }
     };
-    for (const file of files) visit(JSON.parse(await readFile(file, "utf8")));
+    for (const file of files) visit(made.get(resolve(file)) ?? JSON.parse(await readFile(file, "utf8")));
     for (const path of overridePaths) {
       if (!paths.has(path)) throw new Error(`Media token ${path} does not override a base token`);
     }
     // The project's base files join the include layer, above the other includes; the media files override them.
-    return resolveTokens(await layered(builtin, [...include, ...baseFiles], files)).map((token) => {
+    return resolveTokens(await layered(builtin, [...include, ...baseFiles], files, made)).map((token) => {
       try { return entry(token); }
       catch (error) { throw new Error(`Media token: ${error.message}`); }
     });
@@ -139,8 +171,9 @@ export const build = async (config = {}, { check = false } = {}) => {
   const built = (path) => outputs.find((output) => resolve(output.path) === resolve(path))?.content;
   for (const target of targets) {
     const options = config[target.name] ?? {};
-    const made = await target.build({ tokens, media, mediaTokens, options, readExisting, built, ...kit, ...(theme.modes && { modes: theme.modes }) });
-    outputs.push(...(kit.name ? stamp(made, kit, target.name) : made));
+    const files = target.derive ? derived.find(([each]) => each === target)[1]
+      : await target.build({ tokens, media, mediaTokens, options, readExisting, built, ...kit, ...(theme.modes && { modes: theme.modes }) });
+    outputs.push(...(kit.name ? stamp(files, kit, target.name) : files));
   }
   for (const { path, content } of outputs) {
     if (check) {

@@ -34,8 +34,9 @@ const merge = (target, source, clash, path = []) => {
   return target;
 };
 
-// layers: [{ tree, file?, strict? }], lowest first.
-export const resolve = (layers) => {
+// layers: [{ tree, file?, strict? }], lowest first. `lenient` leaves out a token that fails to resolve, for a
+// first pass made before every token it may alias exists.
+export const resolve = (layers, { lenient = false } = {}) => {
   const tree = {};
   const owners = new Map();
   for (const { tree: source, file, strict } of layers) {
@@ -93,8 +94,8 @@ export const resolve = (layers) => {
       if (!cache.has(source)) {
         if (stack.has(source)) throw new Error(`Circular token alias at ${source.segments.join(".")}`);
         stack.add(source);
-        cache.set(source, make(source, get));
-        stack.delete(source);
+        try { cache.set(source, make(source, get)); }
+        finally { stack.delete(source); }
       }
       return cache.get(source);
     };
@@ -109,12 +110,14 @@ export const resolve = (layers) => {
     return next && typeOf(next, seen);
   };
 
-  return tokens.map((token) => {
-    const value = { raw: raw(token), css: css(token) };
-    return {
-      segments: token.segments, path: token.segments.join("."), name: kebab(token.segments), type: typeOf(token), ...value,
+  return tokens.flatMap((token) => {
+    let value;
+    try { value = { type: typeOf(token), raw: raw(token), css: css(token) }; }
+    catch (error) { if (lenient) return []; throw error; }
+    return [{
+      segments: token.segments, path: token.segments.join("."), name: kebab(token.segments), ...value,
       description: token.node.$description, extensions: token.node.$extensions,
-    };
+    }];
   });
 };
 
