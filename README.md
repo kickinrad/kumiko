@@ -145,6 +145,19 @@ Serve the directory with the rest of the project (the page fetches `tokens.json`
 | `components/<Name>/preview.html`, `README.md` | each playground component specimen in its Material family, loading Beer's script from jsDelivr at the version the engine was built with; the README links Beer's markup and Material's guidance |
 | `components/Cover/preview.html` | the cover: the kit's title and `tagline` beside the accent roles as blocks cut by the corner scale |
 
+## The `plugin` output
+
+`"plugin"` writes the kit's agent plugin, one directory that Claude Code and Codex both install, for a declared kit with a `<kit root>/notes.md`: `plugin: { path: "plugins/acme" }`. Every kit's plugin comes from the same template; what differs is the kit's `theme.toml`, its `notes.md` and the config's outputs. Optional: `repository`, a URL where the kit's files are; `author`, the manifest's `{ name, email?, url? }`; and `links`, `{ label: url }` pairs the skill lists, such as the kit's published design system. It writes:
+
+| File | Holds |
+| --- | --- |
+| `.claude-plugin/plugin.json` | the manifest: the kit's name, a description, `author`, `repository` and keywords; no `version`, so the runtime keys the plugin by its commit |
+| `skills/<name>/SKILL.md` | the skill: a trigger from the outputs' surfaces (web pages, Home Assistant, Compose for TV, Obsidian, Mealie); when the kit applies (the user or the project selects it; with nothing selected and another kit available, ask; never two kits in one UI); what a quick page still does (with a `css` output, the page's stylesheet links in order); `notes.md` without its title as the kit's rules; then how to build: read `notes.md` and `theme.toml`, pick documented components and read an unfamiliar one's guidance first, wire the outputs (each configured output's files, by its own defaults, and its use; a project's own output by its name and path), write token names; and links to Material 3, Beer CSS (with a `beer` output) and `links` |
+| `skills/<name>/references/components.md` | with a `beer` output, each playground component in its Material 3 family with Beer's markup and Material 3's guidance where Material has a page; without one, only the components Material 3 documents, with their guidance |
+| `skills/<name>/references/theme.toml` | the kit's `theme.toml`, under a `#` header line, for agents outside the kit's checkout |
+
+The plugin guides an agent; it enforces nothing. `--check` holds the files it writes current with `notes.md`, `theme.toml` and the config, like any output's; after `path` changes, the old directory stays until it is removed. Files the output does not write, such as a kit's own evaluations beside the skill, stay the kit's.
+
 ## Drift guard: `tokens lint`
 
 `tokens lint <path> [<path>...]` fails when a consumer's source hand-types a value the theme defines, instead of reading the theme's variable, or builds markup on Beer with classes and controls Beer doesn't have. A path is a file or a directory (walked; `node_modules`, `.git` and dot-directories are skipped). It scans `.css .scss .yaml .yml .py .js .mjs .ts .jinja .html .kt .kts`; other files are ignored.

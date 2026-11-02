@@ -8,8 +8,10 @@ import materialYou from "./material-you.mjs";
 import mealie from "./mealie.mjs";
 import obsidian from "./obsidian.mjs";
 import playground from "./playground.mjs";
+import plugin from "./plugin.mjs";
 import tailwind from "./tailwind.mjs";
 
 export default { [css.name]: css, [designMd.name]: designMd,
   [tailwind.name]: tailwind, [composeTv.name]: composeTv, [obsidian.name]: obsidian, [mealie.name]: mealie,
-  [materialYou.name]: materialYou, [beer.name]: beer, [playground.name]: playground, [claudeDesign.name]: claudeDesign };
+  [materialYou.name]: materialYou, [beer.name]: beer, [playground.name]: playground, [claudeDesign.name]: claudeDesign,
+  [plugin.name]: plugin };
