@@ -46,7 +46,9 @@ export const pairs = (roles) => {
 };
 
 export const colour = (data, tokens) => {
-  const ink = (fill) => bestOn(fill, [find(tokens, `${COLOR}on-surface`), find(tokens, `${COLOR}surface`)])[0];
+  // A swatch's label: whichever of the kit's text and surface colours, or black and white, reads best on the fill (a
+  // mid-tone accent can sit under 4.5:1 against both of the kit's).
+  const ink = (fill) => bestOn(fill, [find(tokens, `${COLOR}on-surface`), find(tokens, `${COLOR}surface`), "#000000", "#ffffff"])[0]; // lint: own black and white, the ends a label falls back to
   const tile = (path, label, value, note) => `<div class="padding round" style="background: ${variable(path)}; color: ${ink(value)}"><b>${label}</b><br><small>${value}${note}</small></div>`;
 
   const palette = tokens.filter((token) => token.type === "color" && token.path.startsWith(`${data.name}.palette.`));
@@ -79,11 +81,11 @@ export const type = (data, tokens) => `<p>Each line is set in its style's own va
   return `<div data-style="${style}"><small>${style} · ${at("size")} / ${at("line-height")} · ${at("weight")}</small><div style="font: ${use("weight")} ${use("size")}/${use("line-height")} ${use("font")}; letter-spacing: ${use("tracking")}">The quick brown fox jumps over the lazy dog</div></div>`;
 }).join("")}`;
 
-// The faces the type tokens name, one Google Fonts css2 link per family (so one unknown family fails alone), in
-// the weights the type tokens use. A generic stack is not a family.
+// The faces the type tokens and the kit's mono face (code) name, one Google Fonts css2 link per family (so one
+// unknown family fails alone), in the weights the type tokens use. A generic stack is not a family.
 const GENERIC = /^(serif|sans-serif|monospace|cursive|fantasy|system-ui|emoji|math|fangsong|ui-[a-z-]+)$/i;
 export const fontLinks = (tokens) => {
-  const families = tokens.filter((token) => token.type === "fontFamily" && token.path.startsWith("md.sys.typescale."))
+  const families = tokens.filter((token) => token.type === "fontFamily" && (token.path.startsWith("md.sys.typescale.") || token.path.endsWith(".typeface.mono")))
     .flatMap((token) => String(token.value).split(",").map((family) => family.trim().replace(/^['"]|['"]$/g, "")))
     .filter((family) => family && !GENERIC.test(family));
   const weights = [...new Set(tokens.filter((token) => /^md\.sys\.typescale\.[^.]+\.weight$/.test(token.path)).map((token) => Number(token.value)))].sort((a, b) => a - b);

@@ -2,16 +2,32 @@
 // Writes into options.path: index.html (fixed, names no kit), the engine's client (src/web: playground.js and a
 // module per destination, with color.mjs, the engine's colour maths, beside them) and tokens.json (the kit's name,
 // version, tokens per mode and notes: the only per-kit data the page reads).
-// Options: path (a directory). The page links the config's css and beer outputs by their paths; with a tailwind
-// output (listed before the playground) it also writes tailwind.html, which proves the output in a frame of its own
-// (Tailwind's reset would restyle the page), and tokens.json names it. theme.toml's icon, a Material Symbol name,
+// Options: path (a directory). The page carries its styles: Beer's (the installed release, its own font files left
+// out), then the config's css and beer outputs as this run made them (list both before the playground), so the
+// generated folder works as it stands wherever it is served. Beer's script is that release's from its CDN, and the
+// icon face comes from Google Fonts. With a tailwind output (listed before the playground) it also writes
+// tailwind.html, which proves the output in a frame of its own (Tailwind's reset would restyle the page), and
+// tokens.json names it. theme.toml's icon, a Material Symbol name,
 // is the kit's mark in the top app bar ("style" otherwise). Optional, by location only: examples (the apps' entry
 // files, which the Examples destination fetches) and kits (other kits' playground directories, for the kit menu).
-import { basename, join, relative, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import tailwind from "../web/tailwind.html" with { type: "text" };
 import { need, needKit } from "../system.mjs";
 
-const BEER = "https://cdn.jsdelivr.net/npm/beercss/dist/cdn";
+// Beer's stylesheet, installed with the engine (the binary carries Beer's dist/cdn folder as assets). Its shapes are
+// SVG files beside it, which the page carries as data; its font faces point at icon fonts beside it too, which the
+// page loads from Google Fonts instead.
+const beerFile = (file) => Bun.embeddedFiles.find((each) => basename(each.name) === file) ?? Bun.file(join(dirname(Bun.resolveSync("beercss/dist/cdn/beer.min.css", import.meta.dir)), file));
+// Returns the stylesheet as the page carries it, and the release it names.
+const beerCss = async () => {
+  const source = await beerFile("beer.min.css").text();
+  const release = source.match(/beercss@([^/]+)\//)?.[1];
+  if (!release) throw new Error("playground: the installed Beer stylesheet names no release");
+  let css = source.replace(/@font-face\{[^}]*\}/g, "");
+  for (const file of new Set(css.match(/(?<=url\()[\w-]+\.svg(?=\))/g))) css = css.replaceAll(`url(${file})`, `url("data:image/svg+xml,${encodeURIComponent(await beerFile(file).text())}")`);
+  return { css, release };
+};
+const ICONS = (family) => `https://fonts.googleapis.com/css2?family=${family.replaceAll(" ", "+")}:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block`;
 // The client's modules; each imports the colour maths from "../color.mjs" in the source and "./color.mjs" beside the page.
 const CLIENT = ["playground.js", "examples.js", "foundations.js", "components.js", "cards.js", "pages.js"];
 // A source file as text. The engine imports some of them as modules too (color.mjs, and the specimens the
@@ -21,6 +37,11 @@ const source = (path) => (Bun.embeddedFiles.find((file) => basename(file.name) =
 // Tailwind's browser build reads @import "tailwindcss" even inside a comment, and then draws nothing.
 const withoutComments = (css) => css.replace(/\/\*[\s\S]*?\*\//g, "");
 const attribute = (text) => text.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+// A stylesheet inside a <style> element: only a closing tag could end it early.
+const inline = (css) => css.replace(/<\/style/gi, "<\\/style");
+// The kit's notes as HTML (Bun's CommonMark): the leading level-one heading names the document, and the item's own
+// title already does, so it goes.
+const notesHtml = (text) => Bun.markdown.html(text.replace(/^\s*# [^\n]*\n/, ""));
 
 // Each token on its own line, so a change to one token is one line of diff.
 const lines = (tokens) => `[\n${tokens.map(({ path, value, type, description, derived }) => `      ${JSON.stringify({ path, value, type, description, derived })}`).join(",\n")}\n    ]`;
@@ -33,13 +54,17 @@ export default {
     const dir = need(options, "playground", "path");
     // A sibling output's file, as its own options name it.
     const sibling = (target) => config.targets.includes(target) ? need(config[target] ?? {}, target, "path") : undefined;
-    const href = (target) => {
+    // A sibling output's text as this run made it.
+    const made = (target) => {
       const path = sibling(target);
       if (!path) throw new Error(`playground needs the ${target} output in the config`);
-      return relative(resolve(dir), resolve(path));
+      const text = built(path);
+      if (text === undefined) throw new Error(`playground: list the ${target} output before it`);
+      return text;
     };
-    const css = href("css");
-    const beer = href("beer");
+    const [css, beer] = [made("css"), made("beer")];
+    const { css: beerStyles, release } = await beerCss();
+    const iconFace = (tokens.find((token) => token.path === `${name}.typeface.icon`)?.value ?? "Material Symbols Outlined").split(",")[0].trim().replace(/^["']|["']$/g, "");
     const notes = await readExisting(join(root, "notes.md"));
     const icon = theme?.icon;
     // The apps' example entries and the other kits' playgrounds, by location only: the page fetches them, so the
@@ -66,13 +91,14 @@ export default {
       '<meta charset="utf-8">',
       '<meta name="viewport" content="width=device-width, initial-scale=1">',
       "<title>Playground</title>",
-      `<style>@import url("${BEER}/beer.min.css") layer(beer);</style>`,
-      `<link rel="stylesheet" href="${attribute(css)}">`,
-      `<link rel="stylesheet" href="${attribute(beer)}">`,
+      `<link rel="stylesheet" href="${attribute(ICONS(iconFace))}">`,
+      `<style>@layer beer {\n${inline(beerStyles)}\n}</style>`,
+      `<style>\n${inline(css)}</style>`,
+      `<style>\n${inline(beer)}</style>`,
       "</head>",
       "<body>",
       '<div id="app"></div>',
-      `<script type="module" src="${BEER}/beer.min.js"></script>`,
+      `<script type="module" src="https://cdn.jsdelivr.net/npm/beercss@${release}/dist/cdn/beer.min.js"></script>`,
       '<script type="module" src="playground.js"></script>',
       "</body>",
       "</html>",
@@ -81,10 +107,11 @@ export default {
     const fields = [
       `"name": ${JSON.stringify(name)}`,
       `"version": ${JSON.stringify(version)}`,
+      `"title": ${JSON.stringify(ctx.title ?? name)}`,
       `"modes": {\n${byMode.map(([mode, each]) => `    ${JSON.stringify(mode)}: ${lines(each)}`).join(",\n")}\n  }`,
       ...(icon === undefined ? [] : [`"icon": ${JSON.stringify(icon)}`]),
       ...(output === undefined ? [] : [`"tailwind": "tailwind.html"`]),
-      ...(notes === undefined ? [] : [`"notes": ${JSON.stringify(notes)}`]),
+      ...(notes === undefined ? [] : [`"notes": ${JSON.stringify(notesHtml(notes))}`]),
       ...(entries.length ? [`"examples": ${JSON.stringify(entries)}`] : []),
       ...(kits.length ? [`"kits": ${JSON.stringify(kits)}`] : []),
     ];
@@ -94,7 +121,7 @@ export default {
       ...client.map(([file, text]) => ({ path: join(dir, file), content: text.replaceAll('"../color.mjs"', '"./color.mjs"') })),
       { path: join(dir, "color.mjs"), content: color },
       { path: join(dir, "tokens.json"), content: data },
-      ...(output === undefined ? [] : [{ path: join(dir, "tailwind.html"), content: tailwind.replace("{{css}}", () => attribute(css)).replace("{{tailwind}}", () => withoutComments(output)) }]),
+      ...(output === undefined ? [] : [{ path: join(dir, "tailwind.html"), content: tailwind.replace("{{css}}", () => inline(css)).replace("{{tailwind}}", () => withoutComments(output)) }]),
     ];
   },
 };

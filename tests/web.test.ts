@@ -58,7 +58,7 @@ test("css emits each Material spring as an easing and a settle time when the tok
   expect(css.match(/-easing:/g)).toHaveLength(1);
 });
 
-test("beer sets Beer's system variables from Material and reads the kit's two tokens, byte-identical to the golden", () => {
+test("beer sets Beer's system variables from Material and reads the kit's own tokens, byte-identical to the golden", () => {
   const dir = project();
   expect(run(dir).exitCode).toBe(0);
   expect(read(dir, "out/beer.css")).toBe(golden("beer.css"));
@@ -104,14 +104,15 @@ test("Beer's rem is body-large, so its buttons are Material's: small XS 32, the 
   expect(size(/:is\(\.button, button\):is\(\.extra, \.extend\) \{[^}]*?--_size: ([0-9.]+)rem/) * rem).toBe(px(tokens.comp["button-medium"]["container-height"]));
 });
 
-test("material.css draws the rail's top space and gap, the hover layer and the segmented list from Material's tokens, typing no value", () => {
+test("material.css draws the rail's top space, gap and labels, the hover layer, the lists and the panes' headings from Material's tokens, typing no value", () => {
   const css = readFileSync(join(root, "src/web/material.css"), "utf8");
   for (const name of [
     "md-comp-navigation-rail-collapsed-top-space", "md-comp-navigation-rail-collapsed-item-vertical-space", "md-comp-navigation-rail-baseline-item-container-vertical-space", "md-sys-state-hover-state-layer-opacity",
     "md-comp-list-segmented-gap", "md-comp-list-item-one-line-container-height", "md-comp-list-item-container-expressive-shape",
     "md-comp-list-item-hovered-container-expressive-shape", "md-comp-list-item-selected-container-expressive-shape", "md-comp-list-item-selected-container-color",
     "md-comp-app-bar-small-container-height", "md-comp-app-bar-small-title-size", "md-comp-navigation-rail-collapsed-container-width",
-    "md-comp-navigation-rail-expanded-container-width-minimum", "md-comp-navigation-rail-horizontal-item-active-indicator-height", "md-comp-navigation-rail-baseline-item-header-space-minimum",
+    "md-comp-navigation-rail-expanded-container-width-minimum", "md-comp-navigation-rail-horizontal-item-active-indicator-height", "md-sys-typescale-label-medium-size", "md-sys-typescale-body-large-size",
+    "md-sys-typescale-headline-medium-size", "md-sys-typescale-title-large-size", "md-sys-typescale-title-medium-size", "md-sys-typescale-title-small-size",
     "md-sys-color-surface-container-low", "md-sys-shape-corner-large", "md-comp-list-item-leading-space", "md-comp-list-item-container-color",
   ]) expect(css).toContain(`var(--${name})`);
   expect(css.replace(/\/\*[\s\S]*?\*\//g, "")).not.toMatch(/#[0-9a-f]{3,8}\b|\d(px|rem|ms)\b/i);
@@ -130,5 +131,5 @@ test("layout.css lays out Material's panes inside Beer's main with Material's gu
   run(dir);
   const out = read(dir, "out/beer.css");
   expect(out.indexOf("main > .panes > *")).toBeLessThan(out.indexOf("main > .panes { display: grid;"));
-  expect(out.trimEnd().endsWith("main > .panes.supporting { grid-template-columns: minmax(0, 1fr) 412px; } }")).toBe(true);
+  expect(out.trimEnd().endsWith("main > .panes:has(> :only-child) { grid-template-columns: minmax(0, 1fr); } }")).toBe(true);
 });

@@ -1,7 +1,7 @@
 // Beer CSS (github.com/beercss/beercss, MIT) themed by the kit: Beer's variables set from the kit's, so the
 // kit's stylesheet decides the mode. Beer names its colour variables after Material's roles, so every
-// md.sys.color role the kit has becomes one; Beer reads the ones it knows. Two values read the kit's own tokens,
-// <name>.typeface.icon and <name>.elevation.shadow-opacity; with one absent, Beer keeps its own.
+// md.sys.color role the kit has becomes one; Beer reads the ones it knows. Three values read the kit's own tokens,
+// <name>.typeface.icon, <name>.typeface.mono and <name>.elevation.shadow-opacity; with one absent, Beer keeps its own.
 import materialCss from "../web/material.css" with { type: "text" };
 import layoutCss from "../web/layout.css" with { type: "text" };
 
@@ -30,7 +30,7 @@ export default {
   async build({ tokens, options, name }) {
     const { path = "src/styles/beer.css" } = options;
     const own = (rest) => name && tokens.some((token) => token.path === `${name}.${rest}`) ? `${name}.${rest}` : undefined;
-    const [iconFont, shadowOpacity] = [own("typeface.icon"), own("elevation.shadow-opacity")];
+    const [iconFont, shadowOpacity, monoFont] = [own("typeface.icon"), own("elevation.shadow-opacity"), own("typeface.mono")];
     const content = [
       "/* Beer CSS themed by the kit: Beer's variables from the kit's. Load after Beer and the kit's css output; set",
       " * the mode the kit's way (data-theme), not with Beer's body classes. Load Beer in a cascade layer",
@@ -43,6 +43,7 @@ export default {
       "/* Material sets buttons and chips in label-large, which Beer's own do not follow. */",
       ":is(button, .button, .chip) { font-family: var(--md-sys-typescale-label-large-font); font-weight: var(--md-sys-typescale-label-large-weight); letter-spacing: var(--md-sys-typescale-label-large-tracking); }",
       "",
+      ...(monoFont ? ["/* Code in the kit's mono face (Beer leaves it to the browser's monospace). */", `:is(code, pre, kbd, samp) { font-family: ${variable(monoFont)}; }`, ""] : []),
       materialCss,
       "",
       layoutCss,

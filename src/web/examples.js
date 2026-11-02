@@ -2,16 +2,15 @@
 // location only). An entry is { name, surface, output, preview?, captures?, devices? }: `preview` a live web page,
 // `captures` [{ src, label, build? }] for a surface the page cannot embed, `devices` [{ name, width, height }],
 // each path relative to the entry. The page fetches entries when it opens, so a kit builds without them; one that
-// does not load shows as unavailable. A web preview is embedded live at the chosen device's size; a capture is
+// does not load is left out. A web preview is embedded live at the chosen device's size; a capture is
 // labelled as one, with its source and build.
 import { esc } from "./playground.js";
 
 // An item id from an entry's name.
 const slug = (name) => String(name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "example";
 
-// The destination's items, from the loaded entries ({ href, entry } or { href, error }), with the chosen device.
-export const examples = (loaded, device = 0) => loaded.map(({ href, entry, error }, index) => {
-  if (error) return { id: `unavailable-${index}`, name: `Unavailable (${index + 1})`, body: () => `<p>Unavailable: <code>${esc(href)}</code> did not load (${esc(error)}). An app's entry is optional; serve its checkout beside the kit's to see it.</p>` };
+// The destination's items, from the entries that loaded ({ href, entry }), with the chosen device.
+export const examples = (loaded, device = 0) => loaded.map(({ href, entry }) => {
   const at = (path) => new URL(path, href).href;
   const devices = entry.devices ?? [];
   const chosen = devices[Math.min(device, devices.length - 1)];

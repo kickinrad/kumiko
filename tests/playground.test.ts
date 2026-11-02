@@ -43,23 +43,24 @@ test("writes index.html, playground.js and tokens.json, and --check passes on th
   expect(run(dir, "--check").stderr.toString()).toContain("docs/play/playground.js is stale");
 });
 
-test("the page and the client name no kit, and the client imports only its files beside the page", () => {
+// The page's own markup: everything outside its <style> elements, which carry Beer's and the kit's stylesheets.
+const shell = (page: string) => body(page).replace(/<style>[\s\S]*?<\/style>/g, "<style></style>");
+
+test("the page's shell and the client name no kit, and the client imports only its files beside the page", () => {
   const dir = built();
   for (const file of ["index.html", "playground.js", "examples.js", "foundations.js", "components.js", "cards.js", "pages.js", "color.mjs"]) {
-    const text = body(read(dir, `docs/play/${file}`));
+    const text = file === "index.html" ? shell(read(dir, `docs/play/${file}`)) : body(read(dir, `docs/play/${file}`));
     expect(text, file).not.toMatch(/acme/i);
     for (const [, from] of text.matchAll(/^import .* from "([^"]+)";$/gm)) expect(from, file).toMatch(/^\.\/[a-z]+\.m?js$/);
   }
-  const page = read(dir, "docs/play/index.html");
-  expect(page).toContain('@import url("https://cdn.jsdelivr.net/npm/beercss/dist/cdn/beer.min.css") layer(beer);');
-  expect(page).toContain('src="https://cdn.jsdelivr.net/npm/beercss/dist/cdn/beer.min.js"');
-  expect(page).toContain('src="playground.js"');
+  expect(read(dir, "docs/play/index.html")).toContain('src="playground.js"');
 });
 
 test("tokens.json holds the kit's name, version, both modes' tokens and the notes", () => {
   const data = JSON.parse(read(built(), "docs/play/tokens.json"));
-  expect(Object.keys(data)).toEqual(["name", "version", "modes", "notes"]);
+  expect(Object.keys(data)).toEqual(["name", "version", "title", "modes", "notes"]);
   expect(data.name).toBe("acme");
+  expect(data.title).toBe("acme");
   expect(data.version).toBe("1.2.3");
   expect(Object.keys(data.modes)).toEqual(["night", "day"]);
   const at = (mode: string, path: string) => data.modes[mode].find((token: { path: string }) => token.path === path);
@@ -67,7 +68,18 @@ test("tokens.json holds the kit's name, version, both modes' tokens and the note
   expect(at("day", "md.sys.color.primary").value).toBe("#2e7de9");
   expect(at("night", "acme.gap")).toEqual({ path: "acme.gap", value: "8px", type: "dimension", description: "The gap between two cards." });
   expect(at("day", "acme.gap").value).toBe("8px");
-  expect(data.notes).toBe(read(join(root, "tests/playground"), "design/notes.md"));
+  // The notes as HTML (CommonMark), without their leading level-one heading: the item's own title names them.
+  const notes = read(join(root, "tests/playground"), "design/notes.md");
+  expect(data.notes).toBe(Bun.markdown.html(notes.replace(/^\s*# [^\n]*\n/, "")));
+});
+
+test("notes render as CommonMark: links, emphasis, tables and code, and the leading title goes", () => {
+  const dir = project();
+  writeFileSync(join(dir, "design/notes.md"), "# Kit\n\nA **rule** with a [link](https://m3.material.io) and `code`.\n\n| a | b |\n|---|---|\n| 1 | 2 |\n");
+  const { notes } = tokensOf(built(dir));
+  expect(notes).not.toContain("<h1>");
+  expect(notes).toContain('<p>A <strong>rule</strong> with a <a href="https://m3.material.io">link</a> and <code>code</code>.</p>');
+  expect(notes).toContain("<table>");
 });
 
 test("a kit with no notes.md has no notes, and a kit with no theme names its modes base and by query", () => {
@@ -82,17 +94,21 @@ test("a kit with no notes.md has no notes, and a kit with no theme names its mod
   expect(Object.keys(JSON.parse(read(plain, "docs/play/tokens.json")).modes)).toEqual(["base", "(prefers-color-scheme: light)"]);
 });
 
-test.each([
-  ["docs/play", "../../ports/css/kit.css", "../../ports/css/kit-beer.css"],
-  ["ports/css", "kit.css", "kit-beer.css"],
-  ["ports", "css/kit.css", "css/kit-beer.css"],
-  [".", "ports/css/kit.css", "ports/css/kit-beer.css"],
-])("the page at %s reaches the config's css and beer outputs by relative paths", (path, cssHref, beerHref) => {
+test.each(["docs/play", "ports/css", "."])("the page at %s carries Beer's styles in a layer, then the config's css and beer outputs as built, so it works served alone", (path) => {
   const dir = built(edited(`c.playground = { path: "${path}" };`));
   const page = read(dir, `${path}/index.html`);
-  expect(page).toContain(`<link rel="stylesheet" href="${cssHref}">`);
-  expect(page).toContain(`<link rel="stylesheet" href="${beerHref}">`);
-  expect(page.indexOf(cssHref)).toBeLessThan(page.indexOf(beerHref));
+  const [layer, css, beer] = [...page.matchAll(/<style>([\s\S]*?)<\/style>/g)].map((match) => match[1]);
+  expect(layer).toStartWith("@layer beer {\n");
+  // Beer's shapes travel as data and its own font files stay behind; the icon face comes from Google Fonts.
+  expect(layer).not.toMatch(/@font-face|url\([\w-]+\.(svg|woff2)\)/);
+  expect(layer).toContain("url(\"data:image/svg+xml,");
+  expect(page).toContain('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:');
+  expect(css.trim()).toBe(read(dir, "ports/css/kit.css").trim());
+  expect(beer.trim()).toBe(read(dir, "ports/css/kit-beer.css").trim());
+  expect(page).not.toMatch(/href="\.\.?\//);
+  // Beer's script is the installed release's, the one its stylesheet came from.
+  const release = JSON.parse(readFileSync(join(root, "node_modules/beercss/package.json"), "utf8")).version;
+  expect(page).toContain(`<script type="module" src="https://cdn.jsdelivr.net/npm/beercss@${release}/dist/cdn/beer.min.js"></script>`);
 });
 
 test("a missing path fails, naming it", () => {
@@ -113,19 +129,6 @@ test("without a declared kit it fails, saying so", () => {
   const result = run(dir);
   expect(result.exitCode).toBe(1);
   expect(result.stderr.toString()).toContain("needs a declared kit");
-});
-
-test("markdown: headings (under the item's own h1), paragraphs, lists and inline code, and nothing else", async () => {
-  const { markdown } = await client(built());
-  expect(markdown("# Title\n\nOne line\nwraps `code` here.\n\n## Sub\n\n- a\n  more\n- b\n\n1. x\n2. y\n")).toBe([
-    "<h2>Title</h2>",
-    "<p>One line wraps <code>code</code> here.</p>",
-    "<h3>Sub</h3>",
-    "<ul><li>a more</li><li>b</li></ul>",
-    "<ol><li>x</li><li>y</li></ol>",
-  ].join("\n"));
-  expect(markdown("<b>x</b> **y** [z](q)")).toBe("<p>&lt;b&gt;x&lt;/b&gt; **y** [z](q)</p>");
-  expect(markdown("###### six")).toBe("<h6>six</h6>");
 });
 
 type Token = { path: string; value: string; type: string };
@@ -265,15 +268,18 @@ test("type: the faces to load come from the type tokens, one link per family, an
   const data = tokensOf(dir);
   const weights = [...new Set(data.modes.night.filter((token: Token) => /^md\.sys\.typescale\.[a-z-]+\.weight$/.test(token.path)).map((token: Token) => token.value))].sort((a: any, b: any) => a - b).join(";");
   const links: string[] = fontLinks(data.modes.night);
+  // The type tokens' faces and the kit's mono face, which code is set in.
   expect(links.sort()).toEqual([
+    `https://fonts.googleapis.com/css2?family=Fixture+Mono:wght@${weights}&display=swap`,
     `https://fonts.googleapis.com/css2?family=Fixture+Sans:wght@${weights}&display=swap`,
     `https://fonts.googleapis.com/css2?family=Fixture+Serif:wght@${weights}&display=swap`,
   ]);
   // A kit whose type tokens name no family loads none (generic stacks are not families).
   expect(fontLinks([{ path: "md.sys.typescale.body-large.font", value: "'a b', serif, system-ui", type: "fontFamily" }, { path: "x.font", value: "Other", type: "fontFamily" }])).toEqual(["https://fonts.googleapis.com/css2?family=a+b&display=swap"]);
-  // The page and the client carry no family: not the fixture's, and not a Material or house default.
-  for (const file of ["index.html", "playground.js", "foundations.js", "components.js", "cards.js", "pages.js"]) expect(body(read(dir, `docs/play/${file}`)), file).not.toMatch(/Fixture|Roboto|Inter\b|Cascadia|Google Sans|Material Symbols/i);
-  expect(read(dir, "docs/play/index.html")).not.toContain("fonts.googleapis.com");
+  // The client carries no family: not the fixture's, and not a Material or house default; the page's shell links
+  // only the icon face (Beer's own icon files are not beside it).
+  for (const file of ["playground.js", "foundations.js", "components.js", "cards.js", "pages.js"]) expect(body(read(dir, `docs/play/${file}`)), file).not.toMatch(/Fixture|Roboto|Inter\b|Cascadia|Google Sans|Material Symbols/i);
+  expect(shell(read(dir, "docs/play/index.html")).match(/fonts\.googleapis\.com\/css2\?family=([^:&"]+)/g)).toEqual(["fonts.googleapis.com/css2?family=Material+Symbols+Outlined"]);
   for (const file of ["foundations.js", "playground.js"]) expect(readFileSync(join(root, "src/web", file), "utf8"), file).not.toMatch(/Fixture|Roboto|Inter\b|Cascadia|Google Sans/i);
 });
 
@@ -358,14 +364,14 @@ test("tailwind: without the output the item says the kit has none and writes no 
 
   const dir = built(withTailwind());
   const withData = tokensOf(dir);
-  expect(Object.keys(withData)).toEqual(["name", "version", "modes", "tailwind", "notes"]);
+  expect(Object.keys(withData)).toEqual(["name", "version", "title", "modes", "tailwind", "notes"]);
   expect(withData.tailwind).toBe("tailwind.html");
   const html: string = tailwind(withData, withData.modes.night);
   expect(html).toContain('<iframe data-frame="tailwind.html"');
   expect(html).not.toContain("no Tailwind output");
 });
 
-test("tailwind.html inlines the kit's Tailwind file, loads the browser build at latest and the kit's css, and uses only classes the output defines", () => {
+test("tailwind.html inlines the kit's Tailwind file and css, loads the browser build at latest, and uses only classes the output defines", () => {
   const dir = built(withTailwind());
   const page = read(dir, "docs/play/tailwind.html");
   const output = read(dir, "ports/css/kit-tailwind.css");
@@ -373,9 +379,10 @@ test("tailwind.html inlines the kit's Tailwind file, loads the browser build at 
   // Without its comments: Tailwind's browser build reads @import "tailwindcss" even inside one, and draws nothing.
   expect(output).toContain('@import "tailwindcss"');
   expect(page).toContain(`<style type="text/tailwindcss">\n${output.replace(/\/\*[\s\S]*?\*\//g, "")}</style>`);
-  expect(page.slice(page.indexOf('<style type="text/tailwindcss">'))).not.toContain("/*");
+  const tailwindStyle = page.slice(page.indexOf('<style type="text/tailwindcss">'));
+  expect(tailwindStyle.slice(0, tailwindStyle.indexOf("</style>"))).not.toContain("/*");
   expect(page).toContain('<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser"></script>');
-  expect(page).toContain('<link rel="stylesheet" href="../../ports/css/kit.css">');
+  expect(page).toContain(`<style>\n${read(dir, "ports/css/kit.css")}</style>`);
   expect(page).not.toContain("beer");
   // The mode comes from the parent, in the hash.
   expect(page).toContain("location.hash");
@@ -405,7 +412,8 @@ test("a tailwind output listed after the playground fails, saying so", () => {
 
 test("no kit name in the client files, as built and in the source (tailwind.html carries the kit's own output)", () => {
   const dir = built(withTailwind());
-  for (const file of ["index.html", "playground.js", "examples.js", "foundations.js", "components.js", "cards.js", "pages.js", "color.mjs"]) expect(body(read(dir, `docs/play/${file}`)), file).not.toMatch(/acme/i);
+  for (const file of ["playground.js", "examples.js", "foundations.js", "components.js", "cards.js", "pages.js", "color.mjs"]) expect(body(read(dir, `docs/play/${file}`)), file).not.toMatch(/acme/i);
+  expect(shell(read(dir, "docs/play/index.html"))).not.toMatch(/acme/i);
   for (const file of ["playground.js", "foundations.js", "tailwind.html"]) expect(readFileSync(join(root, "src/web", file), "utf8"), file).not.toMatch(/acme/i);
 });
 
@@ -413,44 +421,45 @@ test("view: five destinations in a rail and a bar, the open item in a list-detai
   const dir = built();
   const { view } = await client(dir);
   const data = JSON.parse(read(dir, "docs/play/tokens.json"));
-  const state = { tab: "rules", item: "notes", mode: "night" };
+  const state = { tab: "foundations", item: "type", mode: "night" };
   const open: string = view(data, state);
   for (const name of ["Foundations", "Components", "Cards", "Pages", "Rules"]) expect(open.match(new RegExp(`<div>${name}</div>`, "g"))).toHaveLength(2);
-  expect(open).toContain('<nav class="left m l"');
   expect(open).toContain('<nav class="bottom s"');
-  expect(open).toContain("<h3>Don't</h3>");
-  expect(open).toContain('href="#rules"');
-  expect(open).toContain("acme");
   expect(open.match(/<h1>/g)).toHaveLength(1);
   // An item is named: the panes are open (below expanded only the detail shows), and a back button shows there.
-  expect(open).toContain('<main><div class="panes" data-open>\n<div><ul class="list segmented">');
-  expect(open).toContain('data-back href="#rules" aria-label="Back"');
+  expect(open).toContain('<main><div class="panes" data-open>\n<div><ul class="list">');
+  expect(open).toContain('data-back href="#foundations" aria-label="Back"');
+  expect(open).toContain('<li><a class="wave active" href="#foundations/type">');
   // Only a tab is named: the panes are not open (below expanded only the list shows), and there is nothing to go back to.
   const list: string = view(data, { ...state, item: undefined });
   expect(list).toContain('<main><div class="panes">');
   expect(list).not.toContain("data-back");
   // Nothing named: the first destination's first item.
   expect(view(data, { mode: "night" })).toContain("<h1>Colour</h1>");
-  // The mode switch is one icon button to the next mode, its icon that mode's scheme; the list pane is Material's
-  // segmented list with the open item marked.
+  // A destination with one item has no list and no back button: its item is the page.
+  const rules: string = view(data, { tab: "rules", item: "notes", mode: "night" });
+  expect(rules).toContain('<main><div class="panes" data-open>\n<div><h1>Notes</h1>');
+  expect(rules).not.toContain('class="list');
+  expect(rules).not.toContain("data-back");
+  // The mode switch is one icon button to the next mode, its icon that mode's scheme.
   expect(open).toContain('<button class="circle transparent" data-mode="day" aria-label="Day mode"><i>light_mode</i></button>');
   expect(view(data, { ...state, mode: "day" })).toContain('data-mode="night" aria-label="Night mode"><i>dark_mode</i>');
   expect(open).not.toContain('class="group connected"');
-  // The top app bar: the kit's mark ("style" unless theme.toml names an icon), its name, the switch.
-  expect(open).toContain('<nav class="top"><i>style</i><a class="button circle transparent" data-back href="#rules" aria-label="Back"><i>arrow_back</i></a><h6 class="max">acme</h6><button class="circle transparent"');
-  expect(open).not.toContain("<header><nav>");
-  // The rail's header holds the menu button; `expanded` makes it Material's expanded rail.
-  expect(open).toContain('<nav class="left m l"><header><button class="circle transparent" data-rail aria-label="Expand the navigation"><i>menu</i></button></header><a href="#foundations">');
-  expect(view(data, { ...state, expanded: true })).toContain('<nav class="left m l max"><header><button class="circle transparent" data-rail aria-label="Collapse the navigation"><i>menu_open</i></button></header>');
+  // The top app bar: the menu button over the rail's column (the kit's mark, "style" unless theme.toml names an
+  // icon, stands there on small), a back button, the kit's title, the switch. The rail holds only destinations;
+  // `expanded` makes it Material's expanded rail.
+  expect(open).toContain('<nav class="top"><button class="circle transparent m l" data-rail aria-label="Expand the navigation"><i>menu</i></button><i class="s">style</i><a class="button circle transparent" data-back href="#foundations" aria-label="Back"><i>arrow_back</i></a><h6 class="max">acme</h6><button class="circle transparent"');
+  expect(open).toContain('<nav class="left m l"><a href="#foundations" class="active">');
+  expect(view(data, { ...state, expanded: true })).toContain('<nav class="left m l max"><a href="#foundations"');
+  expect(view(data, { ...state, expanded: true })).toContain('data-rail aria-label="Collapse the navigation"><i>menu_open</i>');
+  expect(view({ ...data, title: "Acme Kit" }, state)).toContain('<h6 class="max">Acme Kit</h6>');
   const marked = project();
   writeFileSync(join(marked, "design/theme.toml"), read(marked, "design/theme.toml").replace('name = "acme"\n', 'name = "acme"\nicon = "contrast"\n'));
   built(marked);
   expect(tokensOf(marked).icon).toBe("contrast");
-  expect((await client(marked)).view(tokensOf(marked), state)).toContain('<nav class="top"><i>contrast</i>');
+  expect((await client(marked)).view(tokensOf(marked), state)).toContain('<i class="s">contrast</i>');
   writeFileSync(join(marked, "design/theme.toml"), read(marked, "design/theme.toml").replace('icon = "contrast"', "icon = 7"));
   expect(run(marked).stderr.toString()).toContain("theme.toml: icon must be a non-empty string");
-  expect(open).toContain('<ul class="list segmented">');
-  expect(open).toContain('<li><a class="wave active" href="#rules/notes">');
   expect(open).not.toContain("secondary-container");
 });
 
@@ -558,12 +567,12 @@ test("examples and kits are written by location only, relative to the page, and 
   expect(run(edited('c.playground.examples = "x";')).stderr.toString()).toContain('playground option "examples" must be a list of paths');
 });
 
-test("Examples: a live preview at the chosen device's size, labelled captures, and an entry that did not load as unavailable", async () => {
+test("Examples: a live preview at the chosen device's size and labelled captures", async () => {
   const { examples } = await import(join(built(), "docs/play/examples.js"));
   const href = "http://localhost/app/preview/example.json";
   const entry = { name: "Home screen", surface: "Home Assistant", output: "ports/ha.css", preview: "stub/index.html",
     captures: [{ src: "kitchen.png", label: "Kitchen, Night", build: "abc123" }], devices: [{ name: "Phone", width: 390, height: 844 }, { name: "Hub", width: 1280, height: 800 }] };
-  const [item, missing] = examples([{ href, entry }, { href: "../nope.json", error: "HTTP 404" }], 1);
+  const [item] = examples([{ href, entry }], 1);
   expect(item.id).toBe("home-screen");
   const html = item.body();
   expect(html).toContain('<h3>Live preview: Hub, 1280 × 800</h3>');
@@ -572,13 +581,16 @@ test("Examples: a live preview at the chosen device's size, labelled captures, a
   expect(html).toContain('<button class="border" data-device="0">Phone</button>');
   expect(html).toContain("Capture: Kitchen, Night · build abc123");
   expect(html).toContain('src="http://localhost/app/preview/kitchen.png"');
-  expect(missing.body()).toContain("Unavailable: <code>../nope.json</code> did not load (HTTP 404)");
 });
 
-test("the Examples destination sits before Rules once entries load, and is absent without them", async () => {
+test("the Examples destination sits before Rules once an entry loads, and is absent without one; one that did not load is left out", async () => {
   const { tabs } = await client(built());
-  expect(tabs({}).map((tab: { id: string }) => tab.id)).toEqual(["foundations", "components", "cards", "pages", "rules"]);
-  expect(tabs({ loaded: [{ href: "x", error: "gone" }] }).map((tab: { id: string }) => tab.id)).toEqual(["foundations", "components", "cards", "pages", "examples", "rules"]);
+  const ids = (data: object) => tabs(data).map((tab: { id: string }) => tab.id);
+  expect(ids({})).toEqual(["foundations", "components", "cards", "pages", "rules"]);
+  expect(ids({ loaded: [{ href: "x", error: "gone" }] })).toEqual(["foundations", "components", "cards", "pages", "rules"]);
+  const both = tabs({ loaded: [{ href: "x", error: "gone" }, { href: "http://localhost/a.json", entry: { name: "Home" } }] });
+  expect(both.map((tab: { id: string }) => tab.id)).toEqual(["foundations", "components", "cards", "pages", "examples", "rules"]);
+  expect(both[4].items.map((item: { name: string }) => item.name)).toEqual(["Home"]);
 });
 
 test("Rules lists a kit's own Material exceptions, not the engine's cited Material values", async () => {
@@ -598,6 +610,9 @@ test("the client's source names no kit and types no value", () => {
   }
 });
 
-test("the page carries no CSS of its own: Beer's layer import is its only style", () => {
-  expect(read(built(), "docs/play/index.html")).not.toMatch(/<style>(?!@import)/);
+test("the page carries no CSS of its own: its styles are Beer's and the kit's outputs, nothing else", () => {
+  const dir = built();
+  const styles = [...read(dir, "docs/play/index.html").matchAll(/<style>([\s\S]*?)<\/style>/g)].map((match) => match[1].trim());
+  expect(styles).toHaveLength(3);
+  expect(styles.slice(1)).toEqual([read(dir, "ports/css/kit.css").trim(), read(dir, "ports/css/kit-beer.css").trim()]);
 });
