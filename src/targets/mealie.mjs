@@ -12,18 +12,16 @@
 // it overrides Vuetify's theme variables, so it can set the backgrounds, the text on each fill and the app bar,
 // which the env file cannot. The env file stays the fallback for clients that bypass the proxy.
 //
-// Options: out (path prefix: <out>.env and <out>.css), title, modes (the two mode names, base first),
-// and palette: the kit's palette colours Mealie's slots take.
-//   palette.slots    { primary, accent, secondary, success, info, warning, error }: the env file's fills
-//   palette.overlay  the same seven keys: the overlay's fills
-//   palette.layers   five colours, darkest first: background, surface, base, raised, border
-//   palette.text, palette.muted   the text colour and the quieter one (on surface-variant)
-//   palette.stars    the rating stars' colour
+// Options: out (path prefix: <out>.env and <out>.css). The palette colours Mealie's slots take are theme.toml's
+// [mealie]: slots (the env file's fills), overlay (the overlay's) and stars (the rating stars'). The five layers
+// are the colours of Material's surface, surface-container-low, -container, -container-high and -container-highest,
+// the text on-surface's and the quieter text on-surface-variant's.
 import { basename } from 'node:path';
 import { contrast, linear } from '../color.mjs';
-import { need, needKit } from '../system.mjs';
+import { need, needKit, twoModes } from '../system.mjs';
 
 const SLOT_KEYS = ['primary', 'accent', 'secondary', 'success', 'info', 'warning', 'error'];
+const LAYERS = ['surface', 'surface-container-low', 'surface-container', 'surface-container-high', 'surface-container-highest'];
 // What Mealie uses each slot for, as the comments say; the overlay's primary and secondary differ.
 const ENV_USE = {
   primary: 'app bar, filled buttons, active nav, brand',
@@ -207,17 +205,20 @@ export default {
   name: 'mealie',
   async build(ctx) {
     needKit(ctx, 'mealie');
-    const { tokens, media, mediaTokens, name, options } = ctx;
+    const { tokens, mediaTokens, name, options, title, theme } = ctx;
     const out = need(options, 'mealie', 'out');
-    const [dark, light] = need(options, 'mealie', 'modes');
-    const given = need(options, 'mealie', 'palette');
-    for (const key of ['slots', 'overlay']) for (const slot of SLOT_KEYS) need(given[key] ?? {}, `mealie palette.${key}`, slot);
-    for (const key of ['layers', 'text', 'muted', 'stars']) need(given, 'mealie palette', key);
-    if (given.layers.length !== 5) throw new Error('mealie option "palette.layers" needs five colours');
+    const [{ name: base, label: dark }, { name: other, label: light, files }] = twoModes(ctx, 'mealie');
+    if (!theme.mealie) throw new Error('mealie needs a [mealie] table in theme.toml');
+    // A role's palette colour, the same in both modes: Mealie's layers name one colour for both.
+    const named = (role) => {
+      const [inBase, inOther] = [base, other].map((mode) => theme.roleColour(`md.sys.color.${role}`, mode));
+      if (!inBase || inBase !== inOther) throw new Error(`mealie: theme.toml's md.sys.color.${role} must name one palette colour in both modes`);
+      return inBase;
+    };
+    const given = { ...theme.mealie, layers: LAYERS.map(named), text: named('on-surface'), muted: named('on-surface-variant') };
     const head = `${name}.palette.`;
     const colours = (set) => Object.fromEntries(set.filter((t) => t.path.startsWith(head) && t.path.split('.').length === 3)
       .map((t) => [t.path.slice(head.length), t.value]));
-    const [, files] = Object.entries(media)[0];
     const palette = { dark: colours(tokens), light: colours(await mediaTokens(files)) };
     for (const [variant, set] of Object.entries(palette)) {
       for (const key of [...Object.values(given.slots), ...Object.values(given.overlay), ...given.layers, given.text, given.muted, given.stars]) {
@@ -225,7 +226,7 @@ export default {
       }
     }
     const c = {
-      out, title: options.title ?? name, modes: { dark, light }, palette: given,
+      out, title, modes: { dark, light }, palette: given,
     };
     return [
       { path: `${out}.env`, content: envFile(c, palette) },

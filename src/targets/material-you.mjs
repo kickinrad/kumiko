@@ -5,7 +5,7 @@
 // them; HA sets a theme's variables inline on html, so where the theme names one too, its value wins.
 // A colour that differs between the modes is picked by HA's mode (byMode), not light-dark(): HA leaves
 // color-scheme to the OS, so light-dark() follows the OS, not HA.
-// Options: path (the file to write), title.
+// Options: path (the file to write).
 import { byPath, rgb } from '../color.mjs';
 import { need, needKit } from '../system.mjs';
 
@@ -24,7 +24,7 @@ const byMode = (lightHex, darkHex, darkSurface) => {
 
 export default {
   name: 'material-you',
-  async build({ tokens, media, mediaTokens, options, name, version }) {
+  async build({ tokens, media, mediaTokens, options, name, version, title }) {
     needKit({ name, version }, 'material-you');
     const path = need(options, 'material-you', 'path');
     const [, files] = Object.entries(media)[0] ?? [];
@@ -41,7 +41,7 @@ export default {
     };
     const content = [
       '/*',
-      `${options.title ?? name} for Material You Theme`,
+      `${title} for Material You Theme`,
       'The static theme file Material You Theme reads (github.com/Nerwyn/material-you-theme, "Build Your Own Theme"):',
       'every Material 3 colour role, light (-light) and dark (-dark), then the kit\'s own values.',
       '*/',

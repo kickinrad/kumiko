@@ -29,7 +29,7 @@ const built = (dir = project()) => {
   return dir;
 };
 // The fixture with the Tailwind output built just before the playground, which inlines it.
-const withTailwind = () => edited('c.targets = ["css", "beer", "tailwind", "playground"]; c.tailwind = { path: "ports/css/kit-tailwind.css", css: "ports/css/kit.css" }; c.playground.tailwind = "ports/css/kit-tailwind.css";');
+const withTailwind = () => edited('c.targets = ["css", "beer", "tailwind", "playground"]; c.tailwind = { path: "ports/css/kit-tailwind.css", css: "ports/css/kit.css" };');
 const tokensOf = (dir: string) => JSON.parse(read(dir, "docs/play/tokens.json"));
 const client = async (dir: string) => ({ ...(await import(join(dir, "docs/play/playground.js"))), ...(await import(join(dir, "docs/play/foundations.js"))) });
 
@@ -83,27 +83,33 @@ test("a kit with no notes.md has no notes, and a kit with no theme names its mod
 });
 
 test.each([
-  ["docs/play", "ports/css/kit.css", "ports/css/kit-beer.css", "../../ports/css/kit.css", "../../ports/css/kit-beer.css"],
-  ["ports/css", "ports/css/kit.css", "ports/css/kit-beer.css", "kit.css", "kit-beer.css"],
-  ["ports", "ports/css/kit.css", "ports/css/kit-beer.css", "css/kit.css", "css/kit-beer.css"],
-  [".", "ports/css/kit.css", "ports/css/kit-beer.css", "ports/css/kit.css", "ports/css/kit-beer.css"],
-])("the page at %s reaches the kit's css and beer outputs by relative paths", (path, css, beer, cssHref, beerHref) => {
-  const dir = built(edited(`c.playground = { path: "${path}", css: "${css}", beer: "${beer}" };`));
+  ["docs/play", "../../ports/css/kit.css", "../../ports/css/kit-beer.css"],
+  ["ports/css", "kit.css", "kit-beer.css"],
+  ["ports", "css/kit.css", "css/kit-beer.css"],
+  [".", "ports/css/kit.css", "ports/css/kit-beer.css"],
+])("the page at %s reaches the config's css and beer outputs by relative paths", (path, cssHref, beerHref) => {
+  const dir = built(edited(`c.playground = { path: "${path}" };`));
   const page = read(dir, `${path}/index.html`);
   expect(page).toContain(`<link rel="stylesheet" href="${cssHref}">`);
   expect(page).toContain(`<link rel="stylesheet" href="${beerHref}">`);
   expect(page.indexOf(cssHref)).toBeLessThan(page.indexOf(beerHref));
 });
 
-test.each(["path", "css", "beer"])("a missing %s fails, naming it", (option) => {
-  const result = run(edited(`delete c.playground.${option};`));
+test("a missing path fails, naming it", () => {
+  const result = run(edited("delete c.playground.path;"));
   expect(result.exitCode).toBe(1);
-  expect(result.stderr.toString()).toContain(`playground option "${option}" is required`);
+  expect(result.stderr.toString()).toContain('playground option "path" is required');
+});
+
+test.each(["css", "beer"])("a config without the %s output fails, naming it", (target) => {
+  const result = run(edited(`c.targets = c.targets.filter((each) => each !== "${target}");`));
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr.toString()).toContain(`playground needs the ${target} output in the config`);
 });
 
 test("without a declared kit it fails, saying so", () => {
   const dir = project();
-  writeFileSync(join(dir, "tokens.config.mjs"), 'export default { targets: ["playground"], playground: { path: "p", css: "a.css", beer: "b.css" } };\n');
+  writeFileSync(join(dir, "tokens.config.mjs"), 'export default { targets: ["playground"], playground: { path: "p" } };\n');
   const result = run(dir);
   expect(result.exitCode).toBe(1);
   expect(result.stderr.toString()).toContain("needs a declared kit");
@@ -341,7 +347,7 @@ test("motion: replay moves each dot over its track with its duration and easing,
   }
 });
 
-test("tailwind: without the option the item says the kit has none and writes no page; with it, a frame", async () => {
+test("tailwind: without the output the item says the kit has none and writes no page; with it, a frame", async () => {
   const plain = built();
   const { tailwind } = await client(plain);
   const data = tokensOf(plain);
@@ -391,10 +397,10 @@ test("tailwind.html inlines the kit's Tailwind file, loads the browser build at 
   expect(run(dir, "--check").exitCode).toBe(0);
 });
 
-test("a tailwind option naming a file no output made and none on disk fails, naming it", () => {
-  const result = run(edited('c.playground.tailwind = "ports/css/nothing.css";'));
+test("a tailwind output listed after the playground fails, saying so", () => {
+  const result = run(edited('c.targets = ["css", "beer", "playground", "tailwind"]; c.tailwind = { path: "ports/css/kit-tailwind.css", css: "ports/css/kit.css" };'));
   expect(result.exitCode).toBe(1);
-  expect(result.stderr.toString()).toContain('playground option "tailwind" names ports/css/nothing.css');
+  expect(result.stderr.toString()).toContain("playground: list the tailwind output before it");
 });
 
 test("no kit name in the client files, as built and in the source (tailwind.html carries the kit's own output)", () => {
@@ -430,16 +436,19 @@ test("view: five destinations in a rail and a bar, the open item in a list-detai
   expect(open).toContain('<button class="circle transparent" data-mode="day" aria-label="Day mode"><i>light_mode</i></button>');
   expect(view(data, { ...state, mode: "day" })).toContain('data-mode="night" aria-label="Night mode"><i>dark_mode</i>');
   expect(open).not.toContain('class="group connected"');
-  // The top app bar: the kit's mark ("style" unless the config names an icon), its name, the switch.
+  // The top app bar: the kit's mark ("style" unless theme.toml names an icon), its name, the switch.
   expect(open).toContain('<nav class="top"><i>style</i><a class="button circle transparent" data-back href="#rules" aria-label="Back"><i>arrow_back</i></a><h6 class="max">acme</h6><button class="circle transparent"');
   expect(open).not.toContain("<header><nav>");
   // The rail's header holds the menu button; `expanded` makes it Material's expanded rail.
   expect(open).toContain('<nav class="left m l"><header><button class="circle transparent" data-rail aria-label="Expand the navigation"><i>menu</i></button></header><a href="#foundations">');
   expect(view(data, { ...state, expanded: true })).toContain('<nav class="left m l max"><header><button class="circle transparent" data-rail aria-label="Collapse the navigation"><i>menu_open</i></button></header>');
-  const marked = built(edited('c.playground.icon = "contrast";'));
+  const marked = project();
+  writeFileSync(join(marked, "design/theme.toml"), read(marked, "design/theme.toml").replace('name = "acme"\n', 'name = "acme"\nicon = "contrast"\n'));
+  built(marked);
   expect(tokensOf(marked).icon).toBe("contrast");
   expect((await client(marked)).view(tokensOf(marked), state)).toContain('<nav class="top"><i>contrast</i>');
-  expect(run(edited("c.playground.icon = 7;")).stderr.toString()).toContain('"icon" must be a Material Symbol name');
+  writeFileSync(join(marked, "design/theme.toml"), read(marked, "design/theme.toml").replace('icon = "contrast"', "icon = 7"));
+  expect(run(marked).stderr.toString()).toContain("theme.toml: icon must be a non-empty string");
   expect(open).toContain('<ul class="list segmented">');
   expect(open).toContain('<li><a class="wave active" href="#rules/notes">');
   expect(open).not.toContain("secondary-container");

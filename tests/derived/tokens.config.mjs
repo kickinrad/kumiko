@@ -1,14 +1,7 @@
-// A small kit for the derived target: one custom accent, a two-item mark group, one darker in Day.
+// A small kit for the derived roles: one custom accent, a two-item mark group, one darker in the other mode.
 export default {
-  targets: ["derived"],
-  media: { "(prefers-color-scheme: light)": ["tokens/day.tokens.json", "tokens/derived-day.tokens.json"] },
-  derived: {
-    prefix: "acme",
-    accents: ["primary", "amber"],
-    custom: ["amber"],
-    fixed: ["primary"],
-    blend: "acme.color.container-opacity",
-    marks: { group: "track", darkerInDay: ["slow"] },
-    out: { night: "tokens/derived.tokens.json", day: "tokens/derived-day.tokens.json" },
-  },
+  targets: ["css"],
+  include: ["builtin:material"],
+  kit: { name: "acme" },
+  css: { path: "tokens.css" },
 };

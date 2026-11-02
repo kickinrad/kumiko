@@ -1,4 +1,5 @@
 name = "acme"
+title = "Acme"
 default = "night"
 
 [media]
@@ -43,7 +44,7 @@ yellow = "#8c6c3e"
 teal = "#118c74"
 
 [roles]
-"md.sys.color.surface" = "base"
+"md.sys.color.surface" = "crust"
 "md.sys.color.surface-container-lowest" = "crust"
 "md.sys.color.surface-container-low" = "mantle"
 "md.sys.color.surface-container" = "base"
@@ -69,3 +70,15 @@ brand = ["Some Sans", "sans-serif"]
 plain = ["Some Sans", "sans-serif"]
 mono = ["Some Mono", "monospace"]
 icon = "Some Icons"
+
+[tokens]
+"acme.layout.card-gap" = "8px"
+"acme.layout.card-inset" = "16px"
+"acme.tv.safe-margin" = "58px"
+"acme.domain.light.container" = "{acme.palette.yellow}"
+"md.sys.typescale.label-large.font" = { value = "{acme.typeface.mono}", why = "Labels in the mono face" }
+
+[mealie]
+slots = { primary = "cyan", accent = "teal", secondary = "yellow", success = "green", info = "teal", warning = "orange", error = "red" }
+overlay = { primary = "blue", accent = "blue", secondary = "blue", success = "green", info = "teal", warning = "orange", error = "red" }
+stars = "yellow"

@@ -1,0 +1,59 @@
+name = "acme"
+default = "night"
+
+[media]
+day = "(prefers-color-scheme: light)"
+
+[palette.night]
+page = "#101418"
+low = "#0b0e11"
+card = "#181c20"
+text = "#e1e2e8"
+ink = "#2e3135"
+blue = "#7aa2f7"
+teal = "#73daca"
+purple = "#bb9af7"
+red = "#f79178"
+amber = "#e0af68"
+green = "#9ece6a"
+orange = "#ff9e64"
+
+[palette.day]
+page = "#f6f6f6"
+low = "#ffffff"
+card = "#f0f0f0"
+text = "#1b1c1f"
+ink = "#f1f0f4"
+blue = "#2e7de9"
+teal = "#118c74"
+purple = "#9854f1"
+red = "#c64343"
+amber = "#8c6c3e"
+green = "#587539"
+orange = "#b15c00"
+
+[roles]
+"md.sys.color.surface" = "page"
+"md.sys.color.surface-container-lowest" = "low"
+"md.sys.color.surface-container-low" = "card"
+"md.sys.color.on-surface" = "text"
+"md.sys.color.inverse-surface" = "text"
+"md.sys.color.inverse-on-surface" = "ink"
+"md.sys.color.primary" = "blue"
+"md.sys.color.secondary" = "teal"
+"md.sys.color.tertiary" = "purple"
+"md.sys.color.error" = "red"
+"acme.color.amber" = "amber"
+
+[roles.day]
+"md.sys.color.inverse-surface" = "night.ink"
+"md.sys.color.inverse-on-surface" = "night.text"
+
+[tokens]
+"acme.track.fast.color" = "{acme.palette.green}"
+"acme.track.slow.color" = "{acme.palette.orange}"
+
+[derived]
+accents = ["amber"]
+container-opacity = 0.12
+marks = { group = "track", darker = ["slow"] }

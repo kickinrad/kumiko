@@ -50,6 +50,7 @@
   --color-tertiary-container: var(--md-sys-color-tertiary-container);
   --color-tertiary-fixed: var(--md-sys-color-tertiary-fixed);
   --color-tertiary-fixed-dim: var(--md-sys-color-tertiary-fixed-dim);
+  --color-shadow: var(--md-sys-color-shadow);
   --color-on-surface-muted: var(--acme-color-on-surface-muted);
   --color-comment: var(--acme-color-comment);
   --color-yellow: var(--acme-color-yellow);

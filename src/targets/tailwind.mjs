@@ -3,7 +3,7 @@
 // every mode like everything else. Every value is one variable; the lists come from the tokens, so the file
 // grows with the kit. Breakpoints and shadows stay Tailwind's: a breakpoint must be a literal width, and a
 // kit has no one variable per shadow.
-// Options: path (the file), css (the kit's runtime CSS file, named in the header), title.
+// Options: path (the file), css (the kit's runtime CSS file, named in the header).
 import { byPath } from '../color.mjs';
 import { colorRoles, need, needKit } from '../system.mjs';
 
@@ -15,10 +15,9 @@ export default {
   name: 'tailwind',
   async build(ctx) {
     needKit(ctx, 'tailwind');
-    const { tokens, name, options } = ctx;
+    const { tokens, name, options, title } = ctx;
     const path = need(options, 'tailwind', 'path');
     const css = need(options, 'tailwind', 'css');
-    const { title = name } = options;
     const paths = [...byPath(tokens).keys()];
     const under = (prefix) => paths.filter((p) => p.startsWith(prefix)).map((p) => p.slice(prefix.length));
     const colors = colorRoles(tokens, name).map(({ role, varName }) => [`color-${role}`, `var(--${varName})`]);

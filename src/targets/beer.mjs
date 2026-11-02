@@ -1,7 +1,7 @@
 // Beer CSS (github.com/beercss/beercss, MIT) themed by the kit: Beer's variables set from the kit's, so the
 // kit's stylesheet decides the mode. Beer names its colour variables after Material's roles, so every
-// md.sys.color role the kit has becomes one; Beer reads the ones it knows. Two values name kit tokens and are
-// options; with one absent, Beer keeps its own.
+// md.sys.color role the kit has becomes one; Beer reads the ones it knows. Two values read the kit's own tokens,
+// <name>.typeface.icon and <name>.elevation.shadow-opacity; with one absent, Beer keeps its own.
 import materialCss from "../web/material.css" with { type: "text" };
 import layoutCss from "../web/layout.css" with { type: "text" };
 
@@ -27,11 +27,10 @@ const system = ({ iconFont, shadowOpacity }) => ({
 
 export default {
   name: "beer",
-  async build({ tokens, options }) {
-    const { path = "src/styles/beer.css", iconFont, shadowOpacity } = options;
-    for (const named of [iconFont, shadowOpacity]) {
-      if (named && !tokens.some((token) => token.path === named)) throw new Error(`beer option names ${named}, which is not a token`);
-    }
+  async build({ tokens, options, name }) {
+    const { path = "src/styles/beer.css" } = options;
+    const own = (rest) => name && tokens.some((token) => token.path === `${name}.${rest}`) ? `${name}.${rest}` : undefined;
+    const [iconFont, shadowOpacity] = [own("typeface.icon"), own("elevation.shadow-opacity")];
     const content = [
       "/* Beer CSS themed by the kit: Beer's variables from the kit's. Load after Beer and the kit's css output; set",
       " * the mode the kit's way (data-theme), not with Beer's body classes. Load Beer in a cascade layer",

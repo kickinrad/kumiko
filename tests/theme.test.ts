@@ -1,4 +1,4 @@
-// A kit's hand-written design/theme.toml becomes DTCG 2025.10 token files that feed the build as layers.
+// A kit's hand-written design/theme.toml becomes token layers in memory: nothing is written beside it.
 import { expect, test } from "bun:test";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -6,7 +6,6 @@ import { join, resolve } from "node:path";
 import material from "../src/material.mjs";
 import { command, read, root, run } from "./helpers";
 
-const json = (dir: string, file: string) => JSON.parse(read(dir, file));
 
 // The fixture fills every Material colour role with ink, but primary.
 const roles = Object.keys(material.tokens().md.sys.color).map((key) => `md.sys.color.${key}`);
@@ -32,8 +31,8 @@ brand = "Some Sans"
 mono = "Some Mono"
 `;
 
-// A kit project: tokens/ needs one file of its own; the kit's root is design/.
-const kitProject = (toml: string | null = theme, config = 'kit: { name: "acme" }') => {
+// A kit project on Material, with one token file of its own; the kit's root is design/.
+const kitProject = (toml: string | null = theme, config = 'kit: { name: "acme" }, include: ["builtin:material"]') => {
   const dir = mkdtempSync(join(tmpdir(), "tokens-theme-"));
   mkdirSync(join(dir, "tokens"));
   mkdirSync(join(dir, "design"));
@@ -45,13 +44,20 @@ const kitProject = (toml: string | null = theme, config = 'kit: { name: "acme" }
   return dir;
 };
 
-test("a kit with a theme.toml builds, writing the default and each media mode's tokens", () => {
+// The css output's base block and its one media block.
+const blocks = (dir: string) => {
+  const css = read(dir, "src/styles/tokens.css");
+  return { base: css.slice(0, css.indexOf("@media")), day: css.slice(css.indexOf("@media (prefers-color-scheme: light)")) };
+};
+// Only what the build writes: the css output, nothing beside theme.toml.
+const written = (dir: string) => new Bun.Glob("**/*").scanSync(dir).toArray().sort();
+
+test("a kit with a theme.toml builds, writing only its outputs", () => {
   const dir = kitProject();
   const result = run(dir);
   expect(result.stderr.toString()).toBe("");
   expect(result.exitCode).toBe(0);
-  expect(existsSync(join(dir, "design/tokens/theme.tokens.json"))).toBe(true);
-  expect(existsSync(join(dir, "design/tokens/theme.day.tokens.json"))).toBe(true);
+  expect(written(dir)).toEqual(["VERSION", "design/theme.toml", "src/styles/tokens.css", "tokens.config.mjs", "tokens/own.tokens.json"]);
   const css = read(dir, "src/styles/tokens.css");
   expect(css).toContain("--md-sys-color-primary: #7aa2f7;");
   expect(css).toContain("--acme-palette-ink: #101418;");
@@ -59,35 +65,22 @@ test("a kit with a theme.toml builds, writing the default and each media mode's 
   expect(css).toContain("Some Sans");
 });
 
-test("the default file holds the palette, the roles and the faces (brand and plain in Material's slots), colours as DTCG objects", () => {
+test("the base mode holds the palette, the roles and the faces, brand and plain in Material's slots", () => {
   const dir = kitProject();
   run(dir);
-  const file = read(dir, "design/tokens/theme.tokens.json");
-  const blue = { colorSpace: "srgb", components: [0.4784, 0.6353, 0.9686], hex: "#7aa2f7" };
-  const ink = { colorSpace: "srgb", components: [0.0627, 0.0784, 0.0941], hex: "#101418" };
-  expect(JSON.parse(file)).toEqual({
-    acme: {
-      palette: { ink: { $type: "color", $value: ink }, blue: { $type: "color", $value: blue } },
-      typeface: { mono: { $type: "fontFamily", $value: "Some Mono" } },
-    },
-    md: {
-      ref: { typeface: { brand: { $type: "fontFamily", $value: "Some Sans" } } },
-      sys: { color: Object.fromEntries(roles.map((role) => [role.split(".").at(-1),
-        { $type: "color", $value: role === "md.sys.color.primary" ? blue : ink }])) },
-    },
-  });
-  expect(file).toBe(`${JSON.stringify(JSON.parse(file), null, 2)}\n`);
+  const { base } = blocks(dir);
+  expect(base).toContain("--acme-palette-blue: #7aa2f7;");
+  expect(base).toContain("--md-sys-color-surface: #101418;");
+  expect(base).toContain("--md-ref-typeface-brand: 'Some Sans';");
+  expect(base).toContain("--acme-typeface-mono: 'Some Mono';");
 });
 
-test("a media mode's file holds that mode's role values, and they reach the media output", () => {
+test("a media mode holds that mode's role values", () => {
   const dir = kitProject();
   run(dir);
-  const day = { colorSpace: "srgb", components: [0.1804, 0.4902, 0.9137], hex: "#2e7de9" };
-  expect(json(dir, "design/tokens/theme.day.tokens.json").md.sys.color.primary).toEqual({ $type: "color", $value: day });
-  const css = read(dir, "src/styles/tokens.css");
-  const media = css.slice(css.indexOf("@media (prefers-color-scheme: light)"));
-  expect(media).toContain("--md-sys-color-primary: #2e7de9;");
-  expect(media).toContain("--md-sys-color-surface: #f6f6f6;");
+  const { day } = blocks(dir);
+  expect(day).toContain("--md-sys-color-primary: #2e7de9;");
+  expect(day).toContain("--md-sys-color-surface: #f6f6f6;");
 });
 
 test("the project's own tokens override the theme's default layer", () => {
@@ -108,7 +101,7 @@ test("a role naming a colour the mode's palette lacks fails naming role, colour 
   expect(message).toContain("md.sys.color.primary");
   expect(message).toContain("blue");
   expect(message).toContain("day");
-  expect(existsSync(join(dir, "design/tokens/theme.tokens.json"))).toBe(false);
+  expect(existsSync(join(dir, "src"))).toBe(false);
 });
 
 test("a colour that is not a six-digit hex fails naming it", () => {
@@ -134,30 +127,21 @@ test("theme.toml's name must match the config's kit name", () => {
   expect(message).toContain("other");
 });
 
-test("the generated files pass --check, and a hand edit is stale", () => {
+test("the outputs pass --check, and a changed theme.toml makes them stale", () => {
   const dir = kitProject();
   expect(run(dir).exitCode).toBe(0);
   const result = run(dir, "--check");
   expect(result.stderr.toString()).toBe("");
   expect(result.exitCode).toBe(0);
-  writeFileSync(join(dir, "design/tokens/theme.day.tokens.json"), "{}\n");
+  writeFileSync(join(dir, "design/theme.toml"), theme.replace("#2e7de9", "#2e7de8"));
   const stale = run(dir, "--check");
   expect(stale.exitCode).toBe(1);
-  expect(stale.stderr.toString()).toContain("design/tokens/theme.day.tokens.json is stale");
+  expect(stale.stderr.toString()).toContain("src/styles/tokens.css is stale");
 });
 
-test("--check on a kit never writes the theme files", () => {
-  const dir = kitProject();
-  const result = run(dir, "--check");
-  expect(result.exitCode).toBe(1);
-  expect(result.stderr.toString()).toContain("design/tokens/theme.tokens.json is stale");
-  expect(existsSync(join(dir, "design/tokens"))).toBe(false);
-});
-
-test("a kit with no theme.toml builds as before", () => {
-  const dir = kitProject(null);
+test("a kit with no theme.toml builds from its token files", () => {
+  const dir = kitProject(null, 'kit: { name: "acme" }');
   expect(run(dir).exitCode).toBe(0);
-  expect(existsSync(join(dir, "design/tokens"))).toBe(false);
   expect(read(dir, "src/styles/tokens.css")).toContain("--own-gap: 4px;");
 });
 
@@ -170,7 +154,6 @@ test("without a kit a theme.toml is ignored and the golden outputs are byte-iden
   for (const file of ["src/styles/tokens.css", "DESIGN.md"]) {
     expect(read(dir, file)).toBe(read(join(root, "tests/expected"), file));
   }
-  expect(existsSync(join(dir, "design/tokens"))).toBe(false);
 });
 
 test("a role path through Object.prototype keys fails naming the path", () => {
@@ -188,26 +171,22 @@ test("a palette colour named like an Object.prototype key fails instead of vanis
   expect(result.stderr.toString()).toContain("toString");
 });
 
-test("each media mode carries its own palette, and it reaches the media output", () => {
+test("each media mode carries its own palette", () => {
   const dir = kitProject();
   expect(run(dir).exitCode).toBe(0);
-  const day = { colorSpace: "srgb", components: [0.1804, 0.4902, 0.9137], hex: "#2e7de9" };
-  expect(json(dir, "design/tokens/theme.day.tokens.json").acme.palette.blue).toEqual({ $type: "color", $value: day });
-  const css = read(dir, "src/styles/tokens.css");
-  const media = css.slice(css.indexOf("@media (prefers-color-scheme: light)"));
-  expect(media).toContain("--acme-palette-blue: #2e7de9;");
-  expect(media).toContain("--acme-palette-ink: #f6f6f6;");
-  expect(css.slice(0, css.indexOf("@media"))).toContain("--acme-palette-blue: #7aa2f7;");
+  const { base, day } = blocks(dir);
+  expect(day).toContain("--acme-palette-blue: #2e7de9;");
+  expect(day).toContain("--acme-palette-ink: #f6f6f6;");
+  expect(base).toContain("--acme-palette-blue: #7aa2f7;");
 });
 
-test("a kit maps only the roles it picks; the others come from its other layers", () => {
-  const dir = kitProject(theme.slice(0, theme.indexOf("[roles]")) + '[roles]\n"md.sys.color.primary" = "blue"\n\n' + theme.slice(theme.indexOf("[faces]")),
-    'kit: { name: "acme" }, include: ["builtin:material"]');
+test("a kit maps only the roles it picks; the others are Material's", () => {
+  const dir = kitProject(theme.slice(0, theme.indexOf("[roles]")) + '[roles]\n"md.sys.color.primary" = "blue"\n\n' + theme.slice(theme.indexOf("[faces]")));
   const result = run(dir);
   expect(result.stderr.toString()).toBe("");
   expect(result.exitCode).toBe(0);
-  expect(Object.keys(json(dir, "design/tokens/theme.tokens.json").md.sys.color)).toEqual(["primary"]);
-  expect(read(dir, "src/styles/tokens.css")).toContain("--md-sys-color-surface:");
+  expect(blocks(dir).base).toMatch(/--md-sys-color-surface: #(?!101418)[0-9a-f]{6};/);
+  expect(blocks(dir).base).toContain("--md-sys-color-primary: #7aa2f7;");
 });
 
 test("a role may name one mode's colour, and [roles.<mode>] overrides a role in that mode", () => {
@@ -217,10 +196,12 @@ test("a role may name one mode's colour, and [roles.<mode>] overrides a role in 
     .replace("[faces]", '[roles.day]\n"md.sys.color.inverse-surface" = "night.ink"\n\n[faces]'));
   const result = run(dir);
   expect(result.stderr.toString()).toBe("");
-  const night = json(dir, "design/tokens/theme.tokens.json").md.sys.color;
-  const day = json(dir, "design/tokens/theme.day.tokens.json").md.sys.color;
-  expect([night.scrim.$value.hex, day.scrim.$value.hex]).toEqual(["#101418", "#101418"]);
-  expect([night["inverse-surface"].$value.hex, day["inverse-surface"].$value.hex]).toEqual(["#f6f6f6", "#101418"]);
+  const { base, day } = blocks(dir);
+  expect(base).toContain("--md-sys-color-scrim: #101418;");
+  // A value the same in both modes is set once.
+  expect(day).not.toContain("--md-sys-color-scrim:");
+  expect(base).toContain("--md-sys-color-inverse-surface: #f6f6f6;");
+  expect(day).toContain("--md-sys-color-inverse-surface: #101418;");
 });
 
 test("a role naming an unknown mode fails, and so does an override table for one", () => {
@@ -235,21 +216,21 @@ test("a role naming an unknown mode fails, and so does an override table for one
 test("a face may be a font stack", () => {
   const dir = kitProject(theme.replace('mono = "Some Mono"', 'mono = ["Some Mono", "monospace"]'));
   expect(run(dir).exitCode).toBe(0);
-  expect(json(dir, "design/tokens/theme.tokens.json").acme.typeface.mono.$value).toEqual(["Some Mono", "monospace"]);
-  expect(read(dir, "src/styles/tokens.css")).toContain("--acme-typeface-mono:");
+  expect(read(dir, "src/styles/tokens.css")).toContain("--acme-typeface-mono: 'Some Mono', monospace;");
 });
 
 test("a role may sit in the kit's own group, but not on a palette colour", () => {
   const own = kitProject(theme.replace("[faces]", '"acme.art.scrim" = "night.ink"\n\n[faces]'));
   expect(run(own).stderr.toString()).toBe("");
-  expect(json(own, "design/tokens/theme.day.tokens.json").acme.art.scrim.$value.hex).toBe("#101418");
+  expect(blocks(own).base).toContain("--acme-art-scrim: #101418;");
+  expect(blocks(own).day).not.toContain("--acme-art-scrim:");
   const clash = run(kitProject(theme.replace("[faces]", '"acme.palette.ink" = "blue"\n\n[faces]')));
   expect(clash.exitCode).toBe(1);
   expect(clash.stderr.toString()).toContain("acme.palette.ink is defined twice");
 });
 
-test("after the layers merge, a Material colour role nothing sets fails naming it", () => {
-  const dir = kitProject(theme.slice(0, theme.indexOf("[roles]")) + '[roles]\n"md.sys.color.primary" = "blue"\n\n' + theme.slice(theme.indexOf("[faces]")));
+test("without Material, a Material colour role nothing sets fails naming it", () => {
+  const dir = kitProject(theme.slice(0, theme.indexOf("[roles]")) + '[roles]\n"md.sys.color.primary" = "blue"\n\n' + theme.slice(theme.indexOf("[faces]")), 'kit: { name: "acme" }');
   const result = run(dir);
   expect(result.exitCode).toBe(1);
   expect(result.stderr.toString()).toContain("md.sys.color.surface");
@@ -267,4 +248,41 @@ test("an override of an inherited key like toString is not a mapped role", () =>
   const result = run(kitProject(theme.replace("[faces]", '[roles.day]\n"toString" = "ink"\n\n[faces]')));
   expect(result.exitCode).toBe(1);
   expect(result.stderr.toString()).toContain("toString, which [roles] doesn't set");
+});
+
+test("[tokens] values reach the outputs, typed by their unit, and an md. path carries its why", () => {
+  const dir = kitProject(`${theme}
+[tokens]
+"acme.layout.gap" = "8px"
+"acme.motion.quick" = "120ms"
+"acme.art.dim" = 0.6
+"acme.hero.weight" = { value = 600, type = "fontWeight" }
+"acme.hero" = { aspect = "12 / 5" }
+"md.sys.typescale.label-small.size" = { value = "12px", why = "The system floor" }
+`);
+  const result = run(dir);
+  expect(result.stderr.toString()).toBe("");
+  const { base } = blocks(dir);
+  for (const line of ["--acme-layout-gap: 8px;", "--acme-motion-quick: 120ms;", "--acme-art-dim: 0.6;", "--acme-hero-weight: 600;", "--acme-hero-aspect: 12 / 5;", "--md-sys-typescale-label-small-size: 12px;"]) expect(base).toContain(line);
+});
+
+test.each([
+  ["an md. path without a why", '"md.sys.typescale.label-small.size" = "12px"', "[tokens] md.sys.typescale.label-small.size changes a Material value, so it needs a why"],
+  ["an unknown unit", '"acme.gap" = "8pt"', '[tokens] acme.gap: unknown unit "pt" in 8pt'],
+  ["a list without a type", '"acme.stack" = ["A", "B"]', "[tokens] acme.stack: a list needs a type"],
+  ["an unknown type", '"acme.gap" = { value = 8, type = "size" }', '[tokens] acme.gap: type "size" is not one of'],
+  ["an unknown key", '"acme.gap" = { value = 8, note = "x" }', '[tokens] acme.gap: unknown key "note"'],
+  ["a boolean", '"acme.flag" = true', "[tokens] acme.flag: a value is an alias, a length, a time, a number, a string or a list"],
+])("[tokens] with %s fails, naming it", (_, line, message) => {
+  const result = run(kitProject(`${theme}\n[tokens]\n${line}\n`));
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr.toString()).toContain(message);
+});
+
+test("a title or icon that is not a name fails, naming it", () => {
+  for (const [line, key] of [["title = 7", "title"], ['icon = ""', "icon"]]) {
+    const result = run(kitProject(theme.replace('name = "acme"\n', `name = "acme"\n${line}\n`)));
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr.toString()).toContain(`theme.toml: ${key} must be a non-empty string`);
+  }
 });
