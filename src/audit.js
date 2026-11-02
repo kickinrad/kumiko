@@ -1,7 +1,7 @@
 // What a rendered playground must hold, measured in the page itself: every visible text meets Material's contrast
 // against the colour actually behind it; every text is set in one of the kit's faces, and each face in use loaded; no two
 // boxes inside one control overlap; nothing scrolls the page sideways; headings step down; prose keeps a readable
-// measure. Returns one line per failure. Runs in the page; `tokens audit` (src/render.mjs) puts it there.
+// measure, and a list's markers sit inside its text column. Returns one line per failure. Runs in the page; `tokens audit` (src/render.mjs) puts it there.
 export const audit = (doc, { faces }) => {
   const win = doc.defaultView;
   const failures = [];
@@ -74,6 +74,14 @@ export const audit = (doc, { faces }) => {
       const pane = detail.getBoundingClientRect();
       const text = Math.max(...prose.map((each) => each.getBoundingClientRect().right)) - pane.left;
       if (pane.width - text > pane.width / 3) failures.push(`a lone pane ${Math.round(pane.width)}px wide holds text ${Math.round(text)}px wide, against one side: ${name(detail.querySelector("h1") ?? detail)}`);
+    }
+    // A bulleted or numbered list keeps its markers inside the text column: room for them before the text.
+    for (const list of detail.querySelectorAll("ul, ol")) {
+      const s = style(list);
+      const marked = [...list.children].some((li) => style(li).display === "list-item" && style(li).listStyleType !== "none" && style(li).listStylePosition === "outside");
+      if (!visible(list) || !marked) continue;
+      const room = parseFloat(s.paddingInlineStart) / parseFloat(s.fontSize);
+      if (room < 1) failures.push(`list markers hang outside the text column (${room.toFixed(2)}em of room): ${name(list)}`);
     }
     for (const p of detail.querySelectorAll(":scope > :is(p, ul, ol, blockquote)")) {
       const em = p.getBoundingClientRect().width / parseFloat(style(p).fontSize);
