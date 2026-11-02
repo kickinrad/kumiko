@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.2.0](https://github.com/kickinrad/kumiko/compare/v5.1.0...v5.2.0) (2026-11-02)
+
+
+### Features
+
+* tokens lint flags spacing, z-index and markup off Beer ([#60](https://github.com/kickinrad/kumiko/issues/60)) ([7b1758b](https://github.com/kickinrad/kumiko/commit/7b1758b86cb6b03c7fc100fa5a9d48580a932d40))
+
 ## [5.1.0](https://github.com/kickinrad/kumiko/compare/v5.0.0...v5.1.0) (2026-11-02)
 
 
