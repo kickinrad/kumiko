@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.2](https://github.com/kickinrad/kumiko/compare/v5.4.1...v5.4.2) (2026-11-02)
+
+
+### Bug Fixes
+
+* **material-you:** a token keeps its own Day value when Day doesn't share its Night alias ([#67](https://github.com/kickinrad/kumiko/issues/67)) ([0a6bb0a](https://github.com/kickinrad/kumiko/commit/0a6bb0a3a8d57b11d84e8dab1613498e3d8046cb))
+
 ## [5.4.1](https://github.com/kickinrad/kumiko/compare/v5.4.0...v5.4.1) (2026-11-02)
 
 
