@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.1.0](https://github.com/kickinrad/kumiko/compare/v5.0.0...v5.1.0) (2026-11-02)
+
+
+### Features
+
+* a claude-design output, the kit as a Claude Design System's files ([#58](https://github.com/kickinrad/kumiko/issues/58)) ([5e91ac6](https://github.com/kickinrad/kumiko/commit/5e91ac6b483780f567870b14f1c9a56c08054cf5))
+
 ## [5.0.0](https://github.com/kickinrad/kumiko/compare/v4.0.0...v5.0.0) (2026-11-02)
 
 
