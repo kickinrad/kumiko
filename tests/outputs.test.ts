@@ -207,3 +207,12 @@ test("the engine holds no kit: src/ names no house, and carries no palette hex",
     expect(text, file).not.toMatch(hex);
   }
 });
+
+test("obsidian and mealie build from the palette alone: the kit's own roles in place of Material's give the same files", () => {
+  const dir = edited('c.targets = ["obsidian", "mealie"]; delete c.include;');
+  const theme = join(dir, "design/theme.toml");
+  writeFileSync(theme, read(dir, "design/theme.toml").replaceAll('"md.sys.color.', '"acme.color.').replace(/\n"md\.sys\.typescale[^\n]*/, ""));
+  const result = run(dir);
+  expect(result.stderr.toString()).toBe("");
+  for (const file of outputs.filter((each) => /\/(obsidian|mealie)\//.test(each))) expect(read(dir, file), file).toBe(readFileSync(join(golden, file), "utf8"));
+});

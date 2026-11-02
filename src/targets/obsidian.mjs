@@ -90,7 +90,7 @@ export default {
     const other = await mediaTokens(files);
     const font = byPath(tokens).get(`${name}.typeface.mono`).value;
     const common = { title, font };
-    const surface = (set, r) => byPath(set).get(`md.sys.color.${r}`).value;
+    const surface = (set, r) => byPath(set).get(rolePath(set, name, r)).value;
     return [
       { path: `${out}-${baseName.toLowerCase()}.css`, content: snippet(tokens, name, { ...common, mode: baseName, scope: 'body.theme-dark',
         extra: ['/* Dark-black subvariant fallback — don\'t fight Minimal\'s ui1 override */', 'body.theme-dark.minimal-dark-black {', `  --ui1: ${surface(tokens, 'surface-container-low')};`, '}'] }) },
