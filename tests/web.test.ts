@@ -14,6 +14,7 @@ const project = (config?: string) => {
   const dir = mkdtempSync(join(tmpdir(), "tokens-web-"));
   cpSync(join(root, "tests/web/tokens"), join(dir, "tokens"), { recursive: true });
   cpSync(join(root, "tests/web/tokens.config.mjs"), join(dir, "tokens.config.mjs"));
+  writeFileSync(join(dir, "VERSION"), "1.0.0\n");
   if (config) writeFileSync(join(dir, "tokens.config.mjs"), config);
   return dir;
 };
@@ -57,14 +58,14 @@ test("css emits each Material spring as an easing and a settle time when the tok
   expect(css.match(/-easing:/g)).toHaveLength(1);
 });
 
-test("beer sets Beer's system variables from Material and names the kit's two tokens, byte-identical to the golden", () => {
+test("beer sets Beer's system variables from Material and reads the kit's two tokens, byte-identical to the golden", () => {
   const dir = project();
   expect(run(dir).exitCode).toBe(0);
   expect(read(dir, "out/beer.css")).toBe(golden("beer.css"));
   expect(run(dir, "--check").exitCode).toBe(0);
 });
 
-test("beer leaves Beer's own icon font and shadows when the options are absent", () => {
+test("beer leaves Beer's own icon font and shadows without a kit to name them", () => {
   const dir = project(only("beer", '{ path: "out/beer.css" }'));
   expect(run(dir).exitCode).toBe(0);
   const css = read(dir, "out/beer.css");
@@ -72,12 +73,6 @@ test("beer leaves Beer's own icon font and shadows when the options are absent",
   expect(css).toContain("--speed1: var(--md-sys-motion-duration-short2);");
 });
 
-test("beer names a token that does not exist, and fails", () => {
-  const dir = project(only("beer", '{ path: "out/beer.css", iconFont: "acme.typeface.nope" }'));
-  const result = run(dir);
-  expect(result.exitCode).toBe(1);
-  expect(result.stderr.toString()).toContain("acme.typeface.nope");
-});
 
 // Beer's colour roles as the installed release declares them, read independently of the target.
 const beerRoles = (css: string) => {
@@ -86,15 +81,12 @@ const beerRoles = (css: string) => {
 };
 
 test("every colour role the installed Beer declares is set to Material's role of the same name", () => {
-  // A kit carries every Material colour role; shadow it adds at its Material path.
   const dir = project(`export default { targets: ["beer"], include: ["builtin:material"], media: { "(prefers-color-scheme: light)": ["tokens/day.tokens.json"] }, beer: { path: "out/beer.css" } };\n`);
-  writeFileSync(join(dir, "tokens/shadow.tokens.json"), JSON.stringify({ md: { sys: { color: { shadow: { $type: "color", $value: "#000000" } } } } }));
   expect(run(dir).exitCode).toBe(0);
   const set = new Map([...read(dir, "out/beer.css").matchAll(/^  --([a-z0-9-]+): (.+);$/gm)].map((m) => [m[1], m[2]]));
   const roles = beerRoles(beerCss);
   expect(roles.length).toBeGreaterThanOrEqual(36);
-  // The vendored Material layer names every role but shadow, which a kit supplies at its Material path.
-  const m3 = new Set([...Object.keys(material.tokens().md.sys.color), "shadow"]);
+  const m3 = new Set(Object.keys(material.tokens().md.sys.color));
   for (const role of roles) {
     expect(set.get(role)).toBe(`var(--md-sys-color-${role})`);
     expect(m3.has(role), `md.sys.color.${role} is a Material role`).toBe(true);

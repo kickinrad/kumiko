@@ -156,7 +156,7 @@ test("with no kit, a target's ctx carries no kit keys", () => {
   const dir = kitProject(undefined, null);
   expect(run(dir).exitCode).toBe(0);
   expect(JSON.parse(read(dir, "echo.json")).keys).toEqual(
-    ["built", "media", "mediaTokens", "options", "readExisting", "tokens"]);
+    ["built", "config", "media", "mediaTokens", "options", "readExisting", "tokens"]);
 });
 
 // A kit's tokens are not schema-checked: a hex-string colour builds and passes --check.

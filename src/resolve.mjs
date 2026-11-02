@@ -5,6 +5,8 @@ import { readFile } from "node:fs/promises";
 
 const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 const isToken = (node) => isObject(node) && "$value" in node;
+// A bare number or plain string with no type anywhere is a number or a string; anything else needs one.
+const bare = (value) => typeof value === "number" ? "number" : typeof value === "string" && !/^\{[^{}]+\}$/.test(value) ? "string" : undefined;
 const ALIAS = /^\{([^{}]+)\}$/;
 
 export const readTokens = async (file) => {
@@ -18,17 +20,19 @@ export const kebab = (segments) => segments.join(" ")
   .replace(/([\p{Ll}\d])(\p{Lu})/gu, "$1 $2").replace(/(\p{Lu})([\p{Lu}][\p{Ll}])/gu, "$1 $2")
   .split(/[^\p{L}\d]+/u).filter(Boolean).map((part) => part.toLowerCase()).join("-");
 
-const merge = (target, source, clash, path = []) => {
+// `priors` keeps, for an untyped token that replaces another, the one it replaced: it takes that one's type.
+const merge = (target, source, clash, priors, path = []) => {
   for (const [key, value] of Object.entries(source)) {
     if (key.startsWith("$")) { if (path.length) target[key] = value; continue; }
     const here = [...path, key];
     if (isToken(value)) {
       if (isObject(target[key]) && !isToken(target[key])) throw new Error(`${here.join(".")} is a token here and a group elsewhere`);
       clash?.(here.join("."));
+      if (value.$type === undefined && isToken(target[key])) priors.set(value, target[key]);
       target[key] = value;
     } else if (isObject(value)) {
       if (isToken(target[key])) throw new Error(`${here.join(".")} is a group here and a token elsewhere`);
-      merge(target[key] ??= {}, value, clash, here);
+      merge(target[key] ??= {}, value, clash, priors, here);
     }
   }
   return target;
@@ -39,11 +43,12 @@ const merge = (target, source, clash, path = []) => {
 export const resolve = (layers, { lenient = false } = {}) => {
   const tree = {};
   const owners = new Map();
+  const priors = new WeakMap();
   for (const { tree: source, file, strict } of layers) {
     merge(tree, source, strict && ((path) => {
       if (owners.has(path)) throw new Error(`Token collision: ${path} is set in both ${owners.get(path)} and ${file}`);
       owners.set(path, file);
-    }));
+    }), priors);
   }
 
   const tokens = [];
@@ -102,13 +107,16 @@ export const resolve = (layers, { lenient = false } = {}) => {
     return get;
   };
   const raw = memo((token, get) => deep(token.node.$value, get, token.segments.join(".")));
-  const css = memo((token, get) => scalar(token.type, deep(token.node.$value, get, token.segments.join("."))));
+  // A token's type: its own or its group's, else its alias target's, else the replaced token's, else a bare value's.
   const typeOf = (token, seen = new Set()) => {
     if (token.type || seen.has(token)) return token.type;
     seen.add(token);
     const next = aliasOf(token);
-    return next && typeOf(next, seen);
+    if (next) return typeOf(next, seen);
+    const prior = priors.get(token.node);
+    return (prior && typeOf({ segments: token.segments, type: prior.$type, node: prior }, seen)) ?? bare(token.node.$value);
   };
+  const css = memo((token, get) => scalar(typeOf(token), deep(token.node.$value, get, token.segments.join("."))));
 
   return tokens.flatMap((token) => {
     let value;

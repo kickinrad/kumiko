@@ -74,8 +74,8 @@ every Material 3 colour role, light (-light) and dark (-dark), then the kit's ow
   --md-sys-color-secondary-fixed-dark: rgb(232 222 248);
   --md-sys-color-secondary-fixed-dim-light: rgb(204 194 220);
   --md-sys-color-secondary-fixed-dim-dark: rgb(204 194 220);
-  --md-sys-color-surface-light: rgb(255 255 255);
-  --md-sys-color-surface-dark: rgb(41 41 41);
+  --md-sys-color-surface-light: rgb(235 235 235);
+  --md-sys-color-surface-dark: rgb(20 20 20);
   --md-sys-color-surface-bright-light: rgb(59 56 62);
   --md-sys-color-surface-bright-dark: rgb(59 56 62);
   --md-sys-color-surface-container-light: rgb(255 255 255);
@@ -102,6 +102,8 @@ every Material 3 colour role, light (-light) and dark (-dark), then the kit's ow
   --md-sys-color-tertiary-fixed-dark: rgb(255 216 228);
   --md-sys-color-tertiary-fixed-dim-light: rgb(239 184 200);
   --md-sys-color-tertiary-fixed-dim-dark: rgb(239 184 200);
+  --md-sys-color-shadow-light: rgb(0 0 0);
+  --md-sys-color-shadow-dark: rgb(0 0 0);
 }
 
 html {
@@ -184,6 +186,7 @@ html {
   --md-sys-state-hover-state-layer-opacity: 0.08;
   --md-sys-state-pressed-state-layer-opacity: 0.1;
   --md-sys-state-focus-indicator-thickness: 3px;
+  --md-sys-state-focus-indicator-outer-offset: 2px;
   --md-sys-typescale-body-large-font: 'Some Sans', sans-serif;
   --md-sys-typescale-body-large-line-height: 24px;
   --md-sys-typescale-body-large-size: 16px;
@@ -341,14 +344,14 @@ html {
   --md-ref-typeface-weight-regular: 400;
   --acme-typeface-mono: 'Some Mono', monospace;
   --acme-typeface-icon: 'Some Icons';
-  --acme-color-on-surface-muted: rgb(from var(--md-sys-color-surface, #292929) calc(173 + -76 * clamp(0, (r - 127.5) * 255, 1)) calc(173 + -76 * clamp(0, (r - 127.5) * 255, 1)) calc(173 + -76 * clamp(0, (r - 127.5) * 255, 1)));
-  --acme-color-comment: rgb(from var(--md-sys-color-surface, #292929) calc(102 + 107 * clamp(0, (r - 127.5) * 255, 1)) calc(102 + 107 * clamp(0, (r - 127.5) * 255, 1)) calc(102 + 107 * clamp(0, (r - 127.5) * 255, 1)));
-  --acme-color-yellow: rgb(from var(--md-sys-color-surface, #292929) calc(224 + -84 * clamp(0, (r - 127.5) * 255, 1)) calc(175 + -67 * clamp(0, (r - 127.5) * 255, 1)) calc(104 + -42 * clamp(0, (r - 127.5) * 255, 1)));
-  --acme-color-orange: rgb(from var(--md-sys-color-surface, #292929) calc(255 + -78 * clamp(0, (r - 127.5) * 255, 1)) calc(158 + -66 * clamp(0, (r - 127.5) * 255, 1)) calc(100 + -100 * clamp(0, (r - 127.5) * 255, 1)));
-  --acme-color-cyan: rgb(from var(--md-sys-color-surface, #292929) calc(125 + -125 * clamp(0, (r - 127.5) * 255, 1)) calc(207 + -94 * clamp(0, (r - 127.5) * 255, 1)) calc(255 + -104 * clamp(0, (r - 127.5) * 255, 1)));
-  --acme-color-green: rgb(from var(--md-sys-color-surface, #292929) calc(158 + -70 * clamp(0, (r - 127.5) * 255, 1)) calc(206 + -89 * clamp(0, (r - 127.5) * 255, 1)) calc(106 + -49 * clamp(0, (r - 127.5) * 255, 1)));
+  --acme-color-on-surface-muted: rgb(from var(--md-sys-color-surface, #141414) calc(173 + -76 * clamp(0, (r - 127.5) * 255, 1)) calc(173 + -76 * clamp(0, (r - 127.5) * 255, 1)) calc(173 + -76 * clamp(0, (r - 127.5) * 255, 1)));
+  --acme-color-comment: rgb(from var(--md-sys-color-surface, #141414) calc(102 + 107 * clamp(0, (r - 127.5) * 255, 1)) calc(102 + 107 * clamp(0, (r - 127.5) * 255, 1)) calc(102 + 107 * clamp(0, (r - 127.5) * 255, 1)));
+  --acme-color-yellow: rgb(from var(--md-sys-color-surface, #141414) calc(224 + -84 * clamp(0, (r - 127.5) * 255, 1)) calc(175 + -67 * clamp(0, (r - 127.5) * 255, 1)) calc(104 + -42 * clamp(0, (r - 127.5) * 255, 1)));
+  --acme-color-orange: rgb(from var(--md-sys-color-surface, #141414) calc(255 + -78 * clamp(0, (r - 127.5) * 255, 1)) calc(158 + -66 * clamp(0, (r - 127.5) * 255, 1)) calc(100 + -100 * clamp(0, (r - 127.5) * 255, 1)));
+  --acme-color-cyan: rgb(from var(--md-sys-color-surface, #141414) calc(125 + -125 * clamp(0, (r - 127.5) * 255, 1)) calc(207 + -94 * clamp(0, (r - 127.5) * 255, 1)) calc(255 + -104 * clamp(0, (r - 127.5) * 255, 1)));
+  --acme-color-green: rgb(from var(--md-sys-color-surface, #141414) calc(158 + -70 * clamp(0, (r - 127.5) * 255, 1)) calc(206 + -89 * clamp(0, (r - 127.5) * 255, 1)) calc(106 + -49 * clamp(0, (r - 127.5) * 255, 1)));
   --acme-layout-card-gap: 8px;
   --acme-layout-card-inset: 16px;
   --acme-tv-safe-margin: 58px;
-  --acme-domain-light-container: rgb(from var(--md-sys-color-surface, #292929) calc(224 + -84 * clamp(0, (r - 127.5) * 255, 1)) calc(175 + -67 * clamp(0, (r - 127.5) * 255, 1)) calc(104 + -42 * clamp(0, (r - 127.5) * 255, 1)));
+  --acme-domain-light-container: rgb(from var(--md-sys-color-surface, #141414) calc(224 + -84 * clamp(0, (r - 127.5) * 255, 1)) calc(175 + -67 * clamp(0, (r - 127.5) * 255, 1)) calc(104 + -42 * clamp(0, (r - 127.5) * 255, 1)));
 }

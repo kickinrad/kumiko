@@ -2,11 +2,12 @@
 // A target is a module exporting { name, build(ctx) → [{ path, content }] }: built in under ./targets (listed in its
 // index), or a project's own, imported by tokens.config.mjs and listed as an object.
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
-import { dirname, relative, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import material from "./material.mjs";
 import { readTokens, resolve as resolveTokens, typography } from "./resolve.mjs";
 import { checkHeader, stamp } from "./header.mjs";
-import { checkContrast } from "./checks/contrast.mjs";
+import { checkContrast, contrastPairs } from "./checks/contrast.mjs";
+import { derive } from "./derived.mjs";
 import { loadTheme, withMedia } from "./theme.mjs";
 import builtins from "./targets/index.mjs";
 
@@ -26,19 +27,12 @@ const entry = (token) => {
     typography: token.type === "typography" ? typography(token.raw) : undefined,
   };
 };
-// The layers, lowest first: the built-in trees, then include files (a later one wins), then the source files,
-// where a token set twice is an error.
 // An include may be a glob; its matches join in sorted order.
 const expand = (patterns) => patterns.flatMap((pattern) => /[*?[{]/.test(pattern) ? [...new Bun.Glob(pattern).scanSync()].sort() : [pattern]);
-// `made` holds token files this run computed, by absolute path: they stand in for what is on disk.
-const layered = async (builtin, include, source, made = new Map()) => {
-  const read = (file) => made.get(resolve(file)) ?? readTokens(file);
-  return [
-    ...builtin.map((tree) => ({ tree })),
-    ...await Promise.all(expand(include).map(async (file) => ({ tree: await read(file), file }))),
-    ...await Promise.all(source.map(async (file) => ({ tree: await read(file), file, strict: true }))),
-  ];
-};
+// A layer is { file } or { tree, file } (file then names it in an error); `strict` makes a token set twice an error.
+const resolveLayers = async (layers, options) => resolveTokens(await Promise.all(layers.map(async (layer) => ({
+  ...layer, tree: layer.tree ?? await readTokens(layer.file),
+}))), options);
 
 const semver = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 // A declared kit adds its root, version and name to every target's ctx; none declared, ctx is unchanged.
@@ -60,112 +54,89 @@ export const build = async (config = {}, { check = false } = {}) => {
   const targets = config.targets.map((spec) => {
     const target = typeof spec === "string" ? builtins[spec] : spec;
     if (!target) throw new Error(`Unknown token target ${spec}`);
-    if (typeof (target.build ?? target.derive) !== "function") throw new Error(`Token target ${target.name ?? spec} has no build()`);
+    if (typeof target.build !== "function") throw new Error(`Token target ${target.name ?? spec} has no build()`);
     return target;
   });
   const kit = await loadKit(config.kit);
 
-  // The kit's theme.toml becomes token files: its default is an include layer, its modes join their media query.
+  // The layers, lowest first: built-in trees, include files, the kit's theme.toml, then the project's own tokens/
+  // files, where a token set twice is an error. Each other mode adds its media layers on top.
   const theme = await loadTheme(kit);
   const media = withMedia(theme, config.media);
-  const mediaPaths = new Set(Object.values(media).flat().map((file) => resolve(file)));
+  const mediaPaths = new Set(Object.values(media).flat().filter((layer) => layer.file).map((layer) => resolve(layer.file)));
   // Sorted: directory listing order varies by filesystem and runtime, and output order must not.
-  const baseFiles = (await readdir("tokens"))
-    .filter((file) => file.endsWith(".tokens.json"))
-    .sort()
-    .map((file) => `tokens/${file}`)
-    .filter((file) => !mediaPaths.has(resolve(file)) && !theme.include.includes(resolve(file)));
-  // Includes are a silent base layer under the project's own tokens, which override them: file globs, and
-  // built-in layers (builtin:<name>), which sit beneath the globs. The theme's default sits last among the
-  // globs: above the built-in layers and other includes, below the project.
+  const baseFiles = (await readdir("tokens").catch((error) => { if (error.code === "ENOENT") return []; throw error; }))
+    .filter((file) => file.endsWith(".tokens.json")).sort().map((file) => `tokens/${file}`)
+    .filter((file) => !mediaPaths.has(resolve(file)));
   const include = [];
-  const builtin = [];
   for (const spec of config.include ?? []) {
-    if (!spec.startsWith("builtin:")) { include.push(spec); continue; }
+    if (!spec.startsWith("builtin:")) { include.push(...expand([spec]).map((file) => ({ file }))); continue; }
     if (!layers[spec]) throw new Error(`Unknown built-in include ${spec}`);
-    builtin.push(layers[spec].tokens());
+    include.unshift({ tree: layers[spec].tokens(), file: spec });
   }
-  include.push(...theme.include);
+  if (theme.tree) include.push({ tree: theme.tree, file: "theme.toml" });
+  const source = baseFiles.map((file) => ({ file, strict: true }));
+  const modeLayers = (query) => [...include, ...source.map(({ file, tree }) => ({ file, tree })), ...media[query]];
 
-  // A target that derives token files (the derived roles) runs first, on everything but its own files, so the
-  // build reads what it computes now rather than what an earlier run wrote. Those files join the inputs.
-  // The theme's token files, computed from theme.toml, are inputs this run made.
-  const made = new Map(theme.files.map((file) => [resolve(file.path), JSON.parse(file.content)]));
-  const derived = [];
-  for (const target of targets.filter((each) => each.derive)) {
-    const queries = Object.entries(media);
-    if (queries.length !== 1) throw new Error(`${target.name} needs exactly one media query, the other mode; the config has ${queries.length}`);
-    const [[, modeFiles]] = queries;
-    const step = target.derive({ options: config[target.name] ?? {}, name: kit.name });
-    const own = new Set(step.paths.map((file) => resolve(file)));
-    const without = (files) => files.filter((file) => !own.has(resolve(file)));
-    const first = async (files, source) => resolveTokens(await layered(builtin, files, source, made), { lenient: true }).flatMap((token) => {
+  // The derived roles come first, from everything else, so the build reads what this run computes.
+  if (theme.derived) {
+    const queries = Object.keys(media);
+    if (queries.length !== 1) throw new Error(`theme.toml: [derived] needs exactly one other mode; the kit has ${queries.length}`);
+    const first = async (layers) => (await resolveLayers(layers, { lenient: true })).flatMap((token) => {
       try { return [entry(token)]; } catch { return []; }
     });
-    const files = step.run({
-      tokens: await first(include, without(baseFiles)), day: await first([...include, ...without(baseFiles)], without(modeFiles)),
-    });
-    for (const file of files) made.set(resolve(file.path), JSON.parse(file.content));
-    derived.push([target, files]);
+    const derived = derive(theme.derived, theme.name, { tokens: await first([...include, ...source]), day: await first(modeLayers(queries[0])) });
+    source.push({ tree: derived.base, file: "the derived roles", strict: true });
+    media[queries[0]].push({ tree: derived.media, file: "the derived roles", strict: true });
   }
-  // A computed file in tokens/ is a source even before it is first written.
-  for (const path of made.keys()) {
-    const file = relative(process.cwd(), path);
-    if (dirname(file) === "tokens" && !mediaPaths.has(path) && !baseFiles.includes(file)) baseFiles.push(file);
-  }
-  baseFiles.sort();
 
-  const resolved = resolveTokens(await layered(builtin, include, baseFiles, made));
+  const resolved = await resolveLayers([...include, ...source]);
   const paths = new Set(resolved.map((token) => token.path));
-  // A kit's theme maps the roles it picks; once the layers merge, every Material colour role must be set.
-  if (theme.files.length) {
+  // A theme that maps Material's colour roles maps the ones it picks: once the layers merge, every one must be set.
+  if (Object.keys(theme.roles ?? {}).some((role) => role.startsWith("md.sys.color."))) {
     const missing = Object.entries(material.tokens().md.sys.color).filter(([key, token]) => "$value" in token && !paths.has(`md.sys.color.${key}`))
       .map(([key]) => `md.sys.color.${key}`);
     if (missing.length) throw new Error(`theme.toml: no layer sets ${missing.length} Material colour role${missing.length === 1 ? "" : "s"}: ${missing.join(", ")}`);
   }
   const tokens = resolved.map(entry);
 
-  // Media overrides resolve on demand: only CSS can express them.
+  // Each other mode resolves once, when a target or the contrast check first asks for it. A target passes back the
+  // layers it was given in ctx.media.
   const cache = new Map();
-  const mediaTokens = (files) => {
-    const key = files.map((file) => resolve(file)).join("\n");
-    if (!cache.has(key)) cache.set(key, resolveMedia(files));
-    return cache.get(key);
+  const mediaTokens = (layers) => {
+    const query = Object.keys(media).find((each) => media[each] === layers);
+    if (!query) throw new Error("mediaTokens takes one of ctx.media's values");
+    if (!cache.has(query)) cache.set(query, resolveMedia(query));
+    return cache.get(query);
   };
-  const resolveMedia = async (files) => {
-    const overridePaths = new Set();
+  const resolveMedia = async (query) => {
+    const own = await Promise.all(media[query].map(async (layer) => layer.tree ?? await readTokens(layer.file)));
     const visit = (node, path = []) => {
       if (!node || typeof node !== "object" || Array.isArray(node)) return;
-      if ("$value" in node) { overridePaths.add(path.join(".")); return; }
-      for (const [part, child] of Object.entries(node)) {
-        if (!part.startsWith("$")) visit(child, [...path, part]);
-      }
+      if ("$value" in node) { if (!paths.has(path.join("."))) throw new Error(`Media token ${path.join(".")} does not override a base token`); return; }
+      for (const [part, child] of Object.entries(node)) if (!part.startsWith("$")) visit(child, [...path, part]);
     };
-    for (const file of files) visit(made.get(resolve(file)) ?? JSON.parse(await readFile(file, "utf8")));
-    for (const path of overridePaths) {
-      if (!paths.has(path)) throw new Error(`Media token ${path} does not override a base token`);
-    }
-    // The project's base files join the include layer, above the other includes; the media files override them.
-    return resolveTokens(await layered(builtin, [...include, ...baseFiles], files, made)).map((token) => {
+    own.forEach((tree) => visit(tree));
+    return (await resolveLayers(modeLayers(query))).map((token) => {
       try { return entry(token); }
       catch (error) { throw new Error(`Media token: ${error.message}`); }
     });
   };
 
-  await checkContrast(config.kit?.contrast, { tokens, media, mediaTokens });
+  await checkContrast(theme.contrast && contrastPairs(theme, tokens), { tokens, media, mediaTokens });
 
   const readExisting = async (path) => {
     try { return await readFile(path, "utf8"); }
     catch (error) { if (error.code === "ENOENT") return undefined; throw error; }
   };
-  // The theme's files first, then each target's, all written or checked by the one loop below.
-  const outputs = theme.files.map((file) => ({ path: relative(process.cwd(), file.path), content: file.content }));
+  // Every target's files, written or checked by the one loop below.
+  const outputs = [];
   // What an earlier target in this run made at a path (stamped, as written), so a later one reads it current.
   const built = (path) => outputs.find((output) => resolve(output.path) === resolve(path))?.content;
   for (const target of targets) {
     const options = config[target.name] ?? {};
-    const files = target.derive ? derived.find(([each]) => each === target)[1]
-      : await target.build({ tokens, media, mediaTokens, options, readExisting, built, ...kit, ...(theme.modes && { modes: theme.modes }) });
+    const files = await target.build({ tokens, media, mediaTokens, options, config, readExisting, built, ...kit,
+      ...(kit.name && { title: theme.title ?? kit.name }), ...(theme.modes && { modes: theme.modes, theme }) });
     outputs.push(...(kit.name ? stamp(files, kit, target.name) : files));
   }
   for (const { path, content } of outputs) {

@@ -2,10 +2,10 @@
 // Writes into options.path: index.html (fixed, names no kit), the engine's client (src/web: playground.js and a
 // module per destination, with color.mjs, the engine's colour maths, beside them) and tokens.json (the kit's name,
 // version, tokens per mode and notes: the only per-kit data the page reads).
-// Options: path (a directory), css and beer (the kit's css and beer outputs, as the config gives them),
-// optionally icon (a Material Symbol name, the kit's mark in the top app bar; "style" otherwise) and
-// optionally tailwind (the kit's Tailwind output): with it the page also writes tailwind.html, which proves
-// the output in a frame of its own (Tailwind's reset would restyle the page) and tokens.json names it.
+// Options: path (a directory). The page links the config's css and beer outputs by their paths; with a tailwind
+// output (listed before the playground) it also writes tailwind.html, which proves the output in a frame of its own
+// (Tailwind's reset would restyle the page), and tokens.json names it. theme.toml's icon, a Material Symbol name,
+// is the kit's mark in the top app bar ("style" otherwise).
 import { join, relative, resolve } from "node:path";
 import cards from "../web/cards.js" with { type: "text" };
 import components from "../web/components.js" with { type: "text" };
@@ -29,16 +29,23 @@ export default {
   name: "playground",
   async build(ctx) {
     needKit(ctx, "playground");
-    const { tokens, media, mediaTokens, options, readExisting, built, root, name, version, modes = { base: "base", media: {} } } = ctx;
+    const { tokens, media, mediaTokens, options, config, readExisting, built, root, name, version, theme, modes = { base: "base", media: {} } } = ctx;
     const dir = need(options, "playground", "path");
-    const href = (option) => relative(resolve(dir), resolve(need(options, "playground", option)));
+    // A sibling output's file, as its own options name it.
+    const sibling = (target) => config.targets.includes(target) ? need(config[target] ?? {}, target, "path") : undefined;
+    const href = (target) => {
+      const path = sibling(target);
+      if (!path) throw new Error(`playground needs the ${target} output in the config`);
+      return relative(resolve(dir), resolve(path));
+    };
     const css = href("css");
     const beer = href("beer");
     const notes = await readExisting(join(root, "notes.md"));
-    if (options.icon !== undefined && typeof options.icon !== "string") throw new Error('playground option "icon" must be a Material Symbol name');
-    // The Tailwind output as this run made it (list it before the playground), else the file on disk.
-    const output = options.tailwind && (built(options.tailwind) ?? (await readExisting(options.tailwind)));
-    if (options.tailwind && output === undefined) throw new Error(`playground option "tailwind" names ${options.tailwind}, which no output built and is not a file`);
+    const icon = theme?.icon;
+    // The Tailwind output as this run made it (list it before the playground).
+    const tailwindPath = sibling("tailwind");
+    const output = tailwindPath && built(tailwindPath);
+    if (tailwindPath && output === undefined) throw new Error("playground: list the tailwind output before it");
 
     const byMode = [[modes.base, tokens]];
     for (const [query, files] of Object.entries(media)) byMode.push([modes.media[query] ?? query, await mediaTokens(files)]);
@@ -69,7 +76,7 @@ export default {
       `"name": ${JSON.stringify(name)}`,
       `"version": ${JSON.stringify(version)}`,
       `"modes": {\n${byMode.map(([mode, each]) => `    ${JSON.stringify(mode)}: ${lines(each)}`).join(",\n")}\n  }`,
-      ...(options.icon === undefined ? [] : [`"icon": ${JSON.stringify(options.icon)}`]),
+      ...(icon === undefined ? [] : [`"icon": ${JSON.stringify(icon)}`]),
       ...(output === undefined ? [] : [`"tailwind": "tailwind.html"`]),
       ...(notes === undefined ? [] : [`"notes": ${JSON.stringify(notes)}`]),
     ];

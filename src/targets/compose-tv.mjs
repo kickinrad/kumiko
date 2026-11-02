@@ -4,7 +4,7 @@
 // spec. TV's ColorScheme has no surface tiers and uses border roles, so every role is exported as a plain
 // value and outline maps to border. The base mode comes first, the first media mode second.
 // Reads the kit's <name>.layout.card-gap and .card-inset, <name>.tv.safe-margin, and any <name>.domain.* colours.
-// Options: out (directory), package, title.
+// Options: out (directory), package.
 import { byPath, contrast } from '../color.mjs';
 import { STYLES, typeScale } from '../type.mjs';
 import { colorRoles, corners, need, needKit } from '../system.mjs';
@@ -146,9 +146,8 @@ export default {
   name: 'compose-tv',
   async build(ctx) {
     needKit(ctx, 'compose-tv');
-    const { tokens, media, mediaTokens, name, options } = ctx;
+    const { tokens, media, mediaTokens, name, options, title } = ctx;
     const out = need(options, 'compose-tv', 'out');
-    const title = options.title ?? name;
     const c = {
       pkg: need(options, 'compose-tv', 'package'), title,
     };

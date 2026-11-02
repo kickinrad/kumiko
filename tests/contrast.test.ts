@@ -81,48 +81,63 @@ describe("a kit's contrast pairs", () => {
   const root = resolve(import.meta.dir, "..");
   const command = process.env.TOKENS_BIN ? [resolve(process.env.TOKENS_BIN)] : ["bun", join(root, "bin/tokens.mjs")];
   const run = (cwd: string, ...args: string[]) => Bun.spawnSync([...command, ...args], { cwd, stderr: "pipe" });
-  const write = (dir: string, file: string, data: unknown) => writeFileSync(join(dir, file), JSON.stringify(data));
-  const colours = {
-    c: {
-      $type: "color",
-      bg: { $value: { colorSpace: "srgb", components: [1, 1, 1], hex: "#ffffff" } },
-      fg: { $value: { colorSpace: "srgb", components: [0, 0, 0], hex: "#000000" } },
-      mark: { $value: { colorSpace: "srgb", components: [0.4627, 0.4627, 0.4627], hex: "#767676" } },
-    },
-    size: { $type: "dimension", gap: { $value: { value: 4, unit: "px" } } },
-  };
-  const pairs = [
-    { fg: "c.fg", bg: "c.bg", min: 4.5 },
-    { fg: "c.mark", bg: "c.bg", min: 3 },
-  ];
-  // Base is light; the media set (a dark mode) swaps bg and fg, and may override fg further.
-  const kit = (contrast: unknown, dark: unknown = { c: { bg: { $value: { colorSpace: "srgb", components: [0, 0, 0], hex: "#000000" } }, fg: { $value: { colorSpace: "srgb", components: [1, 1, 1], hex: "#ffffff" } }, mark: { $value: { colorSpace: "srgb", components: [0.6, 0.6, 0.6], hex: "#999999" } } } }) => {
+  const pairs = `
+[[contrast.pairs]]
+fg = "c.fg"
+bg = "c.bg"
+min = 4.5
+
+[[contrast.pairs]]
+fg = "c.mark"
+bg = "c.bg"
+min = 3
+`;
+  // Base is light; the dark mode swaps bg and fg, with its own mark, and `dark` may change its fg further.
+  const kit = (contrast: string, { dark = "#ffffff", tokens = "" } = {}) => {
     const dir = mkdtempSync(join(tmpdir(), "tokens-contrast-"));
-    mkdirSync(join(dir, "tokens"));
-    write(dir, "tokens/colors.tokens.json", colours);
-    write(dir, "tokens/dark.tokens.json", dark);
+    mkdirSync(join(dir, "design"));
     writeFileSync(join(dir, "VERSION"), "1.0.0\n");
-    writeFileSync(join(dir, "tokens.config.mjs"), `export default {
-      targets: ["css"], media: { "(prefers-color-scheme: dark)": ["tokens/dark.tokens.json"] },
-      kit: { name: "acme", contrast: ${JSON.stringify(contrast)} },
-    };\n`);
+    writeFileSync(join(dir, "tokens.config.mjs"), 'export default { targets: ["css"], kit: { name: "acme" } };\n');
+    writeFileSync(join(dir, "design/theme.toml"), `name = "acme"
+default = "light"
+
+[media]
+dark = "(prefers-color-scheme: dark)"
+
+[palette.light]
+paper = "#ffffff"
+ink = "#000000"
+grey = "#767676"
+
+[palette.dark]
+paper = "#000000"
+ink = "${dark}"
+grey = "#999999"
+
+[roles]
+"c.bg" = "paper"
+"c.fg" = "ink"
+"c.mark" = "grey"
+
+[tokens]
+"size.gap" = "4px"
+${tokens}
+${contrast}`);
     return dir;
   };
 
   test("pairs that pass in every mode build and check cleanly", () => {
     const dir = kit(pairs);
-    expect(run(dir).exitCode).toBe(0);
+    expect(run(dir).stderr.toString()).toBe("");
     expect(run(dir, "--check").exitCode).toBe(0);
   });
 
   test("a pair under its floor in a media mode fails, naming fg, bg, mode, ratio and floor", () => {
-    const dir = kit(pairs, { c: { bg: { $value: { colorSpace: "srgb", components: [0, 0, 0], hex: "#000000" } }, fg: { $value: { colorSpace: "srgb", components: [0.3059, 0.3059, 0.3059], hex: "#4e4e4e" } }, mark: { $value: { colorSpace: "srgb", components: [0.6, 0.6, 0.6], hex: "#999999" } } } });
+    const dir = kit(pairs, { dark: "#4e4e4e" });
     for (const args of [[], ["--check"]]) {
       const result = run(dir, ...args);
       expect(result.exitCode).toBe(1);
       const message = result.stderr.toString();
-      expect(message).toContain("c.fg");
-      expect(message).toContain("c.bg");
       expect(message).toContain("(prefers-color-scheme: dark)");
       expect(message).toContain("2.52");
       expect(message).toContain("c.fg (#4e4e4e)");
@@ -133,34 +148,44 @@ describe("a kit's contrast pairs", () => {
   });
 
   test("a pair under its floor in the base tokens names the base mode", () => {
-    const dir = kit([{ fg: "c.mark", bg: "c.bg", min: 4.6 }]);
+    const dir = kit('[[contrast.pairs]]\nfg = "c.mark"\nbg = "c.bg"\nmin = 4.6\n');
     const result = run(dir);
     expect(result.exitCode).toBe(1);
     expect(result.stderr.toString()).toMatch(/c\.mark.*c\.bg.*4\.54.*base.*4\.6/);
   });
 
   test("a failing build writes nothing", () => {
-    const dir = kit([{ fg: "c.mark", bg: "c.bg", min: 4.6 }]);
+    const dir = kit('[[contrast.pairs]]\nfg = "c.mark"\nbg = "c.bg"\nmin = 4.6\n');
     run(dir);
     expect(() => readFileSync(join(dir, "src/styles/tokens.css"))).toThrow();
   });
 
+  test("a named exception lowers one pair's floor, with its reason", () => {
+    const low = '[[contrast.pairs]]\nfg = "c.mark"\nbg = "c.bg"\nmin = 4.6\n';
+    const exception = '[[contrast.exceptions]]\nfg = "c.mark"\nbg = "c.bg"\nmin = 3\nwhy = "A mark, not text"\n';
+    expect(run(kit(`${low}\n${exception}`)).exitCode).toBe(0);
+    const unnamed = run(kit(`${low}\n${exception.replace('why = "A mark, not text"\n', "")}`));
+    expect(unnamed.stderr.toString()).toContain("[contrast] exceptions[0] why must be a non-empty string");
+    const stray = run(kit(exception.replace('"c.mark"', '"c.fg"')));
+    expect(stray.stderr.toString()).toContain("exception c.fg on c.bg is not a pair the build checks");
+  });
+
   test("a path that is not a token fails, naming it", () => {
-    const result = run(kit([{ fg: "c.nope", bg: "c.bg", min: 4.5 }]));
+    const result = run(kit('[[contrast.pairs]]\nfg = "c.nope"\nbg = "c.bg"\nmin = 4.5\n'));
     expect(result.exitCode).toBe(1);
-    expect(result.stderr.toString()).toContain("c.nope");
+    expect(result.stderr.toString()).toContain("c.nope is not a token");
   });
 
   test("a path that is not a colour fails, naming it", () => {
-    const result = run(kit([{ fg: "c.fg", bg: "size.gap", min: 4.5 }]));
+    const result = run(kit('[[contrast.pairs]]\nfg = "c.fg"\nbg = "size.gap"\nmin = 4.5\n'));
     expect(result.exitCode).toBe(1);
-    expect(result.stderr.toString()).toContain("size.gap");
+    expect(result.stderr.toString()).toContain("size.gap is not an opaque colour");
   });
 
   test("a pair with no numeric min fails, naming the pair", () => {
-    const result = run(kit([{ fg: "c.fg", bg: "c.bg" }]));
+    const result = run(kit('[[contrast.pairs]]\nfg = "c.fg"\nbg = "c.bg"\n'));
     expect(result.exitCode).toBe(1);
-    expect(result.stderr.toString()).toContain("kit.contrast");
+    expect(result.stderr.toString()).toContain("[contrast] pairs[0] min must be a contrast ratio");
   });
 
   test("with no kit, nothing is checked and the golden outputs stay byte-identical", () => {
@@ -172,9 +197,9 @@ describe("a kit's contrast pairs", () => {
     }
     rmSync(dir, { recursive: true });
   });
+
   test("a hex string in a token that is not a colour is refused", () => {
-    const dir = kit([{ fg: "label.ink", bg: "c.bg", min: 4.5 }]);
-    write(dir, "tokens/label.tokens.json", { label: { $type: "string", ink: { $value: "#000000" } } });
+    const dir = kit('[[contrast.pairs]]\nfg = "label.ink"\nbg = "c.bg"\nmin = 4.5\n', { tokens: '"label.ink" = { value = "#000000", type = "string" }' });
     const result = run(dir);
     expect(result.exitCode).toBe(1);
     expect(result.stderr.toString()).toContain("label.ink is not an opaque colour");

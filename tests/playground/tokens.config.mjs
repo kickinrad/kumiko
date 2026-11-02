@@ -2,8 +2,8 @@
 export default {
   targets: ["css", "beer", "playground"],
   include: ["builtin:material"],
-  kit: { name: "acme", root: "design" },
+  kit: { name: "acme" },
   css: { path: "ports/css/kit.css", scheme: "dark" },
   beer: { path: "ports/css/kit-beer.css" },
-  playground: { path: "docs/play", css: "ports/css/kit.css", beer: "ports/css/kit-beer.css" },
+  playground: { path: "docs/play" },
 };

@@ -1,6 +1,6 @@
 // The tailwind, compose-tv, obsidian and mealie outputs, built from a small kit (tests/outputs/) with a design/theme.toml.
 import { expect, test } from "bun:test";
-import { cpSync, mkdtempSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { command, read, root, run } from "./helpers";
@@ -12,7 +12,7 @@ const outputs = files(golden);
 
 const project = () => {
   const dir = mkdtempSync(join(tmpdir(), "tokens-outputs-"));
-  for (const entry of ["design", "tokens", "VERSION", "tokens.config.mjs"]) cpSync(join(root, "tests/outputs", entry), join(dir, entry), { recursive: true });
+  for (const entry of ["design", "VERSION", "tokens.config.mjs"]) cpSync(join(root, "tests/outputs", entry), join(dir, entry), { recursive: true });
   return dir;
 };
 // The fixture's config with `edit` applied to a copy of its options.
@@ -75,7 +75,7 @@ test("compose-tv: the package, five files, no Shapes, a font per face and the ki
   expect(read2("Color.kt")).toMatch(/^val domainLightContainerLight = Color\(0xFF8C6C3E\)$/m);
   expect(read2("Type.kt")).toMatch(/^val SomeSans = FontFamily\($/m);
   expect(read2("Type.kt")).toMatch(/^val SomeMono = FontFamily\($/m);
-  expect(read2("Type.kt")).toMatch(/^val AcmeKitTypography = Typography\($/m);
+  expect(read2("Type.kt")).toMatch(/^val AcmeTypography = Typography\($/m);
   expect(read2("Type.kt")).toMatch(/labelLarge = TextStyle\(\s*\n\s*fontFamily = SomeMono,/);
   expect(read2("Shape.kt")).toMatch(/^val CornerMedium = 12\.dp$/m);
   expect(read2("Tokens.kt")).toMatch(/^val SafeMargin = 58\.dp$/m);
@@ -96,12 +96,9 @@ test.each([
   ["tailwind", "path", "delete c.tailwind.path;"],
   ["tailwind", "css", "delete c.tailwind.css;"],
   ["obsidian", "out", "delete c.obsidian.out;"],
-  ["obsidian", "modes", "delete c.obsidian.modes;"],
   ["compose-tv", "out", 'delete c["compose-tv"].out;'],
   ["compose-tv", "package", 'delete c["compose-tv"].package;'],
   ["mealie", "out", "delete c.mealie.out;"],
-  ["mealie", "modes", "delete c.mealie.modes;"],
-  ["mealie", "palette", "delete c.mealie.palette;"],
   ["material-you", "path", 'delete c["material-you"].path;'],
 ])("%s: a missing %s fails, naming it", (output, option, edit) => {
   const result = run(edited(edit));
@@ -124,15 +121,34 @@ test("material-you: every Material colour role in both modes, then the kit's own
   expect(shared).not.toMatch(/^  --md-sys-color-/m);
 });
 
+// The fixture with `edit` applied to the text of its theme.toml.
+const themed = (edit: (toml: string) => string) => {
+  const dir = project();
+  writeFileSync(join(dir, "design/theme.toml"), edit(read(dir, "design/theme.toml")));
+  return dir;
+};
+
 test("mealie: a palette colour the kit lacks fails, naming it", () => {
-  const result = run(edited('c.mealie.palette.stars = "chartreuse";'));
+  const result = run(themed((toml) => toml.replace('stars = "yellow"', 'stars = "chartreuse"')));
   expect(result.exitCode).toBe(1);
   expect(result.stderr.toString()).toContain('has no colour "chartreuse"');
 });
 
+test("mealie: a theme without [mealie] fails, saying so", () => {
+  const result = run(themed((toml) => toml.slice(0, toml.indexOf("[mealie]"))));
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr.toString()).toContain("mealie needs a [mealie] table in theme.toml");
+});
+
+test("mealie: a layer role naming a different colour in the other mode fails, naming it", () => {
+  const result = run(themed((toml) => `${toml.replace("[mealie]", '[roles.day]\n"md.sys.color.surface-container-high" = "base"\n\n[mealie]')}`));
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr.toString()).toContain("md.sys.color.surface-container-high must name one palette colour in both modes");
+});
+
 test("an output without a declared kit fails, saying so", () => {
   const dir = mkdtempSync(join(tmpdir(), "tokens-outputs-"));
-  cpSync(join(root, "tests/outputs/tokens"), join(dir, "tokens"), { recursive: true });
+  mkdirSync(join(dir, "tokens"));
   writeFileSync(join(dir, "tokens/own.tokens.json"), JSON.stringify({ own: { gap: { $type: "dimension", $value: { value: 4, unit: "px" } } } }));
   writeFileSync(join(dir, "tokens.config.mjs"), 'export default { targets: ["tailwind"], tailwind: { path: "a.css", css: "b.css" } };\n');
   const result = run(dir);

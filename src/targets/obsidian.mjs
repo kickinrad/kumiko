@@ -2,10 +2,9 @@
 // is eight accent slots, an interactive accent as HSL parts, three backgrounds, three UI tints, three text
 // tiers, two highlights and the monospace face. The base mode comes first, the first media mode second.
 // Reads the kit's own roles on-surface-muted, comment, yellow, orange, cyan and green (under <name>.color).
-// Options: out (path prefix: <out>-<mode>.css), modes (the two mode names, base first), title,
-// font (the monospace stack; default the kit's mono face).
+// Options: out (path prefix: <out>-<mode>.css). The title, the mode names and the monospace face are the theme's.
 import { byPath, contrast, hsl, rgb } from '../color.mjs';
-import { need, needKit, rolePath } from '../system.mjs';
+import { need, needKit, rolePath, twoModes } from '../system.mjs';
 
 const SLOTS = { red: 'error', orange: 'orange', yellow: 'yellow', green: 'green', cyan: 'cyan', blue: 'primary', purple: 'tertiary', pink: 'secondary' };
 // Minimal's text highlights: an accent at this alpha. A port value, not a Material state layer.
@@ -70,13 +69,11 @@ export default {
   name: 'obsidian',
   async build(ctx) {
     needKit(ctx, 'obsidian');
-    const { tokens, media, mediaTokens, name, options } = ctx;
+    const { tokens, mediaTokens, name, options, title } = ctx;
     const out = need(options, 'obsidian', 'out');
-    const [baseName, otherName] = need(options, 'obsidian', 'modes');
-    const { title = name } = options;
-    const [, files] = Object.entries(media)[0];
+    const [{ label: baseName }, { label: otherName, files }] = twoModes(ctx, 'obsidian');
     const other = await mediaTokens(files);
-    const font = options.font ?? byPath(tokens).get(`${name}.typeface.mono`).value;
+    const font = byPath(tokens).get(`${name}.typeface.mono`).value;
     const common = { title, font };
     const surface = (set, r) => byPath(set).get(`md.sys.color.${r}`).value;
     return [
