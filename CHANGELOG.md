@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.3.0](https://github.com/kickinrad/kumiko/compare/v5.2.0...v5.3.0) (2026-11-02)
+
+
+### Features
+
+* **playground:** one index.html that opens from disk with the project's own examples, and tokens audit checks it in a browser ([7d5f5fa](https://github.com/kickinrad/kumiko/commit/7d5f5fa9852b1c3448fccb90cd23ea20aedad523))
+
 ## [5.2.0](https://github.com/kickinrad/kumiko/compare/v5.1.0...v5.2.0) (2026-11-02)
 
 
