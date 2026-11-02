@@ -5,19 +5,21 @@
 // Options: path (a directory). The page links the config's css and beer outputs by their paths; with a tailwind
 // output (listed before the playground) it also writes tailwind.html, which proves the output in a frame of its own
 // (Tailwind's reset would restyle the page), and tokens.json names it. theme.toml's icon, a Material Symbol name,
-// is the kit's mark in the top app bar ("style" otherwise).
+// is the kit's mark in the top app bar ("style" otherwise). Optional, by location only: examples (the apps' entry
+// files, which the Examples destination fetches) and kits (other kits' playground directories, for the kit menu).
 import { join, relative, resolve } from "node:path";
 import cards from "../web/cards.js" with { type: "text" };
 import components from "../web/components.js" with { type: "text" };
 import foundations from "../web/foundations.js" with { type: "text" };
 import pages from "../web/pages.js" with { type: "text" };
 import playground from "../web/playground.js" with { type: "text" };
+import examples from "../web/examples.js" with { type: "text" };
 import tailwind from "../web/tailwind.html" with { type: "text" };
 import { need, needKit } from "../system.mjs";
 
 const BEER = "https://cdn.jsdelivr.net/npm/beercss/dist/cdn";
 // The client's modules; each imports the colour maths from "../color.mjs" in the source and "./color.mjs" beside the page.
-const CLIENT = { "playground.js": playground, "foundations.js": foundations, "components.js": components, "cards.js": cards, "pages.js": pages };
+const CLIENT = { "playground.js": playground, "examples.js": examples, "foundations.js": foundations, "components.js": components, "cards.js": cards, "pages.js": pages };
 // Tailwind's browser build reads @import "tailwindcss" even inside a comment, and then draws nothing.
 const withoutComments = (css) => css.replace(/\/\*[\s\S]*?\*\//g, "");
 const attribute = (text) => text.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
@@ -42,6 +44,13 @@ export default {
     const beer = href("beer");
     const notes = await readExisting(join(root, "notes.md"));
     const icon = theme?.icon;
+    // The apps' example entries and the other kits' playgrounds, by location only: the page fetches them, so the
+    // build never reads them.
+    const located = (key) => {
+      if (options[key] !== undefined && (!Array.isArray(options[key]) || options[key].some((each) => typeof each !== "string"))) throw new Error(`playground option "${key}" must be a list of paths`);
+      return (options[key] ?? []).map((each) => relative(resolve(dir), resolve(each)));
+    };
+    const [entries, kits] = [located("examples"), located("kits").map((each) => `${each}/tokens.json`)];
     // The Tailwind output as this run made it (list it before the playground).
     const tailwindPath = sibling("tailwind");
     const output = tailwindPath && built(tailwindPath);
@@ -79,6 +88,8 @@ export default {
       ...(icon === undefined ? [] : [`"icon": ${JSON.stringify(icon)}`]),
       ...(output === undefined ? [] : [`"tailwind": "tailwind.html"`]),
       ...(notes === undefined ? [] : [`"notes": ${JSON.stringify(notes)}`]),
+      ...(entries.length ? [`"examples": ${JSON.stringify(entries)}`] : []),
+      ...(kits.length ? [`"kits": ${JSON.stringify(kits)}`] : []),
     ];
     const data = `{\n${fields.map((field) => `  ${field}`).join(",\n")}\n}\n`;
     return [

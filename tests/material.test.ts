@@ -15,7 +15,8 @@ test("the guidance only adds: no path repeats one in the vendored data, and each
   const tree = material.tokens();
   for (const path of added) {
     const token = path.split(".").reduce((node: any, part) => node[part], tree);
-    expect(token.$description, path).toMatch(/tokens|ColorDarkTokens|material-web/);
+    expect(token.$extensions["com.kickinrad.material"].src, path).toMatch(/tokens|ColorDarkTokens|material-web/);
+    expect(token.$description, path).toBeUndefined();
   }
 });
 

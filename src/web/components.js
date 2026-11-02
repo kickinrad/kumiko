@@ -58,7 +58,8 @@ export const empty = (glyph, title, text) => `<div class="center-align padding">
 export const navBar = (id, items, current) => `<nav class="bottom" aria-label="Sections">${destinations(id, items, { current })}</nav>`;
 export const navRail = (id, items, current, top = "", height = "") => `<nav${classes("left", height)} aria-label="Sections">${top ? `<header>${top}</header>` : ""}${destinations(id, items, { current })}</nav>`;
 export const tabs = (id, labels, current = 0) => `<div class="tabs">${labels.map((label, index) => `<a${classes(index === current && "active")}${REACH}${opens(`${id}-${index}`)}>${label}</a>`).join("")}</div>`;
-export const appBar = (title, { back, actions = [], fixed } = {}) => `<header${classes(fixed && "fixed")}><nav>${back ? iconButton("arrow_back", "Back") : ""}<h6 class="max">${title}</h6>${actions.join("")}</nav></header>`;
+// A back button closes the open pane of the panes it sits in (`data-close`), where there is one.
+export const appBar = (title, { back, actions = [], fixed } = {}) => `<header${classes(fixed && "fixed")}><nav>${back ? iconButton("arrow_back", "Back", "standard", { attrs: " data-close" }) : ""}<h6 class="max">${title}</h6>${actions.join("")}</nav></header>`;
 
 // A bordered box at a fixed height: the frame a whole container component or a page is shown in.
 export const frame = (inner, size = "large-height") => `<div class="border round ${size} scroll">${inner}</div>`;
