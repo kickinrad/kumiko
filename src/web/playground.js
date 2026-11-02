@@ -47,7 +47,7 @@ export const markdown = (text) => {
 // Which of the stylesheet's two colour schemes (data-theme) a mode is: by its surface, nearer black or white.
 export const scheme = (tokens) => {
   const { value } = tokens.find((token) => token.path === "md.sys.color.surface");
-  return contrast(value, "#000000") > contrast(value, "#ffffff") ? "light" : "dark";
+  return contrast(value, "#000000") > contrast(value, "#ffffff") ? "light" : "dark"; // lint: own black and white, the ends a scheme is measured against
 };
 
 // The destinations; with the apps' entries loaded, Examples joins them before Rules.

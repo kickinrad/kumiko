@@ -1,7 +1,10 @@
 // Drift guard: flag a value a consumer hand-typed that the theme defines. Text scanning, line by line.
 import { readFileSync, statSync } from "node:fs";
 import { extname, join } from "node:path";
+import beerCss from "beercss/dist/cdn/beer.min.css" with { type: "text" };
 import { hasHeader } from "./header.mjs";
+import layoutCss from "./web/layout.css" with { type: "text" };
+import materialCss from "./web/material.css" with { type: "text" };
 
 const EXTENSIONS = new Set([".css", ".scss", ".yaml", ".yml", ".py", ".js", ".mjs", ".ts", ".jinja", ".html", ".kt", ".kts"]);
 const OWN = /lint: own\s+[^\s*/>-]/; // a reason, not just a comment closer
@@ -18,6 +21,22 @@ const RULES = [
   ["type size", /(?<![\w.])\d+(?:\.\d+)?\.sp\b/g],
   ["radius", new RegExp(String.raw`(?<=border-radius\s*:[^;}]*?)${NUM}px\b`, "g")],
   ["radius", /(?<=RoundedCornerShape\(\s*)\d+(?:\.\d+)?\.dp\b/g],
+  ["spacing", new RegExp(String.raw`(?<=\b(?:margin|padding|gap|row-gap|column-gap)[\w-]*\s*:[^;}]*?)${NUM}px\b`, "g")],
+  ["spacing", /(?<=\b(?:padding|spacedBy)\([^)]*?)\d+(?:\.\d+)?\.dp\b/g],
+  ["z-index", /(?<=z-index\s*:\s*)-?\d+/g],
+  ["z-index", /(?<=\.zIndex\(\s*)-?\d+/g],
+];
+// Markup that loads Beer builds on Beer: a class must be one Beer or the engine's beer output defines, and a control
+// is Beer's element, not a role on another one.
+const MARKUP = new Set([".html", ".jinja"]);
+const BEER = /beercss|beer(?:\.min)?\.css/i;
+const CLASSES = new Set([beerCss, layoutCss, materialCss].flatMap((css) => [...css.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)].map(([, name]) => name)));
+const CONTROL = /\brole\s*=\s*["'](?:button|checkbox|switch|slider|tab|radio|menuitem)["']/g;
+const component = (line) => [
+  // A templated class list is the template's to check.
+  ...[...line.matchAll(/\bclass\s*=\s*(["'])(.*?)\1/g)].filter(([, , list]) => !list.includes("{")).flatMap(([, , list]) => list.split(/\s+/))
+    .filter((name) => /^-?[_a-zA-Z][\w-]*$/.test(name) && !CLASSES.has(name)),
+  ...[...line.matchAll(CONTROL)].map(([match]) => match),
 ];
 
 // A file, or every file under a directory with a linted extension, skipping hidden folders and node_modules.
@@ -35,6 +54,7 @@ export const lint = (paths) => {
   for (const file of paths.flatMap(files)) {
     const text = readFileSync(file, "utf8");
     if (hasHeader(text)) continue;
+    const beer = MARKUP.has(extname(file)) && BEER.test(text);
     text.split("\n").forEach((line, index) => {
       if (OWN.test(line)) return;
       for (const [rule, pattern] of RULES) {
@@ -42,6 +62,7 @@ export const lint = (paths) => {
           if (parseFloat(match) !== 0) found.push(`${file}:${index + 1}: ${rule}: ${match}`);
         }
       }
+      if (beer) for (const match of component(line)) found.push(`${file}:${index + 1}: component: ${match}`);
     });
   }
   return found;
