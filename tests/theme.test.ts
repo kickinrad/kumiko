@@ -4,11 +4,8 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import material from "../src/material.mjs";
+import { command, read, root, run } from "./helpers";
 
-const root = resolve(import.meta.dir, "..");
-const command = process.env.TOKENS_BIN ? [resolve(process.env.TOKENS_BIN)] : ["bun", join(root, "bin/tokens.mjs")];
-const run = (cwd: string, ...args: string[]) => Bun.spawnSync([...command, ...args], { cwd, stderr: "pipe" });
-const read = (dir: string, file: string) => readFileSync(join(dir, file), "utf8");
 const json = (dir: string, file: string) => JSON.parse(read(dir, file));
 
 // The fixture fills every Material colour role with ink, but primary.

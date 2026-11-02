@@ -4,7 +4,7 @@ set -euo pipefail
 base=$1
 head=$2
 
-changed=$(git diff --name-only "$base...$head" -- tests/expected/)
+changed=$(git diff --name-only "$base...$head" -- tests/expected/ ':(glob)tests/*/expected/**')
 if [[ -z "$changed" ]]; then
   exit 0
 fi
@@ -16,5 +16,5 @@ if [[ ${PR_TITLE:-} =~ $breaking_header ]] || grep -Eq "$breaking_header" <<< "$
   exit 0
 fi
 
-echo 'Changes under tests/expected/ require a breaking Conventional Commit header in the PR title or a commit subject, or a BREAKING CHANGE: footer.' >&2
+echo 'Changes to a golden (tests/expected/, tests/*/expected/) require a breaking Conventional Commit header in the PR title or a commit subject, or a BREAKING CHANGE: footer.' >&2
 exit 1

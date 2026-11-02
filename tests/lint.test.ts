@@ -3,9 +3,8 @@ import { expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { command, root } from "./helpers";
 
-const root = resolve(import.meta.dir, "..");
-const command = process.env.TOKENS_BIN ? [resolve(process.env.TOKENS_BIN)] : ["bun", join(root, "bin/tokens.mjs")];
 const lint = (dir: string, ...paths: string[]) => {
   const result = Bun.spawnSync([...command, "lint", ...paths], { cwd: dir, stderr: "pipe", stdout: "pipe" });
   return { code: result.exitCode, out: result.stdout.toString(), err: result.stderr.toString() };

@@ -7,7 +7,7 @@ import material from "./material.mjs";
 import { readTokens, resolve as resolveTokens, typography } from "./resolve.mjs";
 import { checkHeader, stamp } from "./header.mjs";
 import { checkContrast } from "./checks/contrast.mjs";
-import { loadTheme, syncTheme, withMedia } from "./theme.mjs";
+import { loadTheme, withMedia } from "./theme.mjs";
 import builtins from "./targets/index.mjs";
 
 // Built-in include layers, named in a config's `include` beside its file globs.
@@ -67,7 +67,6 @@ export const build = async (config = {}, { check = false } = {}) => {
 
   // The kit's theme.toml becomes token files: its default is an include layer, its modes join their media query.
   const theme = await loadTheme(kit);
-  await syncTheme(theme, { check });
   const media = withMedia(theme, config.media);
   const mediaPaths = new Set(Object.values(media).flat().map((file) => resolve(file)));
   // Sorted: directory listing order varies by filesystem and runtime, and output order must not.
@@ -90,7 +89,8 @@ export const build = async (config = {}, { check = false } = {}) => {
 
   // A target that derives token files (the derived roles) runs first, on everything but its own files, so the
   // build reads what it computes now rather than what an earlier run wrote. Those files join the inputs.
-  const made = new Map();
+  // The theme's token files, computed from theme.toml, are inputs this run made.
+  const made = new Map(theme.files.map((file) => [resolve(file.path), JSON.parse(file.content)]));
   const derived = [];
   for (const target of targets.filter((each) => each.derive)) {
     const queries = Object.entries(media);
@@ -126,7 +126,13 @@ export const build = async (config = {}, { check = false } = {}) => {
   const tokens = resolved.map(entry);
 
   // Media overrides resolve on demand: only CSS can express them.
-  const mediaTokens = async (files) => {
+  const cache = new Map();
+  const mediaTokens = (files) => {
+    const key = files.map((file) => resolve(file)).join("\n");
+    if (!cache.has(key)) cache.set(key, resolveMedia(files));
+    return cache.get(key);
+  };
+  const resolveMedia = async (files) => {
     const overridePaths = new Set();
     const visit = (node, path = []) => {
       if (!node || typeof node !== "object" || Array.isArray(node)) return;
@@ -152,7 +158,8 @@ export const build = async (config = {}, { check = false } = {}) => {
     try { return await readFile(path, "utf8"); }
     catch (error) { if (error.code === "ENOENT") return undefined; throw error; }
   };
-  const outputs = [];
+  // The theme's files first, then each target's, all written or checked by the one loop below.
+  const outputs = theme.files.map((file) => ({ path: relative(process.cwd(), file.path), content: file.content }));
   // What an earlier target in this run made at a path (stamped, as written), so a later one reads it current.
   const built = (path) => outputs.find((output) => resolve(output.path) === resolve(path))?.content;
   for (const target of targets) {

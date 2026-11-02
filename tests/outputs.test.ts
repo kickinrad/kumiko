@@ -3,11 +3,8 @@ import { expect, test } from "bun:test";
 import { cpSync, mkdtempSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { command, read, root, run } from "./helpers";
 
-const root = resolve(import.meta.dir, "..");
-const command = process.env.TOKENS_BIN ? [resolve(process.env.TOKENS_BIN)] : ["bun", join(root, "bin/tokens.mjs")];
-const run = (cwd: string, ...args: string[]) => Bun.spawnSync([...command, ...args], { cwd, stderr: "pipe" });
-const read = (dir: string, file: string) => readFileSync(join(dir, file), "utf8");
 const golden = join(root, "tests/outputs/expected");
 const files = (dir: string, at = ""): string[] => readdirSync(join(dir, at)).flatMap((entry) =>
   statSync(join(dir, at, entry)).isDirectory() ? files(dir, join(at, entry)) : [join(at, entry)]);

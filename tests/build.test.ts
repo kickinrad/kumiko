@@ -3,16 +3,13 @@ import { expect, test } from "bun:test";
 import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { command, read, root, run } from "./helpers";
 
-const root = resolve(import.meta.dir, "..");
-const command = process.env.TOKENS_BIN ? [resolve(process.env.TOKENS_BIN)] : ["bun", join(root, "bin/tokens.mjs")];
 const project = () => {
   const dir = mkdtempSync(join(tmpdir(), "tokens-"));
   cpSync(join(root, "tests/fixture"), dir, { recursive: true });
   return dir;
 };
-const run = (cwd: string, ...args: string[]) => Bun.spawnSync([...command, ...args], { cwd, stderr: "pipe" });
-const read = (dir: string, file: string) => readFileSync(join(dir, file), "utf8");
 
 test("builds byte-identical outputs to the 2.1.0 template", () => {
   const dir = project();

@@ -6,11 +6,8 @@ import { join, resolve } from "node:path";
 import beerCss from "beercss/dist/cdn/beer.css" with { type: "text" };
 import material from "../src/material.mjs";
 import { settle, springEasing } from "../src/motion.mjs";
+import { command, read, root, run } from "./helpers";
 
-const root = resolve(import.meta.dir, "..");
-const command = process.env.TOKENS_BIN ? [resolve(process.env.TOKENS_BIN)] : ["bun", join(root, "bin/tokens.mjs")];
-const run = (cwd: string, ...args: string[]) => Bun.spawnSync([...command, ...args], { cwd, stderr: "pipe" });
-const read = (dir: string, file: string) => readFileSync(join(dir, file), "utf8");
 const golden = (file: string) => readFileSync(join(root, "tests/web/expected", file), "utf8");
 
 const project = (config?: string) => {

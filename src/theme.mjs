@@ -1,8 +1,8 @@
 // A kit's hand-written <root>/theme.toml becomes DTCG 2025.10 token files that feed the build as layers:
 // <root>/tokens/theme.tokens.json for the default mode (palette, roles, faces) and
 // <root>/tokens/theme.<mode>.tokens.json for each media mode (role values for that mode).
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join, relative } from "node:path";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 // Brand and plain fill Material's own typeface slots; mono and icon sit under the kit's name.
 const FACES = { brand: ["md", "ref", "typeface", "brand"], plain: ["md", "ref", "typeface", "plain"], mono: ["typeface", "mono"], icon: ["typeface", "icon"] };
@@ -135,20 +135,4 @@ export const withMedia = (theme, media = {}) => {
   const merged = Object.fromEntries(Object.entries(theme.media).map(([query, files]) => [query, [...files]]));
   for (const [query, files] of Object.entries(media)) merged[query] = [...(merged[query] ?? []), ...files];
   return merged;
-};
-
-export const syncTheme = async (theme, { check = false } = {}) => {
-  const stale = [];
-  for (const { path, content } of theme.files) {
-    if (check) {
-      let existing;
-      try { existing = await readFile(path, "utf8"); }
-      catch (error) { if (error.code !== "ENOENT") throw error; }
-      if (existing !== content) stale.push(`${relative(process.cwd(), path)} is stale; run tokens`);
-      continue;
-    }
-    await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, content);
-  }
-  if (stale.length) throw new Error(stale.join("\n"));
 };

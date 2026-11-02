@@ -15,7 +15,7 @@ export default {
   name: 'tailwind',
   async build(ctx) {
     needKit(ctx, 'tailwind');
-    const { tokens, name, version, options } = ctx;
+    const { tokens, name, options } = ctx;
     const path = need(options, 'tailwind', 'path');
     const css = need(options, 'tailwind', 'css');
     const { title = name } = options;
@@ -36,7 +36,7 @@ export default {
       ['default-transition-timing-function', v('md.sys.motion.easing.standard')],
     ];
     const content = [
-      `/* ${title} for Tailwind v4 · kit ${version}..`,
+      `/* ${title} for Tailwind v4.`,
       ` * Load after @import "tailwindcss" and the kit's ${css}; the mode is the kit's (data-theme). */`,
       '@theme inline {',
       ...lines.map(([n, value]) => `  --${n}: ${value};`),
