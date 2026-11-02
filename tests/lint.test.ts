@@ -1,4 +1,4 @@
-// `tokens lint` fails a consumer's hand-typed colour, motion, type size or radius.
+// `tokens lint` fails a consumer's hand-typed colour, motion, type size, radius, spacing or z-index, and markup off Beer.
 import { expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -52,6 +52,31 @@ test("radius: border-radius px and RoundedCornerShape dp fail", () => {
   flagged("a.css", "a { border-radius: 12px; }\n", "1: radius: 12px");
   flagged("S.kt", "val s = RoundedCornerShape(8.dp)\n", "1: radius: 8.dp");
   expect(lint(project({ "a.css": "a { border-radius: var(--md-shape-md); }\n" }), "a.css").code).toBe(0);
+});
+
+test("spacing: margin, padding and gap px, and Compose padding and spacedBy dp fail", () => {
+  flagged("a.css", "a { padding: 0 16px; }\n", "1: spacing: 16px");
+  flagged("a.css", "a { margin-top: 8px; }\n", "1: spacing: 8px");
+  flagged("a.css", "a { row-gap: 12px; }\n", "1: spacing: 12px");
+  flagged("P.kt", "Modifier.padding(horizontal = 24.dp)\n", "1: spacing: 24.dp");
+  flagged("R.kt", "Arrangement.spacedBy(8.dp)\n", "1: spacing: 8.dp");
+  expect(lint(project({ "a.css": "a { padding: 0; gap: var(--gap); width: 16px; }\n" }), "a.css").code).toBe(0);
+});
+
+test("z-index: a CSS z-index and a Compose zIndex number fail; zero passes", () => {
+  flagged("a.css", "a { z-index: 10; }\n", "1: z-index: 10");
+  flagged("a.css", "a { z-index: -1; }\n", "1: z-index: -1");
+  flagged("Z.kt", "Modifier.zIndex(2f)\n", "1: z-index: 2");
+  expect(lint(project({ "a.css": "a { z-index: 0; }\n" }), "a.css").code).toBe(0);
+});
+
+test("component: in markup that loads Beer, a class Beer does not define and a role on a non-control fail", () => {
+  const page = (body: string) => `<link rel="stylesheet" href="beer.min.css">\n${body}\n`;
+  flagged("a.html", page('<button class="border my-button">Go</button>'), "2: component: my-button");
+  flagged("a.jinja", page('<div role="button" class="chip">Go</div>'), '2: component: role="button"');
+  expect(lint(project({ "a.html": page('<nav class="left"><button class="circle transparent">Go</button></nav><div class="panes supporting"></div>') }), "a.html").code).toBe(0);
+  expect(lint(project({ "a.html": page('<div class="{{ kind }}"></div>') }), "a.html").code).toBe(0);
+  expect(lint(project({ "a.html": '<div class="flex gap-2" role="button"></div>\n' }), "a.html").code).toBe(0);
 });
 
 test("the same CSS inside a YAML or Python string is found", () => {

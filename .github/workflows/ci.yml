@@ -27,6 +27,8 @@ jobs:
       - uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
       - run: mise run setup
       - run: mise run check
+      # The playground's client is linted as a consumer would be.
+      - run: bun bin/tokens.mjs lint src/web/playground.js src/web/foundations.js src/web/components.js src/web/cards.js src/web/pages.js src/web/examples.js src/web/tailwind.html
       - name: Material baseline matches androidx
         run: bun scripts/vendor-m3.mjs --check
         env:

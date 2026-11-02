@@ -147,7 +147,7 @@ Serve the directory with the rest of the project (the page fetches `tokens.json`
 
 ## Drift guard: `tokens lint`
 
-`tokens lint <path> [<path>...]` fails when a consumer's source hand-types a value the theme defines, instead of reading the theme's variable. A path is a file or a directory (walked; `node_modules`, `.git` and dot-directories are skipped). It scans `.css .scss .yaml .yml .py .js .mjs .ts .jinja .html .kt .kts`; other files are ignored.
+`tokens lint <path> [<path>...]` fails when a consumer's source hand-types a value the theme defines, instead of reading the theme's variable, or builds markup on Beer with classes and controls Beer doesn't have. A path is a file or a directory (walked; `node_modules`, `.git` and dot-directories are skipped). It scans `.css .scss .yaml .yml .py .js .mjs .ts .jinja .html .kt .kts`; other files are ignored.
 
 | Rule | Finding |
 | --- | --- |
@@ -155,6 +155,9 @@ Serve the directory with the rest of the project (the page fetches `tokens.json`
 | motion | a literal duration (`120ms`, `6s`) in a CSS `transition` or `animation` declaration; any `cubic-bezier(`; Compose `tween(` with a number first argument |
 | type size | CSS `font-size:` in px; a Kotlin `.sp` literal |
 | radius | CSS `border-radius:` with a non-zero px; Compose `RoundedCornerShape(` with a `.dp` literal |
+| spacing | a px value in a CSS `margin`, `padding` or `gap` declaration (`margin-top`, `row-gap` and the like too); a `.dp` literal in Compose `padding(` or `spacedBy(` |
+| z-index | a CSS `z-index:` number; a Compose `.zIndex(` number |
+| component | in an `.html` or `.jinja` file that loads Beer (it names `beercss` or `beer.css`): a class neither Beer nor the engine's `beer` output defines, and a `role` of `button`, `checkbox`, `switch`, `slider`, `tab`, `radio` or `menuitem`, a hand-made control where Beer has one. A templated class list is skipped. |
 
 Zero values pass. Two skips: a file carrying the generated header, and a line carrying `lint: own <why>` with a non-empty reason (a consumer's named local value).
 
