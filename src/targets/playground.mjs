@@ -7,19 +7,17 @@
 // (Tailwind's reset would restyle the page), and tokens.json names it. theme.toml's icon, a Material Symbol name,
 // is the kit's mark in the top app bar ("style" otherwise). Optional, by location only: examples (the apps' entry
 // files, which the Examples destination fetches) and kits (other kits' playground directories, for the kit menu).
-import { join, relative, resolve } from "node:path";
-import cards from "../web/cards.js" with { type: "text" };
-import components from "../web/components.js" with { type: "text" };
-import foundations from "../web/foundations.js" with { type: "text" };
-import pages from "../web/pages.js" with { type: "text" };
-import playground from "../web/playground.js" with { type: "text" };
-import examples from "../web/examples.js" with { type: "text" };
+import { basename, join, relative, resolve } from "node:path";
 import tailwind from "../web/tailwind.html" with { type: "text" };
 import { need, needKit } from "../system.mjs";
 
 const BEER = "https://cdn.jsdelivr.net/npm/beercss/dist/cdn";
 // The client's modules; each imports the colour maths from "../color.mjs" in the source and "./color.mjs" beside the page.
-const CLIENT = { "playground.js": playground, "examples.js": examples, "foundations.js": foundations, "components.js": components, "cards.js": cards, "pages.js": pages };
+const CLIENT = ["playground.js", "examples.js", "foundations.js", "components.js", "cards.js", "pages.js"];
+// A source file as text. The engine imports some of them as modules too (color.mjs, and the specimens the
+// claude-design output reads), and the bundler cannot embed a module as text beside importing it, so the binary
+// carries them as assets (mise.toml: --asset); from source each is the file.
+const source = (path) => (Bun.embeddedFiles.find((file) => basename(file.name) === basename(path)) ?? Bun.file(new URL(path, import.meta.url))).text();
 // Tailwind's browser build reads @import "tailwindcss" even inside a comment, and then draws nothing.
 const withoutComments = (css) => css.replace(/\/\*[\s\S]*?\*\//g, "");
 const attribute = (text) => text.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
@@ -59,9 +57,8 @@ export default {
     const byMode = [[modes.base, tokens]];
     for (const [query, files] of Object.entries(media)) byMode.push([modes.media[query] ?? query, await mediaTokens(files)]);
 
-    // color.mjs is a module of the engine too, and the bundler cannot embed a module as text beside importing it,
-    // so the binary carries it as an asset (mise.toml: --asset src/color.mjs); from source it is the file.
-    const color = await (Bun.embeddedFiles.find((file) => file.name === "color.mjs") ?? Bun.file(new URL("../color.mjs", import.meta.url))).text();
+    const color = await source("../color.mjs");
+    const client = await Promise.all(CLIENT.map(async (file) => [file, await source(`../web/${file}`)]));
     const page = [
       "<!doctype html>",
       '<html lang="en">',
@@ -94,7 +91,7 @@ export default {
     const data = `{\n${fields.map((field) => `  ${field}`).join(",\n")}\n}\n`;
     return [
       { path: join(dir, "index.html"), content: page },
-      ...Object.entries(CLIENT).map(([file, source]) => ({ path: join(dir, file), content: source.replaceAll('"../color.mjs"', '"./color.mjs"') })),
+      ...client.map(([file, text]) => ({ path: join(dir, file), content: text.replaceAll('"../color.mjs"', '"./color.mjs"') })),
       { path: join(dir, "color.mjs"), content: color },
       { path: join(dir, "tokens.json"), content: data },
       ...(output === undefined ? [] : [{ path: join(dir, "tailwind.html"), content: tailwind.replace("{{css}}", () => attribute(css)).replace("{{tailwind}}", () => withoutComments(output)) }]),

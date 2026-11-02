@@ -6,10 +6,8 @@
       "name": "@kickinrad/tokens",
       "dependencies": {
         "@material/material-color-utilities": "latest",
-        "yaml": "latest",
-      },
-      "devDependencies": {
         "beercss": "latest",
+        "yaml": "latest",
       },
     },
   },
