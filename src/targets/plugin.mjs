@@ -83,6 +83,12 @@ export default {
 
     const outputs = Object.keys(OUTPUTS).filter((target) => targets.includes(target))
       .map((target) => `   - ${target}: ${OUTPUTS[target](config[target] ?? {}, { name, modes })}`).concat(own);
+    // A web page's head, in the order the outputs load; the kit's files are where the page can reach them.
+    const head = !css ? "" : `\n\n\`\`\`html\n${[
+      ...(web ? ['<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/beercss/dist/cdn/beer.min.css">'] : []),
+      `<link rel="stylesheet" href="${config.css?.path ?? "src/styles/tokens.css"}">`,
+      ...(web ? [`<link rel="stylesheet" href="${config.beer?.path ?? "src/styles/beer.css"}">`, '<script type="module" src="https://cdn.jsdelivr.net/npm/beercss/dist/cdn/beer.min.js"></script>'] : []),
+    ].join("\n")}\n\`\`\`\n\nPoint the kit's ${web ? "two links" : "link"} at its files where the page runs: a copy beside it, or the kit's repository at ${version}.`;
     const where = `${options.repository ? `[the kit's repository](${options.repository})` : "the kit's repository"} at ${version}`;
     const links = [
       ...(material ? [`- [Material 3](${M3}): [components](${M3}components), [styles](${M3}styles) (colour, type, shape, motion) and [foundations](${M3}foundations) (layout, interaction, accessibility).`] : []),
@@ -101,11 +107,11 @@ ${title} ${version} is a UI kit: ${base}${theme.tagline ? `. ${theme.tagline}` :
 
 ## Which kit
 
-Use ${title} when the user names it or the project selects it: the project is the kit's repository, loads its outputs, or its agent instructions name it. When the user or the project selects another kit or design system, use that one and stop here. When nothing selects a kit, use ${title} only if no other kit is installed; otherwise ask which. Never mix two kits in one UI.
+Check this first. Use ${title} when the user names it or the project selects it: the project is the kit's repository, loads its outputs, or its agent instructions name it. When the user or the project selects another kit or design system, use that one and stop here. When nothing selects a kit and another kit is also available, stop and ask the user which one before building anything, even in a hurry. Never mix two kits in one UI.
 
 ## Under time pressure
 
-A quick ${css ? "page" : "screen"} is still the kit. ${css ? `Link ${web ? "Beer, then the css and beer outputs," : "the css output"} and use ${web ? "Beer's markup for every control" : "the documented components"}; inline styles may only lay out the page.` : "Use the documented components and the outputs."} "In a hurry", "one file", "inline styles" and "no dependencies" never justify a hand-drawn control or a value copied out of theme.toml. If the ${css ? "page" : "screen"} truly cannot load the outputs, say so and ask.
+A quick ${css ? "page" : "screen"} is still the kit. ${css ? `Link ${web ? "Beer, then the css and beer outputs," : "the css output"} and use ${web ? "Beer's markup for every control" : "the documented components"}; inline styles may only lay out the page.${head}` : "Use the documented components and the outputs."} "In a hurry", "one file", "inline styles" and "no dependencies" never justify a hand-drawn control or a value copied out of theme.toml. If the ${css ? "page" : "screen"} truly cannot load the outputs, say so and ask.
 
 ## ${title}'s rules
 
