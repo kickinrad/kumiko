@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/kickinrad/kumiko/compare/v1.14.0...v2.0.0) (2026-11-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* a config must list its targets; theme-json, path-named targets, the com.kickinrad.css extension and named font weights are gone.
+
+### Features
+
+* a lean core, named kumiko ([#50](https://github.com/kickinrad/kumiko/issues/50)) ([0385207](https://github.com/kickinrad/kumiko/commit/03852078566c42e6959f15181a3a3aa505266e16))
+
 ## [1.14.0](https://github.com/kickinrad/kumiko/compare/v1.13.0...v1.14.0) (2026-11-01)
 
 
