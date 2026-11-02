@@ -124,7 +124,7 @@ export const resolve = (layers, { lenient = false } = {}) => {
     catch (error) { if (lenient) return []; throw error; }
     return [{
       segments: token.segments, path: token.segments.join("."), name: kebab(token.segments), ...value,
-      description: token.node.$description, extensions: token.node.$extensions,
+      description: token.node.$description, extensions: token.node.$extensions, alias: aliasOf(token)?.segments.join("."),
     }];
   });
 };

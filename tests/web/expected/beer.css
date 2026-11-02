@@ -47,7 +47,7 @@
 .slider.large { --_thumb: var(--md-comp-slider-large-active-handle-height); }
 .slider.extra { --_thumb: var(--md-comp-slider-xlarge-active-handle-height); }
 /* The inset icon sits on the active track, so it is the on-colour of primary (Beer's inverse-primary falls
- * under 3:1 on primary in Night), at Material's icon size per slider size. */
+ * under 3:1 on primary in a dark mode), at Material's icon size per slider size. */
 .slider > span > i { color: var(--md-sys-color-on-primary); --_size: var(--md-comp-slider-medium-icon-size); }
 .slider.large > span > i { --_size: var(--md-comp-slider-large-icon-size); }
 .slider.extra > span > i { --_size: var(--md-comp-slider-xlarge-icon-size); }

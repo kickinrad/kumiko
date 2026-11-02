@@ -85,7 +85,7 @@ The build computes Material's on-colours and containers for primary, secondary, 
 ```toml
 [contrast]
 text = 4.5                             # Material's text pairs: each on-colour on its colour, on-surface on the page, the card and the top surface
-graphics = 3                           # outline on every surface, and the derived group's on-container and marks
+graphics = 3                           # outline on every surface, the derived group's on-container, and its marks on the page, the card and the filled card
 [[contrast.exceptions]]                # lowers one checked pair's floor, with a reason
 fg = "md.sys.color.on-secondary"
 bg = "md.sys.color.secondary"
@@ -138,7 +138,7 @@ Serve the directory with the rest of the project (the page fetches `tokens.json`
 Zero values pass. Two skips: a file carrying the generated header, and a line carrying `lint: own <why>` with a non-empty reason (a consumer's named local value).
 
 ```
-modules/otto_control.yaml:68: motion: 120ms
+cards/control.yaml:68: motion: 120ms
 ```
 
 One line per finding, `path:line: rule: matched text`, then exit 1. A clean run prints nothing and exits 0; a missing path fails, naming it.
@@ -151,8 +151,8 @@ Five more built-in outputs for a declared kit (they read `ctx.name` and `VERSION
 | --- | --- | --- |
 | `tailwind` | one Tailwind v4 `@theme inline` file mapping its namespaces onto the kit's runtime CSS variables | `path`, `css` (the runtime CSS file, named in the header) |
 | `compose-tv` | `Color.kt`, `Type.kt`, `Shape.kt`, `Tokens.kt`, `Motion.kt` for androidx.tv.material3 | `out` (directory), `package` |
-| `obsidian` | a snippet per mode for the Minimal theme: `<out>-<mode>.css` | `out`; the monospace face is the theme's `mono` |
+| `obsidian` | a snippet per mode for the Minimal theme, its code colours included: `<out>-<mode>.css` | `out`; the monospace face is the theme's `mono` |
 | `mealie` | `<out>.env` (Mealie's colour slots) and `<out>.css` (a full-look overlay) | `out`; the slots are the theme's `[mealie]` |
-| `material-you` | the theme file [Material You Theme](https://github.com/Nerwyn/material-you-theme) for Home Assistant reads: every `md.sys.color` role as `-light` and `-dark`, then on `html` the kit's own tokens and Material's typefaces, shape, type scale, motion and state (a colour that differs by mode follows HA's mode) | `path` |
+| `material-you` | the theme file [Material You Theme](https://github.com/Nerwyn/material-you-theme) for Home Assistant reads: every `md.sys.color` role as `-light` and `-dark`, then on `html` the kit's own tokens and Material's typefaces, shape, elevation, type scale, motion (each spring also as a `linear()` easing and a settle time), state and components; a value that aliases one of these or a colour role is that variable, and any other colour that differs by mode follows HA's mode | `path` |
 
-`mealie` reads theme.toml's `[mealie]`: `slots` and `overlay` map Mealie's seven slots (`primary`, `accent`, `secondary`, `success`, `info`, `warning`, `error`) to a palette colour each, and `stars` names the rating stars' colour. Its five layers are the palette colours of Material's `surface`, `surface-container-low`, `surface-container`, `surface-container-high` and `surface-container-highest`, its text `on-surface`'s and its quieter text `on-surface-variant`'s, each one colour in both modes. `compose-tv` needs the kit's `<name>.layout.card-gap`, `.card-inset` and `<name>.tv.safe-margin`, Material's focus-indicator thickness, and uses any `<name>.domain.*` colours. `obsidian` needs the kit's `on-surface-muted`, `comment`, `yellow`, `orange`, `cyan` and `green` roles (under `<name>.color`).
+`mealie` reads theme.toml's `[mealie]`: `slots` and `overlay` map Mealie's seven slots (`primary`, `accent`, `secondary`, `success`, `info`, `warning`, `error`) to a palette colour each, and `stars` names the rating stars' colour. Its five layers are the palette colours of Material's `surface`, `surface-container-low`, `surface-container`, `surface-container-high` and `surface-container-highest`, its text `on-surface`'s and its quieter text `on-surface-variant`'s, each one colour in both modes. `compose-tv` reads Material's focus-indicator thickness, assist-chip height and menu elevation, and exports the kit's `<name>.layout.card-gap`, `.card-inset`, `<name>.tv.safe-margin` and `<name>.domain.*` colours when it has them. `obsidian` fills Minimal's hue slots from Material's accents and the kit's colour roles named for the other hues (`<name>.color.orange`, `yellow`, `green`, `cyan`), leaving a slot it lacks to Minimal; its third text tier and strong border take the kit's `on-surface-muted` and `comment` roles, else Material's `outline` and `outline-variant`.

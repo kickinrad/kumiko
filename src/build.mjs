@@ -23,7 +23,7 @@ const entry = (token) => {
   }
   return {
     path: token.path, segments: token.segments, name: token.name, type: token.type, value: token.css,
-    description: token.description, derived: token.extensions?.["com.kickinrad.derived"] === true || undefined,
+    alias: token.alias, description: token.description, derived: token.extensions?.["com.kickinrad.derived"] === true || undefined,
     typography: token.type === "typography" ? typography(token.raw) : undefined,
   };
 };
@@ -85,7 +85,7 @@ export const build = async (config = {}, { check = false } = {}) => {
     const first = async (layers) => (await resolveLayers(layers, { lenient: true })).flatMap((token) => {
       try { return [entry(token)]; } catch { return []; }
     });
-    const derived = derive(theme.derived, theme.name, { tokens: await first([...include, ...source]), day: await first(modeLayers(queries[0])) });
+    const derived = derive(theme.derived, theme.name, { tokens: await first([...include, ...source]), other: await first(modeLayers(queries[0])) });
     source.push({ tree: derived.base, file: "the derived roles", strict: true });
     media[queries[0]].push({ tree: derived.media, file: "the derived roles", strict: true });
   }

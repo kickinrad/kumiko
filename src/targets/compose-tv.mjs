@@ -3,7 +3,7 @@
 // differs from tv-material or is the kit's own is here: its Shapes, card and focus defaults already equal the
 // spec. TV's ColorScheme has no surface tiers and uses border roles, so every role is exported as a plain
 // value and outline maps to border. The base mode comes first, the first media mode second.
-// Reads the kit's <name>.layout.card-gap and .card-inset, <name>.tv.safe-margin, and any <name>.domain.* colours.
+// Exports the kit's <name>.layout.card-gap and .card-inset, <name>.tv.safe-margin and <name>.domain.* colours when it has them.
 // Options: out (directory), package.
 import { byPath, contrast } from '../color.mjs';
 import { STYLES, typeScale } from '../type.mjs';
@@ -98,16 +98,15 @@ const tokensKt = (c, tokens, name) => {
   return [
     `package ${c.pkg}`, '',
     `// ${c.title} layout, safe margin, state layers and motion for Compose for TV.`,
-    "// CardGap and CardInset are the cards spec; SafeMargin is the kit's TV edge; ChipHeight is the assist chip's and MenuElevation Material's level 3 (a menu's).",
+    "// CardGap, CardInset and SafeMargin are the kit's, when it has them; ChipHeight is the assist chip's and MenuElevation the menu's.",
     '// A state layer is the alpha of the content colour over a container. Motion is',
     "// Material's emphasized easing set and the short3, medium2 and long1 durations in ms.",
     '', 'import androidx.compose.animation.core.CubicBezierEasing', 'import androidx.compose.ui.unit.dp', '',
-    `val CardGap = ${dp(`${name}.layout.card-gap`)}`,
-    `val CardInset = ${dp(`${name}.layout.card-inset`)}`,
-    `val SafeMargin = ${dp(`${name}.tv.safe-margin`)}`,
+    ...[['CardGap', 'layout.card-gap'], ['CardInset', 'layout.card-inset'], ['SafeMargin', 'tv.safe-margin']]
+      .filter(([, path]) => t.has(`${name}.${path}`)).map(([val, path]) => `val ${val} = ${dp(`${name}.${path}`)}`),
     `val FocusRingWidth = ${dp('md.sys.state.focus-indicator.thickness')}`,
     `val ChipHeight = ${dp('md.comp.assist-chip.container-height')}`,
-    `val MenuElevation = ${dp('md.sys.elevation.level3')}`,
+    `val MenuElevation = ${dp('md.comp.menu.container-elevation')}`,
     '',
     ...['hover', 'focus', 'pressed', 'dragged'].map((n) => `const val State${pascal(n)} = ${state(n)}`),
     '',

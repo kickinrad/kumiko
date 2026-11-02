@@ -54,6 +54,20 @@ body.theme-light {
   --hl1: rgba(46, 125, 233, 0.24);  /* primary highlight */
   --hl2: rgba(140, 108, 62, 0.24);  /* yellow — secondary highlight */
 
+  /* Code — Minimal's syntax colours from the roles */
+  --code-normal: #242424;  /* on-surface */
+  --code-background: #f5f5f5;  /* surface-container-low */
+  --code-comment: #616161;  /* on-surface-muted */
+  --code-function: #2e7de9;  /* primary */
+  --code-important: #c64343;  /* error */
+  --code-keyword: #9854f1;  /* tertiary */
+  --code-operator: #007197;  /* cyan */
+  --code-property: #118c74;  /* secondary */
+  --code-punctuation: #424242;  /* on-surface-variant */
+  --code-string: #587539;  /* green */
+  --code-tag: #c64343;  /* error */
+  --code-value: #b15c00;  /* orange */
+
   /* Typography — monospace only; the body face stays Minimal's (Spectral), a local exception */
   --font-monospace-theme: 'Some Mono', monospace;
 }

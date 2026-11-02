@@ -28,7 +28,7 @@ export const contrastPairs = ({ name, contrast: floors, derived }, tokens) => {
     for (const item of items) {
       const at = (key) => `${head}${item}.${key}`;
       if (has(at("on-container")) && has(at("container"))) pairs.push({ fg: at("on-container"), bg: at("container"), min: floors.graphics });
-      if (has(at("mark"))) pairs.push(...["surface", "surface-container-low"].map((bg) => ({ fg: at("mark"), bg: sys(bg), min: floors.graphics })));
+      if (has(at("mark"))) pairs.push(...["surface", "surface-container-low", "surface-container-highest"].map((bg) => ({ fg: at("mark"), bg: sys(bg), min: floors.graphics })));
     }
   }
   pairs.push(...floors.pairs);

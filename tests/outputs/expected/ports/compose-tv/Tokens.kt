@@ -2,7 +2,7 @@
 package com.example.acme
 
 // Acme layout, safe margin, state layers and motion for Compose for TV.
-// CardGap and CardInset are the cards spec; SafeMargin is the kit's TV edge; ChipHeight is the assist chip's and MenuElevation Material's level 3 (a menu's).
+// CardGap, CardInset and SafeMargin are the kit's, when it has them; ChipHeight is the assist chip's and MenuElevation the menu's.
 // A state layer is the alpha of the content colour over a container. Motion is
 // Material's emphasized easing set and the short3, medium2 and long1 durations in ms.
 
@@ -14,7 +14,7 @@ val CardInset = 16.dp
 val SafeMargin = 58.dp
 val FocusRingWidth = 3.dp
 val ChipHeight = 32.dp
-val MenuElevation = 6.dp
+val MenuElevation = 3.dp
 
 const val StateHover = 0.08f
 const val StateFocus = 0.1f
