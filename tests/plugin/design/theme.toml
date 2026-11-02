@@ -1,0 +1,33 @@
+name = "tern"
+title = "Tern"
+tagline = "Sea greys under one orange."
+default = "dusk"
+
+[media]
+dawn = "(prefers-color-scheme: light)"
+
+[palette.dusk]
+slate = "#1b1f22"
+foam = "#eef1f2"
+orange = "#ffb36b"
+rust = "#3a1d00"
+
+[palette.dawn]
+slate = "#f7f8f8"
+foam = "#202426"
+orange = "#a14c00"
+rust = "#ffffff"
+
+[roles]
+"md.sys.color.surface" = "slate"
+"md.sys.color.on-surface" = "foam"
+"md.sys.color.primary" = "orange"
+"md.sys.color.on-primary" = "rust"
+
+[faces]
+brand = "Tern Display"
+plain = ["Tern Text", "sans-serif"]
+mono = ["Tern Mono", "monospace"]
+
+[tokens]
+"md.sys.shape.corner.medium" = { value = "6px", why = "Tighter corners read as instruments" }
