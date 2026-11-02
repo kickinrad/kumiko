@@ -27,6 +27,8 @@ main:has(> .panes) { --_padding: 16px; }
 @media (min-width: 840px) { main > .panes:has(> :only-child) { grid-template-columns: minmax(0, 1fr); } }
 /* Running text in a pane keeps a readable measure, about 65 characters. */
 main > .panes > * > :is(p, ul, ol, blockquote) { max-inline-size: 65ch; }
+/* A pane's bulleted and numbered lists keep their markers inside the text column (Beer's reset leaves them none). */
+main > .panes > * > :is(ul, ol):not(.list) { padding-inline-start: 1.5em; }
 /* A destination with one item is a page of reading: its pane is as wide as that measure, centred in the window. */
 main > .panes:has(> :only-child) { justify-items: center; }
 main > .panes:has(> :only-child) > * { inline-size: 100%; max-inline-size: calc(65ch + 2 * var(--md-comp-list-item-leading-space)); box-sizing: border-box; }
