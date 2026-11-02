@@ -17,5 +17,18 @@ main:has(> .panes) { --_padding: 16px; }
 /* From expanded, two panes: one fixed at Material's pane width (360), one flexible, a 24 spacer between them. */
 /* A supporting pane is the fixed one, trailing. */
 @media (min-width: 840px) { main > .panes { grid-template-columns: 360px minmax(0, 1fr); gap: 24px; } main > .panes.supporting { grid-template-columns: minmax(0, 1fr) 360px; } nav.top > [data-back], main > .panes [data-close] { display: none; } }
+/* Under the top app bar the rail's first destination lines up with the panes' top edge (the bar above stands for
+ * the rail's own top space), and the bar's title lines up with their leading edge: Material's margin after the
+ * rail's column, less the bar's gap. On compact, with no rail, the bar keeps the compact margin. */
+:has(> nav.top) > nav:is(.left, .right) { padding-block-start: calc(24px - var(--md-comp-navigation-rail-baseline-item-container-vertical-space)); }
+@media (min-width: 600px) { nav.top > h6 { margin-inline-start: calc(24px - 1rem); } }
+@media (max-width: 599px) { nav.top { padding-inline-start: 16px; } }
+/* A destination with one item has one flexible pane at every width. */
+@media (min-width: 840px) { main > .panes:has(> :only-child) { grid-template-columns: minmax(0, 1fr); } }
+/* Running text in a pane keeps a readable measure, about 65 characters. */
+main > .panes > * > :is(p, ul, ol, blockquote) { max-inline-size: 65ch; }
+/* A destination with one item is a page of reading: its pane is as wide as that measure, centred in the window. */
+main > .panes:has(> :only-child) { justify-items: center; }
+main > .panes:has(> :only-child) > * { inline-size: 100%; max-inline-size: calc(65ch + 2 * var(--md-comp-list-item-leading-space)); box-sizing: border-box; }
 /* From large, the fixed pane is 412. */
-@media (min-width: 1200px) { main > .panes { grid-template-columns: 412px minmax(0, 1fr); } main > .panes.supporting { grid-template-columns: minmax(0, 1fr) 412px; } }
+@media (min-width: 1200px) { main > .panes { grid-template-columns: 412px minmax(0, 1fr); } main > .panes.supporting { grid-template-columns: minmax(0, 1fr) 412px; } main > .panes:has(> :only-child) { grid-template-columns: minmax(0, 1fr); } }

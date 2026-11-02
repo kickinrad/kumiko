@@ -42,7 +42,7 @@ With a `kit`, a hand-written `<kit root>/theme.toml` holds the whole kit: its pa
 name = "acme"                          # must equal kit.name in the config
 title = "Acme"                         # optional: the name outputs show (default: name)
 tagline = "Ink on paper."              # optional: one line in the kit's voice, under the name on claude-design's cover
-icon = "style"                         # optional: a Material Symbol, the playground's mark
+icon = "style"                         # optional: a Material Symbol, the playground's mark on small screens
 default = "night"                      # the base mode
 [media]
 day = "(prefers-color-scheme: light)"  # every other mode and its media query
@@ -114,22 +114,24 @@ Every pair is resolved in the base mode and in each other mode, and a pair under
 
 ## The `playground` output
 
-`"playground"` writes a page that shows the kit on its own generated theme, for a declared kit: `playground: { path: "docs/playground" }`, a directory. It needs the config's `css` and `beer` outputs, which the page links by paths relative to itself, and with a `tailwind` output it inlines that into `tailwind.html`: list `tailwind` before `playground`, so the page takes the file as this run made it. The theme's `icon` is the kit's mark in the top app bar (`style` otherwise). Two optional lists name files by location only, which the page fetches when it opens, so the build never reads them: `examples`, the apps' entry files, and `kits`, other kits' playground directories, which a kit menu in the top app bar links to.
+`"playground"` writes `index.html`, one page that opens from disk and shows the kit on its own generated theme, for a declared kit. List the `css` and `beer` outputs before it, and `tailwind` too if the kit has one; the page carries all of them.
 
 ```js
-playground: { path: "docs/playground", examples: ["../app/preview/example.json"], kits: ["../other-kit/docs/playground"] }
+playground: { path: "docs/playground", examples: ["preview/example.json"] }
 ```
 
-An app owns its entry: `{ name, surface, output, preview?, captures?, devices? }`, where `preview` is a live web page, `captures` is `[{ src, label, build? }]` for a surface the page cannot embed, and `devices` is `[{ name, width, height }]`, each path relative to the entry. Examples embeds a web preview live at the chosen device's size and labels each capture with its source and build; an entry that does not load shows as unavailable. Serve the apps' checkouts beside the kit's to see them. It writes:
+- `path`: the directory it writes.
+- `examples` (optional): the project's own entry files, read at build and carried in the page. An entry is `{ name, surface, output, preview?, captures?, devices? }`: `preview` a live web page, `captures` `[{ src, label, build? }]` for a surface a page cannot embed, `devices` `[{ name, width, height }]`, each path relative to the entry. A missing entry fails the build; a missing preview or capture fails `tokens audit`.
+- theme.toml's `icon` (a Material Symbol) is the kit's mark in the top app bar on small screens (`style` otherwise).
+
+It writes:
 
 | File | Holds |
 | --- | --- |
-| `index.html` | one fixed page that names no kit: Beer from the CDN at latest in a cascade layer, the kit's `css` and `beer` outputs, and `playground.js` |
-| `playground.js`, `foundations.js`, `components.js`, `cards.js`, `pages.js`, `examples.js`, `color.mjs` | the engine's client, a module per destination beside the shell and the engine's colour maths: a navigation rail (Foundations, Components, Cards, Pages, Examples when entries load, Rules), each destination a list-detail layout with an item at `#destination/item`, and a top app bar with the kit's name and a switch for its modes |
-| `tailwind.html` | with a `tailwind` output: a page of Tailwind utility classes on the kit's `css` and the inlined `tailwind` output, Tailwind's browser build from the CDN at latest; the playground shows it in a frame, so Tailwind's reset leaves Beer alone |
-| `tokens.json` | `{ name, version, modes, icon, tailwind, notes, examples, kits }`: every token in the base mode and in each `media` mode (`path`, `value`, `type`, `description`), `"tailwind.html"` if the page was written, and the text of `<kit root>/notes.md` if it exists; the only per-kit data the page reads |
+| `index.html` | Beer's stylesheet in a cascade layer, the kit's `css` and `beer` outputs, the kit's data (name, version, title, every token per mode, `notes.md` as HTML, the examples) and the engine's client as one script. Beer's script and the icon face come from their CDNs. The page has a navigation rail (Foundations, Components, Cards, Pages, Examples when there are entries, Rules), each destination a list-detail layout at `#destination/item`, and a top app bar with the kit's title and a mode switch. |
+| `tailwind.html` | with a `tailwind` output: Tailwind's utility classes on the kit's outputs, shown in a frame so Tailwind's reset leaves Beer alone. |
 
-Serve the directory with the rest of the project (the page fetches `tokens.json` and links the stylesheets), and set the mode with the switch. Foundations is a view-only builder of the current mode: Colour (the kit's palette, the Material roles in Material's groups each with the palette colours of its value, and each role on its on-colour with the contrast between them, a pair under 4.5:1 marked), Type (the 15 Material styles through the kit's variables; the page loads the families the type tokens name from Google Fonts, one stylesheet each, in the weights they use), Shape (the corner scale), Motion (durations and easings, with a replay that stands still under reduced motion) and Tailwind (the frame, or a line saying the kit has none). The page also draws Rules (`notes.md` as Markdown: headings, paragraphs, lists and inline code); Components draws Beer's full set live in Beer's own markup (hover, focus, press and toggle each; dialogs, menus and snackbars open from a button, and a container component is shown whole), Cards composes M3's elevated, filled and outlined cards from those components, and Pages composes M3's canonical layouts (list-detail, supporting pane, feed) from the cards in a framed area, each layout with panes a `main` of its own on the same panes rules as the page. The rail is Beer's bottom bar on small screens, where one pane shows at a time. A mode's `data-theme` value is the colour scheme its surface is nearer to, so the switch needs one dark and one light mode.
+A mode's `data-theme` is the colour scheme its surface is nearer to, so the switch needs one dark and one light mode. `tokens audit`, below, checks the page in a browser.
 
 ## The `claude-design` output
 
@@ -157,6 +159,10 @@ Serve the directory with the rest of the project (the page fetches `tokens.json`
 | `skills/<name>/references/theme.toml` | the kit's `theme.toml`, under a `#` header line, for agents outside the kit's checkout |
 
 The plugin guides an agent; it enforces nothing. `--check` holds the files it writes current with `notes.md`, `theme.toml` and the config, like any output's; after `path` changes, the old directory stays until it is removed. Files the output does not write, such as a kit's own evaluations beside the skill, stay the kit's.
+
+## Rendered check: `tokens audit`
+
+`tokens audit [<dir>]` opens the generated playground's `index.html` from disk (the config's `playground` path by default) in headless Chrome at 1280 and 412 px, under a host's reset as a page that embeds or publishes it would add, and walks every destination and item in every mode. It fails, one line each (size, mode, place, finding), on: text under Material's contrast (4.5:1, or 3:1 for large text and icons) against the colour actually behind it; text set in a face that is not one of the kit's type or mono faces, or a face that did not load; overlapping parts inside one control; sideways scroll; a heading larger than one a level above it; running text wider than about 75 characters, or a lone reading pane much wider than its text; a page error; or a request that failed (an app's example entry or another kit that is not there is optional). Run it in a kit's CI after `tokens --check`. It needs Chrome: `$CHROME`, `google-chrome` or `chromium` on the PATH (GitHub's Ubuntu runners have it), or Playwright's download. The engine's own test runs it on a sample kit (`tests/render.theme.toml`).
 
 ## Drift guard: `tokens lint`
 
