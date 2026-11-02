@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.0.0](https://github.com/kickinrad/kumiko/compare/v3.0.0...v4.0.0) (2026-11-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* material-you writes aliases as var() references and adds md.comp and md.sys.elevation; compose-tv's MenuElevation is 3.dp; a kit's marks must hold their floor on surface-container-highest too.
+
+### Features
+
+* native outputs carry Material, and no kit's own rules ([#54](https://github.com/kickinrad/kumiko/issues/54)) ([4046b1a](https://github.com/kickinrad/kumiko/commit/4046b1a0d3942f2cb3d1263d4f02508f6b28cd77))
+
 ## [3.0.0](https://github.com/kickinrad/kumiko/compare/v2.0.0...v3.0.0) (2026-11-02)
 
 
