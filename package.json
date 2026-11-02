@@ -13,8 +13,5 @@
     "@material/material-color-utilities": "latest",
     "beercss": "latest",
     "yaml": "latest"
-  },
-  "devDependencies": {
-    "playwright": "latest"
   }
 }

@@ -9,9 +9,6 @@
         "beercss": "latest",
         "yaml": "latest",
       },
-      "devDependencies": {
-        "playwright": "latest",
-      },
     },
   },
   "packages": {
@@ -20,10 +17,6 @@
     "beercss": ["beercss@5.0.3", "", { "dependencies": { "material-dynamic-colors": "^1.1.4" } }, "sha512-d451Q/em0v+QJdymVPs9RP7tKwJbZiyv8TfvSeNT4ikbz65DJZu/rCwQllA5BHdQyn3g0yMW+QPQSQa2JYAz2A=="],
 
     "material-dynamic-colors": ["material-dynamic-colors@1.2.0", "", { "dependencies": { "@material/material-color-utilities": "^0.3.0" }, "bin": { "material-dynamic-colors": "cli.js" } }, "sha512-mqPZqpuEGIzZ7/tMVjEnTrpwa6IbHDo46+2pM20boLnZNDkvbsz3S6t1cKHRSwRsK8dUEBElS39RmXwBPfgRwg=="],
-
-    "playwright": ["playwright@1.64.1", "", { "dependencies": { "playwright-core": "1.64.1" }, "bin": { "playwright": "cli.js" } }, "sha512-HCrVhHr5QQuwYoswEUGTb7gGp522yflbv/ST8nF4sFWGuLjQCt17Q/EubpGGSNKYn1tsTCPZxqHhHCfVURu7UA=="],
-
-    "playwright-core": ["playwright-core@1.64.1", "", { "bin": { "playwright-core": "cli.js" } }, "sha512-BC4s8y6SEVA6Q1rSxZTto8hI1KUI3xXlHGZgvGqP4IqPdI/a6FX9H29IDNz7vKo9l21b6LfYosScPL6M3xxyDQ=="],
 
     "yaml": ["yaml@2.9.1", "", { "bin": { "yaml": "bin.mjs" } }, "sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw=="],
 

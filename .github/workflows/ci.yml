@@ -34,8 +34,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
       - run: mise run build
-      # The rendered audit (tests/render.test.ts) drives Chromium.
-      - run: bunx playwright install --with-deps chromium
       - run: bun test
         env:
           TOKENS_BIN: dist/tokens-linux-x64
