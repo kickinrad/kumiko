@@ -43,6 +43,8 @@ name = "acme"                          # must equal kit.name in the config
 title = "Acme"                         # optional: the name outputs show (default: name)
 tagline = "Ink on paper."              # optional: one line in the kit's voice, under the name on claude-design's cover
 icon = "style"                         # optional: a Material Symbol, the playground's mark on small screens
+extends = "base.toml"                  # optional: another theme's file beside this one (a copy at the version this kit
+                                       # builds on); its default, [media], [palette] and [faces] come first, this file's add or change them
 default = "night"                      # the base mode
 [media]
 day = "(prefers-color-scheme: light)"  # every other mode and its media query

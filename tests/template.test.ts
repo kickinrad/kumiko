@@ -67,3 +67,14 @@ test("it needs a declared kit, and `from` and `to`", () => {
   writeFileSync(join(dir, "tokens.config.mjs"), 'export default { targets: ["template"], kit: { name: "acme" }, template: { from: "templates" } };\n');
   expect(run(dir).stderr.toString()).toContain('template option "to" is required');
 });
+
+test("a theme that extends another takes its modes, palette and faces, then adds or changes its own", () => {
+  const dir = kit({ "a.conf": "{{night.ink}} {{night.blue}} {{night.accent}} {{day.ink}} {{day.accent}}\n" });
+  writeFileSync(join(dir, "design/base.toml"), THEME.replace('name = "acme"', 'name = "plain"'));
+  writeFileSync(join(dir, "design/theme.toml"), 'name = "acme"\nextends = "base.toml"\n\n[palette.night]\nblue = "#7da6ff"\naccent = "#ff00aa"\n\n[palette.day]\naccent = "#aa0055"\n');
+  const result = run(dir);
+  expect(result.stderr.toString()).toBe("");
+  expect(read(dir, "ports/a.conf")).toBe("#101010 #7da6ff #ff00aa #fafafa #aa0055\n");
+  writeFileSync(join(dir, "design/theme.toml"), 'name = "acme"\nextends = "none.toml"\n');
+  expect(run(dir).stderr.toString()).toContain("theme.toml: extends: no theme at design/none.toml");
+});
