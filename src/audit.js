@@ -66,6 +66,15 @@ export const audit = (doc, { faces }) => {
     for (const [level, each] of sizes) for (const [h, size] of each) for (const [, above] of sizes.slice(0, level - 1).flatMap(([, list]) => list)) {
       if (size > above + 0.5) { failures.push(`h${level} ${size}px is larger than a heading above it (${above}px): ${name(h)}`); break; }
     }
+    // A pane of running text alone (no list beside it) is as wide as its text, not the window: wider, and the text
+    // sits against one side with the rest of the pane empty.
+    const lone = detail.parentElement.children.length === 1;
+    const prose = [...detail.querySelectorAll(":scope > :is(p, ul, ol, blockquote)")];
+    if (lone && prose.length) {
+      const pane = detail.getBoundingClientRect();
+      const text = Math.max(...prose.map((each) => each.getBoundingClientRect().right)) - pane.left;
+      if (pane.width - text > pane.width / 3) failures.push(`a lone pane ${Math.round(pane.width)}px wide holds text ${Math.round(text)}px wide, against one side: ${name(detail.querySelector("h1") ?? detail)}`);
+    }
     for (const p of detail.querySelectorAll(":scope > :is(p, ul, ol, blockquote)")) {
       const em = p.getBoundingClientRect().width / parseFloat(style(p).fontSize);
       if (em > 45) failures.push(`measure ${Math.round(em)}em is too wide: ${name(p)}`);

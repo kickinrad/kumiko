@@ -1,5 +1,5 @@
-// The playground's client: a page drawn with Beer's own markup on the kit's generated theme. It reads one file
-// of the kit's, tokens.json, and names no kit. Each destination's items come from its own module beside this
+// The playground's client: a page drawn with Beer's own markup on the kit's generated theme. It reads the kit's
+// data from the page (the #kit element, tokens.json's content), and names no kit. Each destination's items come from its own module beside this
 // one; everything that draws is a pure function of the data and is exported; the page starts only where there is
 // a document. "../color.mjs" is the engine's colour maths, written beside the page as color.mjs.
 import { contrast } from "../color.mjs";
@@ -80,8 +80,9 @@ ${list}<div><h1>${item.name}</h1>${item.body(data, data.modes[mode])}</div>
 };
 
 const boot = async () => {
-  const data = await (await fetch(new URL("tokens.json", import.meta.url))).json();
-  [data.loaded, data.kitsLoaded] = await Promise.all([load(data.examples ?? [], import.meta.url), load(data.kits ?? [], import.meta.url)]);
+  // The kit's data travels in the page (it opens from disk); the apps' entries and other kits are fetched by location.
+  const data = JSON.parse(document.getElementById("kit").textContent);
+  [data.loaded, data.kitsLoaded] = await Promise.all([load(data.examples ?? [], location.href), load(data.kits ?? [], location.href)]);
   for (const { href, error } of [...data.loaded, ...data.kitsLoaded]) if (error) console.info(`playground: ${href} did not load (${error}); serve its checkout beside the kit's to see it`);
   let device = 0;
   const modes = Object.keys(data.modes);

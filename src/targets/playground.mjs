@@ -1,15 +1,16 @@
 // The playground: one page on the kit's generated web outputs, so the kit shows itself on its own theme.
-// Writes into options.path: index.html (fixed, names no kit), the engine's client (src/web: playground.js and a
-// module per destination, with color.mjs, the engine's colour maths, beside them) and tokens.json (the kit's name,
-// version, tokens per mode and notes: the only per-kit data the page reads).
-// Options: path (a directory). The page carries its styles: Beer's (the installed release, its own font files left
-// out), then the config's css and beer outputs as this run made them (list both before the playground), so the
-// generated folder works as it stands wherever it is served. Beer's script is that release's from its CDN, and the
+// Writes into options.path index.html, one file that opens from disk: its shell names no kit, and it carries the
+// kit's data (the same as tokens.json beside it: name, version, title, tokens per mode and notes), the engine's client
+// (src/web, bundled into one script with color.mjs, the engine's colour maths) and its styles.
+// Options: path (a directory). The styles are Beer's (the installed release, its own font files left out), then the
+// config's css and beer outputs as this run made them (list both before the playground). Beer's script is that release's from its CDN, and the
 // icon face comes from Google Fonts. With a tailwind output (listed before the playground) it also writes
 // tailwind.html, which proves the output in a frame of its own (Tailwind's reset would restyle the page), and
 // tokens.json names it. theme.toml's icon, a Material Symbol name,
 // is the kit's mark in the top app bar ("style" otherwise). Optional, by location only: examples (the apps' entry
 // files, which the Examples destination fetches) and kits (other kits' playground directories, for the kit menu).
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import tailwind from "../web/tailwind.html" with { type: "text" };
 import { need, needKit } from "../system.mjs";
@@ -27,6 +28,21 @@ const beerCss = async () => {
   for (const file of new Set(css.match(/(?<=url\()[\w-]+\.svg(?=\))/g))) css = css.replaceAll(`url(${file})`, `url("data:image/svg+xml,${encodeURIComponent(await beerFile(file).text())}")`);
   return { css, release };
 };
+// The client as one script: a page opened from disk cannot import modules beside it. Bundled from a scratch copy, so
+// the binary's embedded sources and a checkout's files take the same path.
+const bundle = async (client, color) => {
+  const dir = mkdtempSync(join(tmpdir(), "kumiko-playground-"));
+  try {
+    for (const [file, text] of client) writeFileSync(join(dir, file), text.replaceAll('"../color.mjs"', '"./color.mjs"'));
+    writeFileSync(join(dir, "color.mjs"), color);
+    const result = await Bun.build({ entrypoints: [join(dir, "playground.js")], target: "browser", format: "esm" });
+    if (!result.success) throw new Error(`playground: the client did not bundle\n${result.logs.join("\n")}`);
+    // The bundler marks each module with its path from here; the scratch copy's name changes every run.
+    return (await result.outputs[0].text()).replace(/^\/\/ \S*kumiko-playground-[^/]+\//gm, "// ");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+};
 const ICONS = (family) => `https://fonts.googleapis.com/css2?family=${family.replaceAll(" ", "+")}:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block`;
 // The client's modules; each imports the colour maths from "../color.mjs" in the source and "./color.mjs" beside the page.
 const CLIENT = ["playground.js", "examples.js", "foundations.js", "components.js", "cards.js", "pages.js"];
@@ -37,8 +53,8 @@ const source = (path) => (Bun.embeddedFiles.find((file) => basename(file.name) =
 // Tailwind's browser build reads @import "tailwindcss" even inside a comment, and then draws nothing.
 const withoutComments = (css) => css.replace(/\/\*[\s\S]*?\*\//g, "");
 const attribute = (text) => text.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
-// A stylesheet inside a <style> element: only a closing tag could end it early.
-const inline = (css) => css.replace(/<\/style/gi, "<\\/style");
+// Text inside a <style> or <script> element: only its closing tag could end it early.
+const inline = (text) => text.replace(/<\/(style|script)/gi, "<\\/$1");
 // The kit's notes as HTML (Bun's CommonMark): the leading level-one heading names the document, and the item's own
 // title already does, so it goes.
 const notesHtml = (text) => Bun.markdown.html(text.replace(/^\s*# [^\n]*\n/, ""));
@@ -84,6 +100,19 @@ export default {
 
     const color = await source("../color.mjs");
     const client = await Promise.all(CLIENT.map(async (file) => [file, await source(`../web/${file}`)]));
+    const fields = [
+      `"name": ${JSON.stringify(name)}`,
+      `"version": ${JSON.stringify(version)}`,
+      `"title": ${JSON.stringify(ctx.title ?? name)}`,
+      `"modes": {\n${byMode.map(([mode, each]) => `    ${JSON.stringify(mode)}: ${lines(each)}`).join(",\n")}\n  }`,
+      ...(icon === undefined ? [] : [`"icon": ${JSON.stringify(icon)}`]),
+      ...(output === undefined ? [] : [`"tailwind": "tailwind.html"`]),
+      ...(notes === undefined ? [] : [`"notes": ${JSON.stringify(notesHtml(notes))}`]),
+      ...(entries.length ? [`"examples": ${JSON.stringify(entries)}`] : []),
+      ...(kits.length ? [`"kits": ${JSON.stringify(kits)}`] : []),
+    ];
+    const data = `{\n${fields.map((field) => `  ${field}`).join(",\n")}\n}\n`;
+    const script = await bundle(client, color);
     const page = [
       "<!doctype html>",
       '<html lang="en">',
@@ -99,27 +128,14 @@ export default {
       "<body>",
       '<div id="app"></div>',
       `<script type="module" src="https://cdn.jsdelivr.net/npm/beercss@${release}/dist/cdn/beer.min.js"></script>`,
-      '<script type="module" src="playground.js"></script>',
+      `<script type="application/json" id="kit">\n${inline(data)}</script>`,
+      `<script type="module">\n${inline(script)}</script>`,
       "</body>",
       "</html>",
       "",
     ].join("\n");
-    const fields = [
-      `"name": ${JSON.stringify(name)}`,
-      `"version": ${JSON.stringify(version)}`,
-      `"title": ${JSON.stringify(ctx.title ?? name)}`,
-      `"modes": {\n${byMode.map(([mode, each]) => `    ${JSON.stringify(mode)}: ${lines(each)}`).join(",\n")}\n  }`,
-      ...(icon === undefined ? [] : [`"icon": ${JSON.stringify(icon)}`]),
-      ...(output === undefined ? [] : [`"tailwind": "tailwind.html"`]),
-      ...(notes === undefined ? [] : [`"notes": ${JSON.stringify(notesHtml(notes))}`]),
-      ...(entries.length ? [`"examples": ${JSON.stringify(entries)}`] : []),
-      ...(kits.length ? [`"kits": ${JSON.stringify(kits)}`] : []),
-    ];
-    const data = `{\n${fields.map((field) => `  ${field}`).join(",\n")}\n}\n`;
     return [
       { path: join(dir, "index.html"), content: page },
-      ...client.map(([file, text]) => ({ path: join(dir, file), content: text.replaceAll('"../color.mjs"', '"./color.mjs"') })),
-      { path: join(dir, "color.mjs"), content: color },
       { path: join(dir, "tokens.json"), content: data },
       ...(output === undefined ? [] : [{ path: join(dir, "tailwind.html"), content: tailwind.replace("{{css}}", () => inline(css)).replace("{{tailwind}}", () => withoutComments(output)) }]),
     ];

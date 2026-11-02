@@ -153,5 +153,8 @@ main:has(> .panes) { --_padding: 16px; }
 @media (min-width: 840px) { main > .panes:has(> :only-child) { grid-template-columns: minmax(0, 1fr); } }
 /* Running text in a pane keeps a readable measure, about 65 characters. */
 main > .panes > * > :is(p, ul, ol, blockquote) { max-inline-size: 65ch; }
+/* A destination with one item is a page of reading: its pane is as wide as that measure, centred in the window. */
+main > .panes:has(> :only-child) { justify-items: center; }
+main > .panes:has(> :only-child) > * { inline-size: 100%; max-inline-size: calc(65ch + 2 * var(--md-comp-list-item-leading-space)); box-sizing: border-box; }
 /* From large, the fixed pane is 412. */
 @media (min-width: 1200px) { main > .panes { grid-template-columns: 412px minmax(0, 1fr); } main > .panes.supporting { grid-template-columns: minmax(0, 1fr) 412px; } main > .panes:has(> :only-child) { grid-template-columns: minmax(0, 1fr); } }

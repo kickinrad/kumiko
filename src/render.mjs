@@ -1,10 +1,11 @@
-// `tokens audit`: the playground as a browser draws it. Serves the generated playground, opens it in headless Chrome
+// `tokens audit`: the playground as a browser draws it. Opens the generated playground from disk in headless Chrome
 // (over the DevTools protocol, so the engine needs no browser library) at a desktop and a phone size, under a host's
 // reset as a page that embeds or publishes it would add, and runs src/audit.js on every destination and item in
 // every mode. Returns one line per failure: the audit's, a page error, or a request that failed.
 import { mkdtempSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import auditSource from "./audit.js" with { type: "text" };
 
 // Plain rules, so they outrank Beer's cascade layer, as a host's would.
@@ -46,7 +47,7 @@ const connect = async (url) => {
 // audited with the kit's faces.
 const walk = async () => {
   const wait = (ms) => new Promise((done) => setTimeout(done, ms));
-  const data = await (await fetch("tokens.json")).json();
+  const data = JSON.parse(document.getElementById("kit").textContent);
   const faces = [...new Set(Object.values(data.modes).flat().filter((token) => token.type === "fontFamily" && /^md\.sys\.typescale\.|\.typeface\.mono$/.test(token.path)).map((token) => token.value.split(",")[0].trim().replace(/^["']|["']$/g, "")))];
   const names = Object.keys(data.modes);
   // The page opens in the mode the browser prefers; the switch names the next one.
@@ -75,13 +76,6 @@ const walk = async () => {
 
 export const audit = async (dir) => {
   if (!(await Bun.file(join(dir, "index.html")).exists())) throw new Error(`tokens audit: no playground at ${dir} (run tokens first)`);
-  const server = Bun.serve({ port: 0, hostname: "127.0.0.1", fetch: async (request) => {
-    const path = decodeURIComponent(new URL(request.url).pathname);
-    // The browser asks for an icon the page never names.
-    if (path === "/favicon.ico") return new Response(null, { status: 204 });
-    const file = Bun.file(join(dir, path.replace(/\/$/, "/index.html")));
-    return await file.exists() ? new Response(file) : new Response("missing", { status: 404 });
-  } });
   const profile = mkdtempSync(join(tmpdir(), "tokens-audit-"));
   const browser = Bun.spawn([chrome(), "--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "--no-first-run", "--no-default-browser-check", "about:blank"], { stderr: "pipe", stdout: "ignore" });
   const failures = [];
@@ -94,10 +88,11 @@ export const audit = async (dir) => {
       text += new TextDecoder().decode(value);
     }
     const devtools = await connect(text.match(/DevTools listening on (ws:\S+)/)[1]);
-    const page = `http://127.0.0.1:${server.port}/`;
+    const page = pathToFileURL(join(dir, "index.html")).href;
     // The apps' entries and other kits are optional and fetched by location; one that is not there is left out.
     const data = await Bun.file(join(dir, "tokens.json")).json();
     const optional = new Set([...(data.examples ?? []), ...(data.kits ?? [])].map((each) => new URL(each, page).href));
+    const requested = new Map();
     for (const viewport of VIEWPORTS) {
       const at = `${viewport.width}px`;
       const { targetId } = await devtools.send("Target.createTarget", { url: "about:blank" });
@@ -110,8 +105,9 @@ export const audit = async (dir) => {
         const { method, params } = message;
         if (method === "Page.loadEventFired") loaded();
         if (method === "Runtime.exceptionThrown") failures.push(`${at}: page error ${params.exceptionDetails.exception?.description ?? params.exceptionDetails.text}`);
+        if (method === "Network.requestWillBeSent") requested.set(params.requestId, params.request.url);
         if (method === "Network.responseReceived" && params.response.status >= 400 && !optional.has(params.response.url)) failures.push(`${at}: ${params.response.url} answered ${params.response.status}`);
-        if (method === "Network.loadingFailed" && !params.canceled) failures.push(`${at}: a request failed (${params.errorText})`);
+        if (method === "Network.loadingFailed" && !params.canceled && !optional.has(requested.get(params.requestId))) failures.push(`${at}: ${requested.get(params.requestId) ?? "a request"} failed (${params.errorText})`);
       });
       for (const domain of ["Page", "Runtime", "Network"]) await send(`${domain}.enable`);
       await send("Emulation.setDeviceMetricsOverride", { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.mobile });
@@ -127,7 +123,6 @@ export const audit = async (dir) => {
   } finally {
     browser.kill();
     await browser.exited;
-    server.stop(true);
     rmSync(profile, { recursive: true, force: true });
   }
   return [...new Set(failures)];
