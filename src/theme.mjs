@@ -6,7 +6,7 @@ import { join } from "node:path";
 
 // Brand and plain fill Material's own typeface slots; mono and icon sit under the kit's name.
 const FACES = { brand: ["md", "ref", "typeface", "brand"], plain: ["md", "ref", "typeface", "plain"], mono: ["typeface", "mono"], icon: ["typeface", "icon"] };
-const KEYS = ["name", "title", "icon", "default", "media", "palette", "roles", "faces", "tokens", "derived", "contrast", "mealie"];
+const KEYS = ["name", "title", "tagline", "icon", "default", "media", "palette", "roles", "faces", "tokens", "derived", "contrast", "mealie"];
 const TYPES = ["dimension", "duration", "number", "fontWeight", "fontFamily", "string", "cubicBezier"];
 const MATERIAL_ACCENTS = ["primary", "secondary", "tertiary", "error"];
 const MEALIE_SLOTS = ["primary", "accent", "secondary", "success", "info", "warning", "error"];
@@ -172,7 +172,8 @@ const validate = (toml, kitName) => {
 
   const title = toml.title === undefined ? name : text(toml.title, "title");
   const icon = toml.icon === undefined ? undefined : text(toml.icon, "icon");
-  return { name, title, icon, modes, base, media, colours, roles, faces, values, derived, contrast, mealie };
+  const tagline = toml.tagline === undefined ? undefined : text(toml.tagline, "tagline");
+  return { name, title, tagline, icon, modes, base, media, colours, roles, faces, values, derived, contrast, mealie };
 };
 
 // kit is build.mjs's { root, name } (or {}): no kit or no theme.toml is no theme.

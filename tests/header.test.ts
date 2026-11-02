@@ -102,3 +102,15 @@ test("prose that quotes both phrases, or a header split over two lines, is not a
     expect(result.stderr.toString()).toContain("header");
   }
 });
+
+test("an output's lead lines stay first, and the header follows them", () => {
+  const dir = mkdtempSync(join(tmpdir(), "tokens-header-"));
+  mkdirSync(join(dir, "tokens"));
+  writeFileSync(join(dir, "tokens/kit.tokens.json"), JSON.stringify({ size: { $type: "dimension", gap: { $value: { value: 8, unit: "px" } } } }));
+  writeFileSync(join(dir, "lead.mjs"), `export default { name: "lead", build: async () => [{ path: "out/f.html", content: "<!-- marker -->\\n<main></main>\\n", lead: 1 }] };\n`);
+  writeFileSync(join(dir, "tokens.config.mjs"), 'import lead from "./lead.mjs";\nexport default { targets: [lead], kit: { name: "acme" } };\n');
+  writeFileSync(join(dir, "VERSION"), "1.2.3\n");
+  expect(run(dir).exitCode).toBe(0);
+  expect(read(dir, "out/f.html")).toBe(`<!-- marker -->\n<!-- ${line("lead")} -->\n<main></main>\n`);
+  expect(run(dir, "--check").exitCode).toBe(0);
+});

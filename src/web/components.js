@@ -70,7 +70,18 @@ const DOCS = "https://github.com/beercss/beercss/blob/main/docs/";
 const M3 = "https://m3.material.io/";
 // A component's page is under components/; any other Material 3 page is a path from the site's root.
 export const reference = (doc, m3, label = m3) => `<p class="small-text">Beer: <a class="link" href="${DOCS}${doc}.md" target="_blank" rel="noopener">${doc}.md</a>${m3 ? ` · Material 3: <a class="link" href="${M3}${m3.includes("/") ? m3 : `components/${m3}/overview`}" target="_blank" rel="noopener">${label}</a>` : ""}</p>`;
-const item = (id, name, doc, m3, body) => ({ id, name, body: () => `${reference(doc, m3)}${body()}` });
+// Material 3's component families (m3.material.io/components), and Beer's own pieces under "More".
+const FAMILIES = {
+  Actions: ["button", "icon-button", "fab", "button-group"],
+  Communication: ["badge", "progress", "snackbar", "tooltip", "shape"],
+  Containment: ["card", "dialog", "divider", "list", "expansion", "table", "overlay"],
+  Navigation: ["tabs", "navigation-bar", "navigation-rail", "navigation-drawer", "top-app-bar", "bottom-app-bar", "toolbar"],
+  Selection: ["checkbox", "chip", "menu", "radio", "slider", "switch", "select"],
+  "Text inputs": ["text-field", "textarea"],
+};
+const family = (id) => Object.keys(FAMILIES).find((name) => FAMILIES[name].includes(id)) ?? "More";
+// An item's specimen is its markup alone; its body adds the references above it.
+const item = (id, name, doc, m3, specimen) => ({ id, name, family: family(id), doc, m3, specimen, body: () => `${reference(doc, m3)}${specimen()}` });
 
 const items = [];
 
