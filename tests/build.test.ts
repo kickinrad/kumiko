@@ -213,3 +213,15 @@ test("an unknown built-in include fails loudly", () => {
   expect(result.exitCode).toBe(1);
   expect(result.stderr.toString()).toContain("Unknown built-in include builtin:nope");
 });
+
+test("an unknown subcommand or flag fails, naming it, and writes nothing", () => {
+  for (const args of [["nosuch"], ["--chek"]]) {
+    const dir = project();
+    const files = () => [...new Bun.Glob("**").scanSync(dir)].sort();
+    const before = files();
+    const result = run(dir, ...args);
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr.toString()).toContain(`tokens: unknown ${args[0]}`);
+    expect(files()).toEqual(before);
+  }
+});

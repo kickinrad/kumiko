@@ -1,17 +1,16 @@
 // The playground: one page on the kit's generated web outputs, so the kit shows itself on its own theme.
 // Writes into options.path index.html, one file that opens from disk: its shell names no kit, and it carries the
-// kit's data (the same as tokens.json beside it: name, version, title, tokens per mode and notes), the engine's client
+// kit's data (name, version, title, tokens per mode, notes and examples), the engine's client
 // (src/web, bundled into one script with color.mjs, the engine's colour maths) and its styles.
 // Options: path (a directory). The styles are Beer's (the installed release, its own font files left out), then the
 // config's css and beer outputs as this run made them (list both before the playground). Beer's script is that release's from its CDN, and the
 // icon face comes from Google Fonts. With a tailwind output (listed before the playground) it also writes
-// tailwind.html, which proves the output in a frame of its own (Tailwind's reset would restyle the page), and
-// tokens.json names it. theme.toml's icon, a Material Symbol name,
-// is the kit's mark in the top app bar ("style" otherwise). Optional, by location only: examples (the apps' entry
-// files, which the Examples destination fetches) and kits (other kits' playground directories, for the kit menu).
+// tailwind.html, which proves the output in a frame of its own (Tailwind's reset would restyle the page).
+// theme.toml's icon, a Material Symbol name, is the kit's mark in the top app bar ("style" otherwise). Optional:
+// examples, the project's own entry files (src/web/examples.js), read at build and carried in the page.
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, dirname, join, relative, resolve } from "node:path";
+import { basename, dirname, join, relative } from "node:path";
 import tailwind from "../web/tailwind.html" with { type: "text" };
 import { need, needKit } from "../system.mjs";
 
@@ -83,13 +82,17 @@ export default {
     const iconFace = (tokens.find((token) => token.path === `${name}.typeface.icon`)?.value ?? "Material Symbols Outlined").split(",")[0].trim().replace(/^["']|["']$/g, "");
     const notes = await readExisting(join(root, "notes.md"));
     const icon = theme?.icon;
-    // The apps' example entries and the other kits' playgrounds, by location only: the page fetches them, so the
-    // build never reads them.
-    const located = (key) => {
-      if (options[key] !== undefined && (!Array.isArray(options[key]) || options[key].some((each) => typeof each !== "string"))) throw new Error(`playground option "${key}" must be a list of paths`);
-      return (options[key] ?? []).map((each) => relative(resolve(dir), resolve(each)));
-    };
-    const [entries, kits] = [located("examples"), located("kits").map((each) => `${each}/tokens.json`)];
+    // The project's example entries, each with the path from the page to its folder (an entry's paths are its own).
+    if (options.examples !== undefined && (!Array.isArray(options.examples) || options.examples.some((each) => typeof each !== "string"))) throw new Error('playground option "examples" must be a list of paths');
+    const entries = await Promise.all((options.examples ?? []).map(async (path) => {
+      const text = await readExisting(path);
+      if (text === undefined) throw new Error(`playground: no example entry at ${path}`);
+      try {
+        return { base: `${relative(dir, dirname(path)) || "."}/`, entry: JSON.parse(text) };
+      } catch (error) {
+        throw new Error(`playground: ${path} is not valid JSON (${error.message})`);
+      }
+    }));
     // The Tailwind output as this run made it (list it before the playground).
     const tailwindPath = sibling("tailwind");
     const output = tailwindPath && built(tailwindPath);
@@ -109,7 +112,6 @@ export default {
       ...(output === undefined ? [] : [`"tailwind": "tailwind.html"`]),
       ...(notes === undefined ? [] : [`"notes": ${JSON.stringify(notesHtml(notes))}`]),
       ...(entries.length ? [`"examples": ${JSON.stringify(entries)}`] : []),
-      ...(kits.length ? [`"kits": ${JSON.stringify(kits)}`] : []),
     ];
     const data = `{\n${fields.map((field) => `  ${field}`).join(",\n")}\n}\n`;
     const script = await bundle(client, color);
@@ -136,7 +138,6 @@ export default {
     ].join("\n");
     return [
       { path: join(dir, "index.html"), content: page },
-      { path: join(dir, "tokens.json"), content: data },
       ...(output === undefined ? [] : [{ path: join(dir, "tailwind.html"), content: tailwind.replace("{{css}}", () => inline(css)).replace("{{tailwind}}", () => withoutComments(output)) }]),
     ];
   },

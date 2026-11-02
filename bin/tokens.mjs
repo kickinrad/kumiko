@@ -4,6 +4,14 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "../src/build.mjs";
 
+// tokens [--check] | tokens lint <file>… | tokens audit [<dir>]: anything else is a mistake, so nothing is built.
+const [verb, ...rest] = process.argv.slice(2);
+const unknown = verb === "lint" || verb === "audit" ? undefined : [verb, ...rest].find((arg) => arg !== undefined && arg !== "--check");
+if (unknown !== undefined) {
+  console.error(`tokens: unknown ${unknown} (tokens [--check], tokens lint <file>…, tokens audit [<dir>])`);
+  process.exit(1);
+}
+
 if (process.argv[2] === "lint") {
   const { lint } = await import("../src/lint.mjs");
   try {

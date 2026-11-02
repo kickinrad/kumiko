@@ -1,10 +1,10 @@
 // The playground's client: a page drawn with Beer's own markup on the kit's generated theme. It reads the kit's
-// data from the page (the #kit element, tokens.json's content), and names no kit. Each destination's items come from its own module beside this
+// data from the page (the #kit element), and names no kit. Each destination's items come from its own module beside this
 // one; everything that draws is a pure function of the data and is exported; the page starts only where there is
 // a document. "../color.mjs" is the engine's colour maths, written beside the page as color.mjs.
 import { contrast } from "../color.mjs";
 import cards from "./cards.js";
-import { examples, load } from "./examples.js";
+import { examples } from "./examples.js";
 import components from "./components.js";
 import foundations, { fontLinks, replay } from "./foundations.js";
 import pages from "./pages.js";
@@ -17,7 +17,7 @@ export const scheme = (tokens) => {
   return contrast(value, "#000000") > contrast(value, "#ffffff") ? "light" : "dark"; // lint: own black and white, the ends a scheme is measured against
 };
 
-// The destinations; with the apps' entries loaded, Examples joins them before Rules.
+// The destinations; with the project's example entries, Examples joins them before Rules.
 const TABS = [
   { id: "foundations", name: "Foundations", icon: "palette", items: foundations },
   { id: "components", name: "Components", icon: "widgets", items: components },
@@ -43,9 +43,9 @@ export const exceptions = (tokens) => {
 // beneath it from medium up and its bottom bar on small; the list and the detail are Material's two panes
 // (layout.css): side by side from expanded, and below that only the list (a tab named) or the open item (an item
 // named, `data-open`, with a back button) shows. A destination with one item has no list: its item is the page.
-// An entry that did not load is left out (its reason is logged when the page opens); with none loaded, no Examples.
-export const tabs = (data, device) => data.loaded?.some((each) => each.entry)
-  ? [...TABS.slice(0, -1), { id: "examples", name: "Examples", icon: "apps", items: examples(data.loaded.filter((each) => each.entry), device) }, TABS.at(-1)]
+// Without example entries, no Examples.
+export const tabs = (data, device) => data.examples?.length
+  ? [...TABS.slice(0, -1), { id: "examples", name: "Examples", icon: "apps", items: examples(data.examples, device) }, TABS.at(-1)]
   : TABS;
 
 export const view = (data, { tab: tabId, item: itemId, mode = Object.keys(data.modes)[0], expanded = false, device = 0 }) => {
@@ -60,30 +60,23 @@ export const view = (data, { tab: tabId, item: itemId, mode = Object.keys(data.m
   const switcher = `<button class="circle transparent" data-mode="${esc(next)}" aria-label="${esc(next[0].toUpperCase() + next.slice(1))} mode"><i>${scheme(data.modes[next]) === "light" ? "light_mode" : "dark_mode"}</i></button>`;
   const items = tab.items.map((each) => `<li><a class="wave${each === item ? " active" : ""}" href="#${tab.id}/${each.id}"><span class="max">${each.name}</span></a></li>`).join("");
   const list = tab.items.length > 1 ? `<div><ul class="list">${items}</ul></div>\n` : "";
-  // The kits the page can switch to: this one, and each other kit's playground that loaded.
-  const others = (data.kitsLoaded ?? []).filter((each) => each.entry);
-  const kits = others.length
-    ? `<button class="circle transparent" data-ui="#kits" aria-label="Design kit"><i>swap_horiz</i></button><menu class="left no-wrap" id="kits"><li><a class="active" href="#">${esc(data.name)}</a></li>${others.map(({ href, entry }) => `<li><a href="${esc(new URL(".", href).href)}">${esc(entry.name)}</a></li>`).join("")}</menu>`
-    : "";
   // The top app bar spans the window: the menu button over the rail's column (it expands the rail; on small, where
-  // the bottom bar replaces the rail, the kit's mark stands there instead), the kit's title, the kit menu and the
+  // the bottom bar replaces the rail, the kit's mark stands there instead), the kit's title and the
   // mode switch; below expanded, a back button when an item is open. Expanded, the rail is Material's expanded rail (Beer's `max`).
   const menu = `<button class="circle transparent m l" data-rail aria-label="${expanded ? "Collapse" : "Expand"} the navigation"><i>${expanded ? "menu_open" : "menu"}</i></button>`;
   const mark = `<i class="s">${esc(data.icon ?? "style")}</i>`;
   const back = open && list ? `<a class="button circle transparent" data-back href="#${tab.id}" aria-label="Back"><i>arrow_back</i></a>` : "";
   return `<nav class="left m l${expanded ? " max" : ""}">${destinations}</nav>
-<nav class="top">${menu}${mark}${back}<h6 class="max">${esc(data.title ?? data.name)}</h6>${kits}${switcher}</nav>
+<nav class="top">${menu}${mark}${back}<h6 class="max">${esc(data.title ?? data.name)}</h6>${switcher}</nav>
 <main><div class="panes"${open ? " data-open" : ""}>
 ${list}<div><h1>${item.name}</h1>${item.body(data, data.modes[mode])}</div>
 </div></main>
 <nav class="bottom s">${destinations}</nav>`;
 };
 
-const boot = async () => {
-  // The kit's data travels in the page (it opens from disk); the apps' entries and other kits are fetched by location.
+const boot = () => {
+  // The kit's data, examples included, travels in the page, so it opens from disk.
   const data = JSON.parse(document.getElementById("kit").textContent);
-  [data.loaded, data.kitsLoaded] = await Promise.all([load(data.examples ?? [], location.href), load(data.kits ?? [], location.href)]);
-  for (const { href, error } of [...data.loaded, ...data.kitsLoaded]) if (error) console.info(`playground: ${href} did not load (${error}); serve its checkout beside the kit's to see it`);
   let device = 0;
   const modes = Object.keys(data.modes);
   const schemes = Object.fromEntries(modes.map((mode) => [mode, scheme(data.modes[mode])]));

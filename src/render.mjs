@@ -46,7 +46,11 @@ const connect = async (url) => {
 // In the page (handed over as its source): each mode, each destination, each item (or the destination alone),
 // audited with the kit's faces.
 const walk = async () => {
-  const wait = (ms) => new Promise((done) => setTimeout(done, ms));
+  // The client draws in its own hashchange and click handlers, which run before this one resolves; the audit's
+  // reads of style and geometry lay the drawing out, so nothing waits for a frame.
+  const go = async (hash) => {
+    if (location.hash !== hash) await new Promise((done) => { addEventListener("hashchange", done, { once: true }); location.hash = hash; });
+  };
   const data = JSON.parse(document.getElementById("kit").textContent);
   const faces = [...new Set(Object.values(data.modes).flat().filter((token) => token.type === "fontFamily" && /^md\.sys\.typescale\.|\.typeface\.mono$/.test(token.path)).map((token) => token.value.split(",")[0].trim().replace(/^["']|["']$/g, "")))];
   const names = Object.keys(data.modes);
@@ -57,19 +61,16 @@ const walk = async () => {
     const mode = current();
     const tabs = [...new Set([...document.querySelectorAll("nav.bottom a, nav.left a")].map((a) => a.getAttribute("href")))];
     for (const tab of tabs) {
-      location.hash = tab.slice(1);
-      await wait(150);
+      await go(tab);
       const items = [...document.querySelectorAll(".list a")].map((a) => a.getAttribute("href"));
       for (const href of items.length ? items : [tab]) {
-        location.hash = href.slice(1);
-        await wait(150);
+        await go(href);
         // A face loads when text first uses it; ask for each, so a slow one is waited for and a missing one fails.
         await Promise.all(faces.map((face) => document.fonts.load(`16px "${face}"`)));
         for (const failure of window.__audit(document, { faces })) out.push(`${mode} ${href}: ${failure}`);
       }
     }
     document.querySelector("[data-mode]").click();
-    await wait(150);
   }
   return out;
 };
@@ -89,12 +90,11 @@ export const audit = async (dir) => {
     }
     const devtools = await connect(text.match(/DevTools listening on (ws:\S+)/)[1]);
     const page = pathToFileURL(join(dir, "index.html")).href;
-    // The apps' entries and other kits are optional and fetched by location; one that is not there is left out.
-    const data = await Bun.file(join(dir, "tokens.json")).json();
-    const optional = new Set([...(data.examples ?? []), ...(data.kits ?? [])].map((each) => new URL(each, page).href));
     const requested = new Map();
-    for (const viewport of VIEWPORTS) {
+    // Each size in a tab of its own, side by side; its failures in its own list, so the report reads in size order.
+    const bySize = await Promise.all(VIEWPORTS.map(async (viewport) => {
       const at = `${viewport.width}px`;
+      const failures = [];
       const { targetId } = await devtools.send("Target.createTarget", { url: "about:blank" });
       const { sessionId } = await devtools.send("Target.attachToTarget", { targetId, flatten: true });
       const send = (method, params) => devtools.send(method, params, sessionId);
@@ -106,8 +106,8 @@ export const audit = async (dir) => {
         if (method === "Page.loadEventFired") loaded();
         if (method === "Runtime.exceptionThrown") failures.push(`${at}: page error ${params.exceptionDetails.exception?.description ?? params.exceptionDetails.text}`);
         if (method === "Network.requestWillBeSent") requested.set(params.requestId, params.request.url);
-        if (method === "Network.responseReceived" && params.response.status >= 400 && !optional.has(params.response.url)) failures.push(`${at}: ${params.response.url} answered ${params.response.status}`);
-        if (method === "Network.loadingFailed" && !params.canceled && !optional.has(requested.get(params.requestId))) failures.push(`${at}: ${requested.get(params.requestId) ?? "a request"} failed (${params.errorText})`);
+        if (method === "Network.responseReceived" && params.response.status >= 400) failures.push(`${at}: ${params.response.url} answered ${params.response.status}`);
+        if (method === "Network.loadingFailed" && !params.canceled) failures.push(`${at}: ${requested.get(params.requestId) ?? "a request"} failed (${params.errorText})`);
       });
       for (const domain of ["Page", "Runtime", "Network"]) await send(`${domain}.enable`);
       await send("Emulation.setDeviceMetricsOverride", { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.mobile });
@@ -118,7 +118,9 @@ export const audit = async (dir) => {
       if (exceptionDetails) failures.push(`${at}: the audit could not run (${exceptionDetails.exception?.description ?? exceptionDetails.text})`);
       else failures.push(...result.value.map((line) => `${at} ${line}`));
       await devtools.send("Target.closeTarget", { targetId });
-    }
+      return failures;
+    }));
+    failures.push(...bySize.flat());
     devtools.close();
   } finally {
     browser.kill();
