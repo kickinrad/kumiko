@@ -3,21 +3,18 @@ import { expect, test } from "bun:test";
 import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { command, read, root, run } from "./helpers";
 
-const root = resolve(import.meta.dir, "..");
-const command = process.env.TOKENS_BIN ? [resolve(process.env.TOKENS_BIN)] : ["bun", join(root, "bin/tokens.mjs")];
 const project = () => {
   const dir = mkdtempSync(join(tmpdir(), "tokens-"));
   cpSync(join(root, "tests/fixture"), dir, { recursive: true });
   return dir;
 };
-const run = (cwd: string, ...args: string[]) => Bun.spawnSync([...command, ...args], { cwd, stderr: "pipe" });
-const read = (dir: string, file: string) => readFileSync(join(dir, file), "utf8");
 
 test("builds byte-identical outputs to the 2.1.0 template", () => {
   const dir = project();
   expect(run(dir).exitCode).toBe(0);
-  for (const file of ["src/styles/tokens.css", "theme.json", "DESIGN.md"]) {
+  for (const file of ["src/styles/tokens.css", "DESIGN.md"]) {
     expect(read(dir, file)).toBe(read(join(root, "tests/expected"), file));
   }
 });
@@ -37,14 +34,25 @@ test("a token file that isn't valid JSON fails the build with the parse error, n
   writeFileSync(join(dir, "tokens/broken.tokens.json"), '{ "a": { "$type": "color", "$value": "#fff", "$description": "say "hi"" } }\n');
   const result = Bun.spawnSync([...command], { cwd: dir, stderr: "pipe", timeout: 10_000 });
   expect(result.exitCode).toBe(1);
-  expect(result.stderr.toString()).toContain("invalid character");
+  expect(result.stderr.toString()).toContain("tokens/broken.tokens.json is not valid JSON");
 });
 
-test("a project target is one file named in tokens.config.mjs", () => {
+test("a token set in two source files fails the build naming both, not a hang (#7)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "tokens-collision-"));
+  mkdirSync(join(dir, "tokens"));
+  writeFileSync(join(dir, "tokens/a.tokens.json"), JSON.stringify({ x: { $type: "number", $value: 1 } }));
+  writeFileSync(join(dir, "tokens/b.tokens.json"), JSON.stringify({ x: { $type: "number", $value: 3 } }));
+  writeFileSync(join(dir, "tokens.config.mjs"), 'export default { targets: ["css"] };\n');
+  const result = Bun.spawnSync([...command], { cwd: dir, stderr: "pipe", timeout: 10_000 });
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr.toString()).toContain("x is set in both tokens/a.tokens.json and tokens/b.tokens.json");
+});
+
+test("a project target is a module the config imports and lists", () => {
   const dir = project();
   writeFileSync(join(dir, "local.mjs"),
     'export default { name: "local", build: async (ctx) => [{ path: "local.txt", content: `${ctx.tokens.length}\\n` }] };\n');
-  writeFileSync(join(dir, "tokens.config.mjs"), 'export default { targets: ["css", "./local.mjs"] };\n');
+  writeFileSync(join(dir, "tokens.config.mjs"), 'import local from "./local.mjs";\nexport default { targets: ["css", local] };\n');
   rmSync(join(dir, "tokens/stack.tokens.json"));
   expect(run(dir).exitCode).toBe(0);
   expect(Number(read(dir, "local.txt"))).toBeGreaterThan(0);
@@ -106,7 +114,7 @@ const kitProject = (kit: string | undefined, version: string | null = "1.2.3\n")
   rmSync(join(dir, "tokens/stack.tokens.json"));
   writeFileSync(join(dir, "echo.mjs"), echoTarget);
   writeFileSync(join(dir, "tokens.config.mjs"),
-    `export default { targets: ["./echo.mjs"]${kit === undefined ? "" : `, kit: ${kit}`} };\n`);
+    `import echo from "./echo.mjs";\nexport default { targets: [echo]${kit === undefined ? "" : `, kit: ${kit}`} };\n`);
   if (version !== null) writeFileSync(join(dir, "VERSION"), version);
   return dir;
 };

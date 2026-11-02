@@ -11,7 +11,7 @@ const SLOTS = { red: 'error', orange: 'orange', yellow: 'yellow', green: 'green'
 // Minimal's text highlights: an accent at this alpha. A port value, not a Material state layer.
 const HIGHLIGHT = 0.24;
 
-const snippet = (tokens, name, { scope, mode, title, version, font, extra }) => {
+const snippet = (tokens, name, { scope, mode, title, font, extra }) => {
   const role = (r) => byPath(tokens).get(rolePath(tokens, name, r)).value;
   const [ah, as, al] = hsl(role('primary'));
   const [bh, bs, bl] = hsl(role('surface-container'));
@@ -24,7 +24,6 @@ const snippet = (tokens, name, { scope, mode, title, version, font, extra }) => 
     `${title} — ${mode}`,
     'Designed as a color + typography snippet for the Minimal theme by @kepano.',
     '',
-    `Version ${version}`,
     'Requires: Minimal theme (https://github.com/kepano/obsidian-minimal) installed and active.',
     '',
     'Install: drop this file in YOUR_VAULT/.obsidian/snippets/ and enable',
@@ -71,14 +70,14 @@ export default {
   name: 'obsidian',
   async build(ctx) {
     needKit(ctx, 'obsidian');
-    const { tokens, media, mediaTokens, name, version, options } = ctx;
+    const { tokens, media, mediaTokens, name, options } = ctx;
     const out = need(options, 'obsidian', 'out');
     const [baseName, otherName] = need(options, 'obsidian', 'modes');
     const { title = name } = options;
     const [, files] = Object.entries(media)[0];
     const other = await mediaTokens(files);
     const font = options.font ?? byPath(tokens).get(`${name}.typeface.mono`).value;
-    const common = { title, version, font };
+    const common = { title, font };
     const surface = (set, r) => byPath(set).get(`md.sys.color.${r}`).value;
     return [
       { path: `${out}-${baseName.toLowerCase()}.css`, content: snippet(tokens, name, { ...common, mode: baseName, scope: 'body.theme-dark',

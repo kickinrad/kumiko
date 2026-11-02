@@ -3,11 +3,8 @@ import { expect, test } from "bun:test";
 import { cpSync, mkdtempSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { command, read, root, run } from "./helpers";
 
-const root = resolve(import.meta.dir, "..");
-const command = process.env.TOKENS_BIN ? [resolve(process.env.TOKENS_BIN)] : ["bun", join(root, "bin/tokens.mjs")];
-const run = (cwd: string, ...args: string[]) => Bun.spawnSync([...command, ...args], { cwd, stderr: "pipe" });
-const read = (dir: string, file: string) => readFileSync(join(dir, file), "utf8");
 const outputs = ["tokens/derived.tokens.json", "tokens/derived-day.tokens.json"];
 
 const project = () => {
@@ -41,6 +38,18 @@ test("the outputs feed back into the build, and --check passes on them", () => {
   expect(again.exitCode).toBe(0);
 });
 
+test("after a palette change one run is final: the outputs read this run's derived roles", () => {
+  const dir = project();
+  renameSync(join(dir, "tokens.config.mjs"), join(dir, "base.config.mjs"));
+  writeFileSync(join(dir, "tokens.config.mjs"), 'import base from "./base.config.mjs";\nexport default { ...base, targets: ["derived", "css"] };\n');
+  expect(run(dir).exitCode).toBe(0);
+  writeFileSync(join(dir, "tokens/base.tokens.json"), read(dir, "tokens/base.tokens.json").replace("#7aa2f7", "#f7768e"));
+  expect(run(dir).exitCode).toBe(0);
+  const again = run(dir, "--check");
+  expect(again.stderr.toString()).toBe("");
+  expect(again.exitCode).toBe(0);
+});
+
 test("a declared kit supplies the prefix", () => {
   const dir = edited("delete d.prefix;");
   writeFileSync(join(dir, "VERSION"), "1.0.0\n");
@@ -53,7 +62,6 @@ test.each([
   ["prefix", "delete d.prefix;"],
   ["accents", "delete d.accents;"],
   ["blend", "delete d.blend;"],
-  ["dayFiles", "delete d.dayFiles;"],
   ["out.night", "delete d.out.night;"],
   ["out.day", "delete d.out.day;"],
   ["marks.group", "delete d.marks.group;"],

@@ -5,11 +5,8 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { contrast } from "../src/color.mjs";
 import { HEADER_LINE } from "../src/header.mjs";
+import { command, read, root, run } from "./helpers";
 
-const root = resolve(import.meta.dir, "..");
-const command = process.env.TOKENS_BIN ? [resolve(process.env.TOKENS_BIN)] : ["bun", join(root, "bin/tokens.mjs")];
-const run = (cwd: string, ...args: string[]) => Bun.spawnSync([...command, ...args], { cwd, stderr: "pipe" });
-const read = (dir: string, file: string) => readFileSync(join(dir, file), "utf8");
 
 const project = () => {
   const dir = mkdtempSync(join(tmpdir(), "tokens-playground-"));

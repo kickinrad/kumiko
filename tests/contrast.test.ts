@@ -72,21 +72,9 @@ describe("colour maths", () => {
   });
 });
 
-describe("toHex reads the colours a resolved token carries", () => {
-  test("hex strings, short and long, any case", () => {
-    expect(toHex("#ABCDEF")).toBe("#abcdef");
-    expect(toHex("#abc")).toBe("#aabbcc");
-  });
-  test("DTCG 2025.10 colour objects, by hex or by srgb components", () => {
-    expect(toHex({ colorSpace: "srgb", components: [0, 0, 0], hex: "#121416" })).toBe("#121416");
-    expect(toHex({ colorSpace: "srgb", components: [1, 0.5, 0] })).toBe("#ff8000");
-  });
-  test("anything else is not a colour", () => {
-    expect(toHex("16px")).toBeUndefined();
-    expect(toHex("rgba(0 0 0 / 0.5)")).toBeUndefined();
-    expect(toHex({ colorSpace: "oklch", components: [0.5, 0.1, 20] })).toBeUndefined();
-    expect(toHex(undefined)).toBeUndefined();
-  });
+test("toHex takes an opaque colour as the build writes it, and nothing else", () => {
+  expect(toHex("#abcdef")).toBe("#abcdef");
+  for (const other of ["16px", "rgba(0, 0, 0, 0.5)", "#abc", undefined]) expect(toHex(other)).toBeUndefined();
 });
 
 describe("a kit's contrast pairs", () => {
@@ -179,7 +167,7 @@ describe("a kit's contrast pairs", () => {
     const dir = mkdtempSync(join(tmpdir(), "tokens-contrast-golden-"));
     cpSync(join(root, "tests/fixture"), dir, { recursive: true });
     expect(run(dir).exitCode).toBe(0);
-    for (const file of ["src/styles/tokens.css", "theme.json", "DESIGN.md"]) {
+    for (const file of ["src/styles/tokens.css", "DESIGN.md"]) {
       expect(readFileSync(join(dir, file), "utf8")).toBe(readFileSync(join(root, "tests/expected", file), "utf8"));
     }
     rmSync(dir, { recursive: true });

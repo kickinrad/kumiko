@@ -1,136 +1,43 @@
 // DTCG 2025.10 tokens/*.tokens.json is the only value source.
-// A target is one module exporting { name, build(ctx) → [{ path, content }] }:
-// built in under ./targets (listed in its index) or a project path in tokens.config.mjs.
+// A target is a module exporting { name, build(ctx) → [{ path, content }] }: built in under ./targets (listed in its
+// index), or a project's own, imported by tokens.config.mjs and listed as an object.
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
-import StyleDictionary from "style-dictionary";
+import { dirname, relative, resolve } from "node:path";
 import material from "./material.mjs";
+import { readTokens, resolve as resolveTokens, typography } from "./resolve.mjs";
 import { checkHeader, stamp } from "./header.mjs";
 import { checkContrast } from "./checks/contrast.mjs";
-import { loadTheme, syncTheme, withMedia } from "./theme.mjs";
+import { loadTheme, withMedia } from "./theme.mjs";
 import builtins from "./targets/index.mjs";
 
 // Built-in include layers, named in a config's `include` beside its file globs.
 const layers = { [material.name]: material };
 
-export const DEFAULT_TARGETS = ["css", "theme-json", "design-md"];
-
-const weights = {
-  thin: 100, hairline: 100, extralight: 200, ultralight: 200, light: 300,
-  normal: 400, regular: 400, medium: 500, semibold: 600, demibold: 600,
-  bold: 700, extrabold: 800, ultrabold: 800, black: 900, heavy: 900,
-};
-const cssValue = (value) => value && typeof value === "object" && "value" in value && "unit" in value
-  ? `${value.value}${value.unit}` : value;
-const dimensionValue = (value, field) => {
-  if (typeof value === "string" && /^-?\d+(?:\.\d+)?(?:px|rem)$/.test(value)) return value;
-  if (!value || typeof value !== "object" || typeof value.value !== "number" ||
-      !["px", "rem"].includes(value.unit)) throw new Error(`Invalid typography ${field} dimension`);
-  return cssValue(value);
-};
-const fontWeight = (value) => {
-  if (typeof value === "number") return value;
-  const key = String(value).replace(/[-_\s]/g, "").toLowerCase();
-  if (key in weights) return weights[key];
-  if (/^[1-9]00$/.test(key)) return Number(key);
-  throw new Error(`Unsupported fontWeight ${value}`);
-};
-export const typography = (value) => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Typography must be an object");
-  for (const field of ["fontFamily", "fontSize", "fontWeight", "lineHeight", "letterSpacing"]) {
-    if (value[field] === undefined) throw new Error(`Typography is missing ${field}`);
-  }
-  const result = {};
-  for (const field of ["fontFamily", "fontSize", "fontWeight", "lineHeight", "letterSpacing"]) {
-    result[field] = ["fontSize", "letterSpacing"].includes(field) ? dimensionValue(value[field], field)
-      : field === "fontWeight" ? fontWeight(value[field])
-      : field === "fontFamily" && Array.isArray(value[field]) ? value[field].join(", ")
-        : cssValue(value[field]);
-  }
-  return result;
-};
-const shadow = (value) => {
-  const one = (item) => {
-    if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error("Invalid shadow");
-    for (const field of ["offsetX", "offsetY", "blur", "spread", "color"]) {
-      if (item[field] === undefined) throw new Error(`Shadow is missing ${field}`);
-    }
-    const color = typeof item.color === "string" ? item.color
-      : StyleDictionary.hooks.transforms["color/css"].transform(
-        { $type: "color", $value: item.color }, undefined, { usesDtcg: true });
-    return `${item.inset ? "inset " : ""}${["offsetX", "offsetY", "blur", "spread"].map((field) => cssValue(item[field])).join(" ")} ${color}`;
-  };
-  return (Array.isArray(value) ? value : [value]).map(one).join(", ");
-};
-const cubicBezier = (value) => {
-  if (!Array.isArray(value) || value.length !== 4 || value.some((part) => typeof part !== "number")) {
-    throw new Error("Invalid cubicBezier");
-  }
-  return `cubic-bezier(${value.join(", ")})`;
-};
-
-const transforms = {
-  "design-system/duration": { type: "duration", transform: (token) => cssValue(token.$value) },
-  "design-system/font-weight": { type: "fontWeight", transform: (token) => fontWeight(token.$value) },
-  "design-system/typography": {
-    type: "typography",
-    transform: (token) => {
-      const value = typography(token.$value);
-      return `${value.fontWeight} ${value.fontSize}/${value.lineHeight} ${value.fontFamily}`;
-    },
-  },
-  "design-system/shadow": { type: "shadow", transform: (token) => shadow(token.$value) },
-  "design-system/cubic-bezier": { type: "cubicBezier", transform: (token) => cubicBezier(token.$value) },
-};
-for (const [name, { type, transform }] of Object.entries(transforms)) {
-  StyleDictionary.registerTransform({
-    name, type: "value", transitive: true, filter: (token) => token.$type === type, transform,
-  });
-}
-const cssTransforms = [
-  ...StyleDictionary.hooks.transformGroups.css.filter((name) =>
-    !["typography/css/shorthand", "time/seconds", "shadow/css/shorthand", "cubicBezier/css"].includes(name)),
-  ...Object.keys(transforms),
-];
 const cssTypes = new Set(["color", "dimension", "duration", "fontFamily", "fontWeight", "number", "string", "typography", "shadow", "cubicBezier"]);
-
-// Initialised here, not in the constructor, so a file that fails to load rejects instead of hanging the build.
-const makeDictionary = async (source, include = [], tokens = {}) => {
-  const dictionary = new StyleDictionary({
-    // Inline tokens are Style Dictionary's lowest layer: under include files, which sit under source.
-    tokens, include, source,
-    log: { warnings: "error", verbosity: "verbose" },
-    platforms: { raw: {}, css: { transforms: cssTransforms } },
-  }, { init: false });
-  await dictionary.init();
-  return dictionary;
-};
-const resolvedType = (token, tokenMap, seen = new Set()) => {
-  if (token.$type) return token.$type;
-  const path = token.path.join(".");
-  if (seen.has(path)) throw new Error(`Circular token alias at ${path}`);
-  const alias = token.original?.$value?.match?.(/^\{([^{}]+)\}$/);
-  if (!alias) return undefined;
-  const target = tokenMap.get(alias[1]);
-  if (!target) throw new Error(`Missing token alias ${alias[1]}`);
-  return resolvedType(target, tokenMap, new Set([...seen, path]));
-};
-const fluidValue = (rawToken, path) => {
-  const fluid = rawToken?.$extensions?.["com.kickinrad.css"]?.value;
-  if (fluid !== undefined && typeof fluid !== "string") throw new Error(`Invalid CSS extension for ${path}`);
-  return fluid;
-};
-// One resolved token as targets see it: value is the CSS scalar (fluid wins).
-const entry = (token, rawToken, type) => {
-  const path = token.path.join(".");
-  const fluid = fluidValue(rawToken, path);
-  const value = fluid ?? token.$value;
+// One resolved token as targets see it: value is the CSS scalar.
+const entry = (token) => {
+  if (!cssTypes.has(token.type)) throw new Error(`No lossless CSS scalar mapping for ${token.path} (${token.type})`);
+  if (!["string", "number"].includes(typeof token.css) || String(token.css).includes("[object Object]")) {
+    throw new Error(`No CSS scalar for ${token.path} (${token.type}); resolve this token before handoff`);
+  }
   return {
-    path, segments: token.path, name: token.name, type, fluid, value, scalar: token.$value, description: token.$description,
-    derived: rawToken?.$extensions?.["com.kickinrad.derived"] === true || undefined,
-    typography: type === "typography" ? typography(rawToken?.$value) : undefined,
+    path: token.path, segments: token.segments, name: token.name, type: token.type, value: token.css,
+    description: token.description, derived: token.extensions?.["com.kickinrad.derived"] === true || undefined,
+    typography: token.type === "typography" ? typography(token.raw) : undefined,
   };
+};
+// The layers, lowest first: the built-in trees, then include files (a later one wins), then the source files,
+// where a token set twice is an error.
+// An include may be a glob; its matches join in sorted order.
+const expand = (patterns) => patterns.flatMap((pattern) => /[*?[{]/.test(pattern) ? [...new Bun.Glob(pattern).scanSync()].sort() : [pattern]);
+// `made` holds token files this run computed, by absolute path: they stand in for what is on disk.
+const layered = async (builtin, include, source, made = new Map()) => {
+  const read = (file) => made.get(resolve(file)) ?? readTokens(file);
+  return [
+    ...builtin.map((tree) => ({ tree })),
+    ...await Promise.all(expand(include).map(async (file) => ({ tree: await read(file), file }))),
+    ...await Promise.all(source.map(async (file) => ({ tree: await read(file), file, strict: true }))),
+  ];
 };
 
 const semver = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
@@ -147,25 +54,19 @@ const loadKit = async (kit) => {
   return { root: resolve(kit.root ?? "design"), version, name: kit.name };
 };
 
-const loadTarget = async (spec) => {
-  if (!spec.startsWith(".") && !spec.startsWith("/")) {
-    if (!builtins[spec]) throw new Error(`Unknown token target ${spec}`);
-    return builtins[spec];
-  }
-  const target = (await import(pathToFileURL(resolve(spec)).href)).default;
-  if (!target || typeof target.build !== "function") throw new Error(`Token target ${spec} exports no build()`);
-  return target;
-};
-
 export const build = async (config = {}, { check = false } = {}) => {
-  const specs = config.targets ?? DEFAULT_TARGETS;
-  const targets = [];
-  for (const spec of specs) targets.push(await loadTarget(spec));
+  if (!Array.isArray(config.targets) || !config.targets.length) throw new Error("tokens.config.mjs names no targets");
+  // A built-in by name, or a project's own target: a module the config imports, listed as its object.
+  const targets = config.targets.map((spec) => {
+    const target = typeof spec === "string" ? builtins[spec] : spec;
+    if (!target) throw new Error(`Unknown token target ${spec}`);
+    if (typeof (target.build ?? target.derive) !== "function") throw new Error(`Token target ${target.name ?? spec} has no build()`);
+    return target;
+  });
   const kit = await loadKit(config.kit);
 
   // The kit's theme.toml becomes token files: its default is an include layer, its modes join their media query.
   const theme = await loadTheme(kit);
-  await syncTheme(theme, { check });
   const media = withMedia(theme, config.media);
   const mediaPaths = new Set(Object.values(media).flat().map((file) => resolve(file)));
   // Sorted: directory listing order varies by filesystem and runtime, and output order must not.
@@ -178,41 +79,60 @@ export const build = async (config = {}, { check = false } = {}) => {
   // built-in layers (builtin:<name>), which sit beneath the globs. The theme's default sits last among the
   // globs: above the built-in layers and other includes, below the project.
   const include = [];
-  const builtin = {};
+  const builtin = [];
   for (const spec of config.include ?? []) {
     if (!spec.startsWith("builtin:")) { include.push(spec); continue; }
     if (!layers[spec]) throw new Error(`Unknown built-in include ${spec}`);
-    Object.assign(builtin, layers[spec].tokens());
+    builtin.push(layers[spec].tokens());
   }
   include.push(...theme.include);
-  const dictionary = await makeDictionary(baseFiles, include, builtin);
-  const raw = await dictionary.getPlatformTokens("raw");
-  const rawTokens = new Map(raw.allTokens.map((token) => [token.path.join("."), token]));
+
+  // A target that derives token files (the derived roles) runs first, on everything but its own files, so the
+  // build reads what it computes now rather than what an earlier run wrote. Those files join the inputs.
+  // The theme's token files, computed from theme.toml, are inputs this run made.
+  const made = new Map(theme.files.map((file) => [resolve(file.path), JSON.parse(file.content)]));
+  const derived = [];
+  for (const target of targets.filter((each) => each.derive)) {
+    const queries = Object.entries(media);
+    if (queries.length !== 1) throw new Error(`${target.name} needs exactly one media query, the other mode; the config has ${queries.length}`);
+    const [[, modeFiles]] = queries;
+    const step = target.derive({ options: config[target.name] ?? {}, name: kit.name });
+    const own = new Set(step.paths.map((file) => resolve(file)));
+    const without = (files) => files.filter((file) => !own.has(resolve(file)));
+    const first = async (files, source) => resolveTokens(await layered(builtin, files, source, made), { lenient: true }).flatMap((token) => {
+      try { return [entry(token)]; } catch { return []; }
+    });
+    const files = step.run({
+      tokens: await first(include, without(baseFiles)), day: await first([...include, ...without(baseFiles)], without(modeFiles)),
+    });
+    for (const file of files) made.set(resolve(file.path), JSON.parse(file.content));
+    derived.push([target, files]);
+  }
+  // A computed file in tokens/ is a source even before it is first written.
+  for (const path of made.keys()) {
+    const file = relative(process.cwd(), path);
+    if (dirname(file) === "tokens" && !mediaPaths.has(path) && !baseFiles.includes(file)) baseFiles.push(file);
+  }
+  baseFiles.sort();
+
+  const resolved = resolveTokens(await layered(builtin, include, baseFiles, made));
+  const paths = new Set(resolved.map((token) => token.path));
   // A kit's theme maps the roles it picks; once the layers merge, every Material colour role must be set.
   if (theme.files.length) {
-    const missing = Object.entries(material.tokens().md.sys.color).filter(([key, token]) => "$value" in token && !rawTokens.has(`md.sys.color.${key}`))
+    const missing = Object.entries(material.tokens().md.sys.color).filter(([key, token]) => "$value" in token && !paths.has(`md.sys.color.${key}`))
       .map(([key]) => `md.sys.color.${key}`);
     if (missing.length) throw new Error(`theme.toml: no layer sets ${missing.length} Material colour role${missing.length === 1 ? "" : "s"}: ${missing.join(", ")}`);
   }
-  for (const token of raw.allTokens) {
-    const type = resolvedType(token, rawTokens);
-    if (!cssTypes.has(type)) {
-      throw new Error(`No lossless CSS scalar mapping for ${token.path.join(".")} (${type})`);
-    }
-  }
-  const resolved = await dictionary.getPlatformTokens("css");
-  const tokens = resolved.allTokens.map((token) => {
-    const path = token.path.join(".");
-    const rawToken = rawTokens.get(path);
-    const type = resolvedType(rawToken, rawTokens);
-    if (!["string", "number"].includes(typeof token.$value) || String(token.$value).includes("[object Object]")) {
-      throw new Error(`No CSS scalar for ${path} (${type}); resolve this token before handoff`);
-    }
-    return entry(token, rawToken, type);
-  });
+  const tokens = resolved.map(entry);
 
   // Media overrides resolve on demand: only CSS can express them.
-  const mediaTokens = async (files) => {
+  const cache = new Map();
+  const mediaTokens = (files) => {
+    const key = files.map((file) => resolve(file)).join("\n");
+    if (!cache.has(key)) cache.set(key, resolveMedia(files));
+    return cache.get(key);
+  };
+  const resolveMedia = async (files) => {
     const overridePaths = new Set();
     const visit = (node, path = []) => {
       if (!node || typeof node !== "object" || Array.isArray(node)) return;
@@ -221,25 +141,14 @@ export const build = async (config = {}, { check = false } = {}) => {
         if (!part.startsWith("$")) visit(child, [...path, part]);
       }
     };
-    for (const file of files) visit(JSON.parse(await readFile(file, "utf8")));
+    for (const file of files) visit(made.get(resolve(file)) ?? JSON.parse(await readFile(file, "utf8")));
     for (const path of overridePaths) {
-      if (!rawTokens.has(path)) throw new Error(`Media token ${path} does not override a base token`);
+      if (!paths.has(path)) throw new Error(`Media token ${path} does not override a base token`);
     }
-    // Order matters: among include files the later wins, so the project's base files beat the include layer.
-    const mediaDictionary = await makeDictionary(files, [...include, ...baseFiles], builtin);
-    const mediaRaw = await mediaDictionary.getPlatformTokens("raw");
-    const mediaRawTokens = new Map(mediaRaw.allTokens.map((token) => [token.path.join("."), token]));
-    const mediaResolved = await mediaDictionary.getPlatformTokens("css");
-    return mediaResolved.allTokens.map((token) => {
-      const path = token.path.join(".");
-      const rawToken = mediaRawTokens.get(path);
-      const type = resolvedType(rawToken, mediaRawTokens);
-      if (!cssTypes.has(type)) throw new Error(`No CSS scalar mapping for media token ${path} (${type})`);
-      const result = entry(token, rawToken, type);
-      if (!["string", "number"].includes(typeof result.value) || String(result.value).includes("[object Object]")) {
-        throw new Error(`No CSS scalar for media token ${path} (${type})`);
-      }
-      return result;
+    // The project's base files join the include layer, above the other includes; the media files override them.
+    return resolveTokens(await layered(builtin, [...include, ...baseFiles], files, made)).map((token) => {
+      try { return entry(token); }
+      catch (error) { throw new Error(`Media token: ${error.message}`); }
     });
   };
 
@@ -249,13 +158,15 @@ export const build = async (config = {}, { check = false } = {}) => {
     try { return await readFile(path, "utf8"); }
     catch (error) { if (error.code === "ENOENT") return undefined; throw error; }
   };
-  const outputs = [];
+  // The theme's files first, then each target's, all written or checked by the one loop below.
+  const outputs = theme.files.map((file) => ({ path: relative(process.cwd(), file.path), content: file.content }));
   // What an earlier target in this run made at a path (stamped, as written), so a later one reads it current.
   const built = (path) => outputs.find((output) => resolve(output.path) === resolve(path))?.content;
   for (const target of targets) {
     const options = config[target.name] ?? {};
-    const made = await target.build({ tokens, media, mediaTokens, options, readExisting, built, ...kit, ...(theme.modes && { modes: theme.modes }) });
-    outputs.push(...(kit.name ? stamp(made, kit, target.name) : made));
+    const files = target.derive ? derived.find(([each]) => each === target)[1]
+      : await target.build({ tokens, media, mediaTokens, options, readExisting, built, ...kit, ...(theme.modes && { modes: theme.modes }) });
+    outputs.push(...(kit.name ? stamp(files, kit, target.name) : files));
   }
   for (const { path, content } of outputs) {
     if (check) {

@@ -41,7 +41,7 @@ export default {
     };
     const content = [
       '/*',
-      `${options.title ?? name} for Material You Theme · version ${version}`,
+      `${options.title ?? name} for Material You Theme`,
       'The static theme file Material You Theme reads (github.com/Nerwyn/material-you-theme, "Build Your Own Theme"):',
       'every Material 3 colour role, light (-light) and dark (-dark), then the kit\'s own values.',
       '*/',

@@ -2,7 +2,7 @@
   "packages": {
     ".": {
       "release-type": "node",
-      "package-name": "@kickinrad/tokens",
+      "package-name": "kumiko",
       "include-component-in-tag": false
     }
   }

@@ -9,7 +9,6 @@ export default {
     fixed: ["primary"],
     blend: "acme.color.container-opacity",
     marks: { group: "track", darkerInDay: ["slow"] },
-    dayFiles: ["tokens/day.tokens.json"],
     out: { night: "tokens/derived.tokens.json", day: "tokens/derived-day.tokens.json" },
   },
 };
