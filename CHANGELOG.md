@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.0.0](https://github.com/kickinrad/kumiko/compare/v2.0.0...v3.0.0) (2026-11-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* the derived target, kit.contrast and the theme's written token files are gone; so are the title, modes, font, palette, iconFont, shadowOpacity and the playground's css, beer, tailwind and icon options. Move them into theme.toml.
+
+### Features
+
+* a kit is its theme.toml ([#52](https://github.com/kickinrad/kumiko/issues/52)) ([5c80e03](https://github.com/kickinrad/kumiko/commit/5c80e036a7e6d336b58820c04f8dbc4aca1c2c19))
+
 ## [2.0.0](https://github.com/kickinrad/kumiko/compare/v1.14.0...v2.0.0) (2026-11-02)
 
 
