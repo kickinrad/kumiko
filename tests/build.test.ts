@@ -37,7 +37,18 @@ test("a token file that isn't valid JSON fails the build with the parse error, n
   writeFileSync(join(dir, "tokens/broken.tokens.json"), '{ "a": { "$type": "color", "$value": "#fff", "$description": "say "hi"" } }\n');
   const result = Bun.spawnSync([...command], { cwd: dir, stderr: "pipe", timeout: 10_000 });
   expect(result.exitCode).toBe(1);
-  expect(result.stderr.toString()).toContain("invalid character");
+  expect(result.stderr.toString()).toContain("tokens/broken.tokens.json is not valid JSON");
+});
+
+test("a token set in two source files fails the build naming both, not a hang (#7)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "tokens-collision-"));
+  mkdirSync(join(dir, "tokens"));
+  writeFileSync(join(dir, "tokens/a.tokens.json"), JSON.stringify({ x: { $type: "number", $value: 1 } }));
+  writeFileSync(join(dir, "tokens/b.tokens.json"), JSON.stringify({ x: { $type: "number", $value: 3 } }));
+  writeFileSync(join(dir, "tokens.config.mjs"), 'export default { targets: ["css"] };\n');
+  const result = Bun.spawnSync([...command], { cwd: dir, stderr: "pipe", timeout: 10_000 });
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr.toString()).toContain("x is set in both tokens/a.tokens.json and tokens/b.tokens.json");
 });
 
 test("a project target is one file named in tokens.config.mjs", () => {

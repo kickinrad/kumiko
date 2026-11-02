@@ -20,7 +20,6 @@
   "dependencies": {
     "@material/material-color-utilities": "latest",
     "beercss": "latest",
-    "style-dictionary": "latest",
     "yaml": "latest"
   }
 }
