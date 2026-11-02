@@ -1,13 +1,17 @@
 {
   "$schema": "https://www.designtokens.org/schemas/2025.10/format.json",
-  "$description": "Material 3 values the vendored Compose token files lack, each with its source. Hand-written; a path here never repeats one in material/.",
+  "$description": "Material 3 values the vendored Compose token files lack, each with its source in com.kickinrad.material, as the vendored tokens carry theirs. Hand-written; a path here never repeats one in material/.",
   "md": {
     "sys": {
       "color": {
         "shadow": {
           "$type": "color",
           "$value": "#000000",
-          "$description": "Material's shadow role: Neutral0 in both schemes (androidx ColorDarkTokens.kt and ColorLightTokens.kt, Shadow = PaletteTokens.Neutral0), which the vendor script does not carry"
+          "$extensions": {
+            "com.kickinrad.material": {
+              "src": "Material's shadow role: Neutral0 in both schemes (androidx ColorDarkTokens.kt and ColorLightTokens.kt, Shadow = PaletteTokens.Neutral0), which the vendor script does not carry"
+            }
+          }
         }
       },
       "state": {
@@ -18,7 +22,11 @@
               "value": 3,
               "unit": "px"
             },
-            "$description": "The focus ring's width: md.sys.state.focus-indicator.thickness 3dp (material-web tokens, Apache-2.0; m3.material.io/foundations/interaction/states)"
+            "$extensions": {
+              "com.kickinrad.material": {
+                "src": "The focus ring's width: md.sys.state.focus-indicator.thickness 3dp (material-web tokens, Apache-2.0; m3.material.io/foundations/interaction/states)"
+              }
+            }
           },
           "outer-offset": {
             "$type": "dimension",
@@ -26,7 +34,11 @@
               "value": 2,
               "unit": "px"
             },
-            "$description": "The gap between a control and its focus ring outside it: md.sys.state.focus-indicator.outer-offset 2dp (material-web tokens, Apache-2.0)"
+            "$extensions": {
+              "com.kickinrad.material": {
+                "src": "The gap between a control and its focus ring outside it: md.sys.state.focus-indicator.outer-offset 2dp (material-web tokens, Apache-2.0)"
+              }
+            }
           }
         }
       }
@@ -40,7 +52,11 @@
               "value": 44,
               "unit": "px"
             },
-            "$description": "m3_comp_slider_xsmall_active_handle_height 44dp, material-components-android lib/java/com/google/android/material/slider/res/values/tokens.xml (Apache-2.0)"
+            "$extensions": {
+              "com.kickinrad.material": {
+                "src": "m3_comp_slider_xsmall_active_handle_height 44dp, material-components-android lib/java/com/google/android/material/slider/res/values/tokens.xml (Apache-2.0)"
+              }
+            }
           }
         },
         "small": {
@@ -50,7 +66,11 @@
               "value": 44,
               "unit": "px"
             },
-            "$description": "m3_comp_slider_small_active_handle_height 44dp, material-components-android lib/java/com/google/android/material/slider/res/values/tokens.xml (Apache-2.0)"
+            "$extensions": {
+              "com.kickinrad.material": {
+                "src": "m3_comp_slider_small_active_handle_height 44dp, material-components-android lib/java/com/google/android/material/slider/res/values/tokens.xml (Apache-2.0)"
+              }
+            }
           }
         },
         "medium": {
@@ -60,7 +80,11 @@
               "value": 44,
               "unit": "px"
             },
-            "$description": "m3_comp_slider_medium_active_handle_height 44dp, material-components-android lib/java/com/google/android/material/slider/res/values/tokens.xml (Apache-2.0)"
+            "$extensions": {
+              "com.kickinrad.material": {
+                "src": "m3_comp_slider_medium_active_handle_height 44dp, material-components-android lib/java/com/google/android/material/slider/res/values/tokens.xml (Apache-2.0)"
+              }
+            }
           },
           "icon-size": {
             "$type": "dimension",
@@ -68,7 +92,11 @@
               "value": 24,
               "unit": "px"
             },
-            "$description": "m3_comp_slider_medium_icon_size 24dp, the inset icon, material-components-android lib/java/com/google/android/material/slider/res/values/tokens.xml (Apache-2.0)"
+            "$extensions": {
+              "com.kickinrad.material": {
+                "src": "m3_comp_slider_medium_icon_size 24dp, the inset icon, material-components-android lib/java/com/google/android/material/slider/res/values/tokens.xml (Apache-2.0)"
+              }
+            }
           }
         },
         "large": {
@@ -78,7 +106,11 @@
               "value": 68,
               "unit": "px"
             },
-            "$description": "m3_comp_slider_large_active_handle_height 68dp, material-components-android lib/java/com/google/android/material/slider/res/values/tokens.xml (Apache-2.0)"
+            "$extensions": {
+              "com.kickinrad.material": {
+                "src": "m3_comp_slider_large_active_handle_height 68dp, material-components-android lib/java/com/google/android/material/slider/res/values/tokens.xml (Apache-2.0)"
+              }
+            }
           },
           "icon-size": {
             "$type": "dimension",
@@ -86,7 +118,11 @@
               "value": 24,
               "unit": "px"
             },
-            "$description": "m3_comp_slider_large_icon_size 24dp, the inset icon, material-components-android lib/java/com/google/android/material/slider/res/values/tokens.xml (Apache-2.0)"
+            "$extensions": {
+              "com.kickinrad.material": {
+                "src": "m3_comp_slider_large_icon_size 24dp, the inset icon, material-components-android lib/java/com/google/android/material/slider/res/values/tokens.xml (Apache-2.0)"
+              }
+            }
           }
         },
         "xlarge": {
@@ -96,7 +132,11 @@
               "value": 108,
               "unit": "px"
             },
-            "$description": "m3_comp_slider_xlarge_active_handle_height 108dp, material-components-android lib/java/com/google/android/material/slider/res/values/tokens.xml (Apache-2.0)"
+            "$extensions": {
+              "com.kickinrad.material": {
+                "src": "m3_comp_slider_xlarge_active_handle_height 108dp, material-components-android lib/java/com/google/android/material/slider/res/values/tokens.xml (Apache-2.0)"
+              }
+            }
           },
           "icon-size": {
             "$type": "dimension",
@@ -104,7 +144,11 @@
               "value": 32,
               "unit": "px"
             },
-            "$description": "m3_comp_slider_xlarge_icon_size 32dp, the inset icon, material-components-android lib/java/com/google/android/material/slider/res/values/tokens.xml (Apache-2.0)"
+            "$extensions": {
+              "com.kickinrad.material": {
+                "src": "m3_comp_slider_xlarge_icon_size 32dp, the inset icon, material-components-android lib/java/com/google/android/material/slider/res/values/tokens.xml (Apache-2.0)"
+              }
+            }
           }
         }
       }

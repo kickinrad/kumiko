@@ -122,11 +122,13 @@ main > .panes > * { background-color: var(--md-sys-color-surface-container-low);
 main > .panes { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; }
 main:has(> .panes) { --_padding: 16px; }
 /* Below expanded a single pane shows: the first (a list) unless an item is open (`data-open`); the back button
- * (`data-back`) belongs to that single pane. */
-@media (max-width: 839px) { main > .panes[data-open] > :first-child, main > .panes:not([data-open]) > :last-child { display: none; } }
+ * (`data-back` in the top app bar, `data-close` in a pane) belongs to that single pane. A supporting pane
+ * (`.panes.supporting`) instead follows its main pane. */
+@media (max-width: 839px) { main > .panes:not(.supporting)[data-open] > :first-child, main > .panes:not(.supporting):not([data-open]) > :last-child { display: none; } }
 /* From medium, Material's margins are 24. */
 @media (min-width: 600px) { main:has(> .panes) { --_padding: 24px; } }
 /* From expanded, two panes: one fixed at Material's pane width (360), one flexible, a 24 spacer between them. */
-@media (min-width: 840px) { main > .panes { grid-template-columns: 360px minmax(0, 1fr); gap: 24px; } nav.top > [data-back] { display: none; } }
+/* A supporting pane is the fixed one, trailing. */
+@media (min-width: 840px) { main > .panes { grid-template-columns: 360px minmax(0, 1fr); gap: 24px; } main > .panes.supporting { grid-template-columns: minmax(0, 1fr) 360px; } nav.top > [data-back], main > .panes [data-close] { display: none; } }
 /* From large, the fixed pane is 412. */
-@media (min-width: 1200px) { main > .panes { grid-template-columns: 412px minmax(0, 1fr); } }
+@media (min-width: 1200px) { main > .panes { grid-template-columns: 412px minmax(0, 1fr); } main > .panes.supporting { grid-template-columns: minmax(0, 1fr) 412px; } }

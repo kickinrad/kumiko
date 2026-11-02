@@ -45,7 +45,7 @@ test("writes index.html, playground.js and tokens.json, and --check passes on th
 
 test("the page and the client name no kit, and the client imports only its files beside the page", () => {
   const dir = built();
-  for (const file of ["index.html", "playground.js", "foundations.js", "components.js", "cards.js", "pages.js", "color.mjs"]) {
+  for (const file of ["index.html", "playground.js", "examples.js", "foundations.js", "components.js", "cards.js", "pages.js", "color.mjs"]) {
     const text = body(read(dir, `docs/play/${file}`));
     expect(text, file).not.toMatch(/acme/i);
     for (const [, from] of text.matchAll(/^import .* from "([^"]+)";$/gm)) expect(from, file).toMatch(/^\.\/[a-z]+\.m?js$/);
@@ -405,7 +405,7 @@ test("a tailwind output listed after the playground fails, saying so", () => {
 
 test("no kit name in the client files, as built and in the source (tailwind.html carries the kit's own output)", () => {
   const dir = built(withTailwind());
-  for (const file of ["index.html", "playground.js", "foundations.js", "components.js", "cards.js", "pages.js", "color.mjs"]) expect(body(read(dir, `docs/play/${file}`)), file).not.toMatch(/acme/i);
+  for (const file of ["index.html", "playground.js", "examples.js", "foundations.js", "components.js", "cards.js", "pages.js", "color.mjs"]) expect(body(read(dir, `docs/play/${file}`)), file).not.toMatch(/acme/i);
   for (const file of ["playground.js", "foundations.js", "tailwind.html"]) expect(readFileSync(join(root, "src/web", file), "utf8"), file).not.toMatch(/acme/i);
 });
 
@@ -536,8 +536,62 @@ test("cards are built from the components' builders, and pages from cards and co
   }
 });
 
+test("pages lay out Material's panes with the shared rules: list-detail opens a row's pane, the supporting pane trails", async () => {
+  const dir = built();
+  const data = JSON.parse(read(dir, "docs/play/tokens.json"));
+  const { pages } = await modules(dir);
+  const html = (id: string) => pages.find((each: { id: string }) => each.id === id).body(data, data.modes.night);
+  // Each layout is a main of its own, so layout.css's panes rules apply in the frame as on the page.
+  expect(html("list-detail")).toMatch(/<main><div class="panes"><div>.*data-pane.*<\/div><div>.*data-close.*<\/div><\/div><\/main>/s);
+  expect(html("supporting-pane")).toContain('<main><div class="panes supporting">');
+  const css = readFileSync(join(root, "src/web/layout.css"), "utf8");
+  expect(css).toContain("main > .panes.supporting { grid-template-columns: minmax(0, 1fr) 360px; }");
+  expect(css).toContain("main > .panes.supporting { grid-template-columns: minmax(0, 1fr) 412px; }");
+  expect(css).toMatch(/main > \.panes \[data-close\] \{ display: none; \}/);
+});
+
+test("examples and kits are written by location only, relative to the page, and the build reads neither", () => {
+  const dir = built(edited('c.playground.examples = ["../app/preview/example.json"]; c.playground.kits = ["../other-kit/docs/playground"];'));
+  const data = tokensOf(dir);
+  expect(data.examples).toEqual(["../../../app/preview/example.json"]);
+  expect(data.kits).toEqual(["../../../other-kit/docs/playground/tokens.json"]);
+  expect(run(edited('c.playground.examples = "x";')).stderr.toString()).toContain('playground option "examples" must be a list of paths');
+});
+
+test("Examples: a live preview at the chosen device's size, labelled captures, and an entry that did not load as unavailable", async () => {
+  const { examples } = await import(join(built(), "docs/play/examples.js"));
+  const href = "http://localhost/app/preview/example.json";
+  const entry = { name: "Home screen", surface: "Home Assistant", output: "ports/ha.css", preview: "stub/index.html",
+    captures: [{ src: "kitchen.png", label: "Kitchen, Night", build: "abc123" }], devices: [{ name: "Phone", width: 390, height: 844 }, { name: "Hub", width: 1280, height: 800 }] };
+  const [item, missing] = examples([{ href, entry }, { href: "../nope.json", error: "HTTP 404" }], 1);
+  expect(item.id).toBe("home-screen");
+  const html = item.body();
+  expect(html).toContain('<h3>Live preview: Hub, 1280 × 800</h3>');
+  expect(html).toContain('<iframe src="http://localhost/app/preview/stub/index.html" title="Home screen preview" width="1280" height="800">');
+  expect(html).toContain('<button class="active" data-device="1">Hub</button>');
+  expect(html).toContain('<button class="border" data-device="0">Phone</button>');
+  expect(html).toContain("Capture: Kitchen, Night · build abc123");
+  expect(html).toContain('src="http://localhost/app/preview/kitchen.png"');
+  expect(missing.body()).toContain("Unavailable: <code>../nope.json</code> did not load (HTTP 404)");
+});
+
+test("the Examples destination sits before Rules once entries load, and is absent without them", async () => {
+  const { tabs } = await client(built());
+  expect(tabs({}).map((tab: { id: string }) => tab.id)).toEqual(["foundations", "components", "cards", "pages", "rules"]);
+  expect(tabs({ loaded: [{ href: "x", error: "gone" }] }).map((tab: { id: string }) => tab.id)).toEqual(["foundations", "components", "cards", "pages", "examples", "rules"]);
+});
+
+test("Rules lists a kit's own Material exceptions, not the engine's cited Material values", async () => {
+  const dir = built();
+  const { exceptions } = await client(dir);
+  const data = tokensOf(dir);
+  const html = exceptions(data.modes.night);
+  expect(html).not.toContain("md.comp.slider");
+  expect(html).not.toContain("md.sys.color.shadow");
+});
+
 test("the client's source names no kit and types no value", () => {
-  for (const file of ["components.js", "cards.js", "pages.js"]) {
+  for (const file of ["components.js", "cards.js", "pages.js", "examples.js"]) {
     const text = readFileSync(join(root, "src/web", file), "utf8");
     expect(text, file).not.toMatch(/tokyo|wils|domain|cascadia|acme|\btm-/i);
     expect(text, file).not.toMatch(/#[0-9a-f]{3,8}\b|\d(px|rem|ms)\b/i);

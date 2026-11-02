@@ -130,5 +130,5 @@ test("layout.css lays out Material's panes inside Beer's main with Material's gu
   run(dir);
   const out = read(dir, "out/beer.css");
   expect(out.indexOf("main > .panes > *")).toBeLessThan(out.indexOf("main > .panes { display: grid;"));
-  expect(out.trimEnd().endsWith("412px minmax(0, 1fr); } }")).toBe(true);
+  expect(out.trimEnd().endsWith("main > .panes.supporting { grid-template-columns: minmax(0, 1fr) 412px; } }")).toBe(true);
 });

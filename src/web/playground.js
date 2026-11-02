@@ -4,6 +4,7 @@
 // a document. "../color.mjs" is the engine's colour maths, written beside the page as color.mjs.
 import { contrast } from "../color.mjs";
 import cards from "./cards.js";
+import { examples, load } from "./examples.js";
 import components from "./components.js";
 import foundations, { fontLinks, replay } from "./foundations.js";
 import pages from "./pages.js";
@@ -49,6 +50,7 @@ export const scheme = (tokens) => {
   return contrast(value, "#000000") > contrast(value, "#ffffff") ? "light" : "dark";
 };
 
+// The destinations; with the apps' entries loaded, Examples joins them before Rules.
 const TABS = [
   { id: "foundations", name: "Foundations", icon: "palette", items: foundations },
   { id: "components", name: "Components", icon: "widgets", items: components },
@@ -74,7 +76,12 @@ export const exceptions = (tokens) => {
 // beneath it from medium up and its bottom bar on small; the list and the detail are Material's two panes
 // (layout.css): side by side from expanded, and below that only the list (a tab named) or the open item (an item
 // named, `data-open`, with a back button) shows.
-export const view = (data, { tab: tabId, item: itemId, mode = Object.keys(data.modes)[0], expanded = false }) => {
+export const tabs = (data, device) => data.loaded?.length
+  ? [...TABS.slice(0, -1), { id: "examples", name: "Examples", icon: "apps", items: examples(data.loaded, device) }, TABS.at(-1)]
+  : TABS;
+
+export const view = (data, { tab: tabId, item: itemId, mode = Object.keys(data.modes)[0], expanded = false, device = 0 }) => {
+  const TABS = tabs(data, device);
   const tab = TABS.find((each) => each.id === tabId) ?? TABS[0];
   const item = tab.items.find((each) => each.id === itemId) ?? tab.items[0];
   const open = tab.id === tabId && item.id === itemId;
@@ -84,11 +91,16 @@ export const view = (data, { tab: tabId, item: itemId, mode = Object.keys(data.m
   const next = names[(names.indexOf(mode) + 1) % names.length];
   const switcher = `<button class="circle transparent" data-mode="${esc(next)}" aria-label="${esc(next[0].toUpperCase() + next.slice(1))} mode"><i>${scheme(data.modes[next]) === "light" ? "light_mode" : "dark_mode"}</i></button>`;
   const items = tab.items.map((each) => `<li><a class="wave${each === item ? " active" : ""}" href="#${tab.id}/${each.id}"><span class="max">${each.name}</span></a></li>`).join("");
-  // The top app bar spans the window: the kit's mark, its name, and the mode switch; on small, a back button when an item is open.
+  // The kits the page can switch to: this one, and each other kit's playground that loaded.
+  const others = (data.kitsLoaded ?? []).filter((each) => each.entry);
+  const kits = others.length
+    ? `<button class="circle transparent" data-ui="#kits" aria-label="Design kit"><i>swap_horiz</i></button><menu class="left no-wrap" id="kits"><li><a class="active" href="#">${esc(data.name)}</a></li>${others.map(({ href, entry }) => `<li><a href="${esc(new URL(".", href).href)}">${esc(entry.name)}</a></li>`).join("")}</menu>`
+    : "";
+  // The top app bar spans the window: the kit's mark, its name, the kit menu and the mode switch; on small, a back button when an item is open.
   // The rail's header holds the menu button; expanded, the rail is Material's expanded rail (Beer's `max`).
   const menu = `<header><button class="circle transparent" data-rail aria-label="${expanded ? "Collapse" : "Expand"} the navigation"><i>${expanded ? "menu_open" : "menu"}</i></button></header>`;
   return `<nav class="left m l${expanded ? " max" : ""}">${menu}${destinations}</nav>
-<nav class="top"><i>${esc(data.icon ?? "style")}</i>${open ? `<a class="button circle transparent" data-back href="#${tab.id}" aria-label="Back"><i>arrow_back</i></a>` : ""}<h6 class="max">${esc(data.name)}</h6>${switcher}</nav>
+<nav class="top"><i>${esc(data.icon ?? "style")}</i>${open ? `<a class="button circle transparent" data-back href="#${tab.id}" aria-label="Back"><i>arrow_back</i></a>` : ""}<h6 class="max">${esc(data.name)}</h6>${kits}${switcher}</nav>
 <main><div class="panes"${open ? " data-open" : ""}>
 <div><ul class="list segmented">${items}</ul></div>
 <div><h1>${item.name}</h1>${item.body(data, data.modes[mode])}</div>
@@ -98,6 +110,8 @@ export const view = (data, { tab: tabId, item: itemId, mode = Object.keys(data.m
 
 const boot = async () => {
   const data = await (await fetch(new URL("tokens.json", import.meta.url))).json();
+  [data.loaded, data.kitsLoaded] = await Promise.all([load(data.examples ?? [], import.meta.url), load(data.kits ?? [], import.meta.url)]);
+  let device = 0;
   const modes = Object.keys(data.modes);
   const schemes = Object.fromEntries(modes.map((mode) => [mode, scheme(data.modes[mode])]));
   const root = document.documentElement;
@@ -111,13 +125,19 @@ const boot = async () => {
   for (const href of new Set(modes.flatMap((each) => fontLinks(data.modes[each])))) document.head.append(Object.assign(document.createElement("link"), { rel: "stylesheet", href }));
   const draw = () => {
     const [tab, item] = location.hash.slice(1).split("/");
-    document.getElementById("app").innerHTML = view(data, { tab, item, mode, expanded });
+    document.getElementById("app").innerHTML = view(data, { tab, item, mode, expanded, device });
     // A frame follows the mode through its address: the hash is the data-theme it sets.
     for (const frame of document.querySelectorAll("[data-frame]")) frame.src = `${frame.dataset.frame}#${schemes[mode]}`;
   };
   window.addEventListener("hashchange", draw);
   document.addEventListener("click", (event) => {
     if (event.target.closest("[data-replay]")) return replay(document);
+    const chosen = event.target.closest("[data-device]");
+    if (chosen) { device = Number(chosen.dataset.device); return draw(); }
+    // A layout's panes in a frame: a row opens its pane on a small screen, and the pane's back button closes it.
+    const panes = event.target.closest(".panes");
+    if (panes && event.target.closest("[data-pane]")) panes.setAttribute("data-open", "");
+    if (panes && event.target.closest("[data-close]")) panes.removeAttribute("data-open");
     if (event.target.closest("[data-rail]")) {
       expanded = !expanded;
       remember("rail", expanded ? "expanded" : "collapsed");
