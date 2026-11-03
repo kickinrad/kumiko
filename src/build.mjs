@@ -22,7 +22,7 @@ const entry = (token) => {
     throw new Error(`No CSS scalar for ${token.path} (${token.type}); resolve this token before handoff`);
   }
   return {
-    path: token.path, segments: token.segments, name: token.name, type: token.type, value: token.css,
+    path: token.path, segments: token.segments, name: token.name, type: token.type, value: token.css, raw: token.raw,
     alias: token.alias, description: token.description, derived: token.extensions?.["com.kickinrad.derived"] === true || undefined,
     typography: token.type === "typography" ? typography(token.raw) : undefined,
   };
