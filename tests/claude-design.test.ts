@@ -11,9 +11,9 @@ import { read, root, run } from "./helpers";
 // The fixture kit with this output after its css and beer outputs, and `edit` applied to the config.
 const project = (edit = "") => {
   const dir = mkdtempSync(join(tmpdir(), "tokens-claude-design-"));
-  for (const entry of ["design", "tokens", "VERSION", "tokens.config.mjs"]) cpSync(join(root, "tests/playground", entry), join(dir, entry), { recursive: true });
-  renameSync(join(dir, "tokens.config.mjs"), join(dir, "base.config.mjs"));
-  writeFileSync(join(dir, "tokens.config.mjs"), `import base from "./base.config.mjs";\nconst c = structuredClone(base);\nc.targets.push("claude-design");\nc["claude-design"] = { path: "ports/claude-design" };\n${edit}\nexport default c;\n`);
+  for (const entry of ["design", "tokens", "VERSION", "kumiko.config.mjs"]) cpSync(join(root, "tests/playground", entry), join(dir, entry), { recursive: true });
+  renameSync(join(dir, "kumiko.config.mjs"), join(dir, "base.config.mjs"));
+  writeFileSync(join(dir, "kumiko.config.mjs"), `import base from "./base.config.mjs";\nconst c = structuredClone(base);\nc.targets.push("claude-design");\nc["claude-design"] = { path: "ports/claude-design" };\n${edit}\nexport default c;\n`);
   return dir;
 };
 const built = (dir = project()) => {

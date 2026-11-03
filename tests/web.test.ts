@@ -13,9 +13,9 @@ const golden = (file: string) => readFileSync(join(root, "tests/web/expected", f
 const project = (config?: string) => {
   const dir = mkdtempSync(join(tmpdir(), "tokens-web-"));
   cpSync(join(root, "tests/web/tokens"), join(dir, "tokens"), { recursive: true });
-  cpSync(join(root, "tests/web/tokens.config.mjs"), join(dir, "tokens.config.mjs"));
+  cpSync(join(root, "tests/web/kumiko.config.mjs"), join(dir, "kumiko.config.mjs"));
   writeFileSync(join(dir, "VERSION"), "1.0.0\n");
-  if (config) writeFileSync(join(dir, "tokens.config.mjs"), config);
+  if (config) writeFileSync(join(dir, "kumiko.config.mjs"), config);
   return dir;
 };
 const only = (target: string, options: string) => `export default {

@@ -39,7 +39,7 @@ const kitProject = (toml: string | null = theme, config = 'kit: { name: "acme" }
   writeFileSync(join(dir, "tokens/own.tokens.json"),
     JSON.stringify({ own: { gap: { $type: "dimension", $value: { value: 4, unit: "px" } } } }));
   writeFileSync(join(dir, "VERSION"), "1.0.0\n");
-  writeFileSync(join(dir, "tokens.config.mjs"), `export default { targets: ["css"], ${config} };\n`);
+  writeFileSync(join(dir, "kumiko.config.mjs"), `export default { targets: ["css"], ${config} };\n`);
   if (toml !== null) writeFileSync(join(dir, "design/theme.toml"), toml);
   return dir;
 };
@@ -57,7 +57,7 @@ test("a kit with a theme.toml builds, writing only its outputs", () => {
   const result = run(dir);
   expect(result.stderr.toString()).toBe("");
   expect(result.exitCode).toBe(0);
-  expect(written(dir)).toEqual(["VERSION", "design/theme.toml", "src/styles/tokens.css", "tokens.config.mjs", "tokens/own.tokens.json"]);
+  expect(written(dir)).toEqual(["VERSION", "design/theme.toml", "kumiko.config.mjs", "src/styles/tokens.css", "tokens/own.tokens.json"]);
   const css = read(dir, "src/styles/tokens.css");
   expect(css).toContain("--md-sys-color-primary: #7aa2f7;");
   expect(css).toContain("--acme-palette-ink: #101418;");

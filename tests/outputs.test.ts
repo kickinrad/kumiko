@@ -12,14 +12,14 @@ const outputs = files(golden);
 
 const project = () => {
   const dir = mkdtempSync(join(tmpdir(), "tokens-outputs-"));
-  for (const entry of ["design", "VERSION", "tokens.config.mjs"]) cpSync(join(root, "tests/outputs", entry), join(dir, entry), { recursive: true });
+  for (const entry of ["design", "VERSION", "kumiko.config.mjs"]) cpSync(join(root, "tests/outputs", entry), join(dir, entry), { recursive: true });
   return dir;
 };
 // The fixture's config with `edit` applied to a copy of its options.
 const edited = (edit: string) => {
   const dir = project();
-  renameSync(join(dir, "tokens.config.mjs"), join(dir, "base.config.mjs"));
-  writeFileSync(join(dir, "tokens.config.mjs"), `import base from "./base.config.mjs";\nconst c = structuredClone(base);\n${edit}\nexport default c;\n`);
+  renameSync(join(dir, "kumiko.config.mjs"), join(dir, "base.config.mjs"));
+  writeFileSync(join(dir, "kumiko.config.mjs"), `import base from "./base.config.mjs";\nconst c = structuredClone(base);\n${edit}\nexport default c;\n`);
   return dir;
 };
 
@@ -190,7 +190,7 @@ test("an output without a declared kit fails, saying so", () => {
   const dir = mkdtempSync(join(tmpdir(), "tokens-outputs-"));
   mkdirSync(join(dir, "tokens"));
   writeFileSync(join(dir, "tokens/own.tokens.json"), JSON.stringify({ own: { gap: { $type: "dimension", $value: { value: 4, unit: "px" } } } }));
-  writeFileSync(join(dir, "tokens.config.mjs"), 'export default { targets: ["tailwind"], tailwind: { path: "a.css", css: "b.css" } };\n');
+  writeFileSync(join(dir, "kumiko.config.mjs"), 'export default { targets: ["tailwind"], tailwind: { path: "a.css", css: "b.css" } };\n');
   const result = run(dir);
   expect(result.exitCode).toBe(1);
   expect(result.stderr.toString()).toContain("needs a declared kit");

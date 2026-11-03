@@ -79,7 +79,7 @@ test("toHex takes an opaque colour as the build writes it, and nothing else", ()
 
 describe("a kit's contrast pairs", () => {
   const root = resolve(import.meta.dir, "..");
-  const command = process.env.TOKENS_BIN ? [resolve(process.env.TOKENS_BIN)] : ["bun", join(root, "bin/tokens.mjs")];
+  const command = process.env.KUMIKO_BIN ? [resolve(process.env.KUMIKO_BIN)] : ["bun", join(root, "bin/kumiko.mjs")];
   const run = (cwd: string, ...args: string[]) => Bun.spawnSync([...command, ...args], { cwd, stderr: "pipe" });
   const pairs = `
 [[contrast.pairs]]
@@ -97,7 +97,7 @@ min = 3
     const dir = mkdtempSync(join(tmpdir(), "tokens-contrast-"));
     mkdirSync(join(dir, "design"));
     writeFileSync(join(dir, "VERSION"), "1.0.0\n");
-    writeFileSync(join(dir, "tokens.config.mjs"), 'export default { targets: ["css"], kit: { name: "acme" } };\n');
+    writeFileSync(join(dir, "kumiko.config.mjs"), 'export default { targets: ["css"], kit: { name: "acme" } };\n');
     writeFileSync(join(dir, "design/theme.toml"), `name = "acme"
 default = "light"
 

@@ -37,8 +37,8 @@ jobs:
       - run: mise run build
       - run: bun test
         env:
-          TOKENS_BIN: dist/tokens-linux-x64
-      - run: gh release upload "$TAG" dist/tokens-linux-x64 --clobber
+          KUMIKO_BIN: dist/kumiko-linux-x64
+      - run: gh release upload "$TAG" dist/kumiko-linux-x64 --clobber
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.release-please.outputs.tag }}

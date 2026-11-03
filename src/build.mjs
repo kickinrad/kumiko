@@ -1,6 +1,6 @@
 // DTCG 2025.10 tokens/*.tokens.json is the only value source.
 // A target is a module exporting { name, build(ctx) → [{ path, content }] }: built in under ./targets (listed in its
-// index), or a project's own, imported by tokens.config.mjs and listed as an object.
+// index), or a project's own, imported by kumiko.config.mjs and listed as an object.
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import material, { tv } from "./material.mjs";
@@ -49,7 +49,7 @@ const loadKit = async (kit) => {
 };
 
 export const build = async (config = {}, { check = false } = {}) => {
-  if (!Array.isArray(config.targets) || !config.targets.length) throw new Error("tokens.config.mjs names no targets");
+  if (!Array.isArray(config.targets) || !config.targets.length) throw new Error("kumiko.config.mjs names no targets");
   // A built-in by name, or a project's own target: a module the config imports, listed as its object.
   const targets = config.targets.map((spec) => {
     const target = typeof spec === "string" ? builtins[spec] : spec;

@@ -16,9 +16,9 @@ const skill = (dir: string, at: string) => {
 // acme with the plugin output added, and `edit` applied to the config.
 const acme = (edit = "") => {
   const dir = mkdtempSync(join(tmpdir(), "tokens-plugin-acme-"));
-  for (const entry of ["design", "tokens", "VERSION", "tokens.config.mjs"]) cpSync(join(root, "tests/playground", entry), join(dir, entry), { recursive: true });
-  renameSync(join(dir, "tokens.config.mjs"), join(dir, "base.config.mjs"));
-  writeFileSync(join(dir, "tokens.config.mjs"), `import base from "./base.config.mjs";\nconst c = structuredClone(base);\nc.targets.push("plugin");\nc.plugin = { path: "plugins/acme", author: { name: "Acme" } };\n${edit}\nexport default c;\n`);
+  for (const entry of ["design", "tokens", "VERSION", "kumiko.config.mjs"]) cpSync(join(root, "tests/playground", entry), join(dir, entry), { recursive: true });
+  renameSync(join(dir, "kumiko.config.mjs"), join(dir, "base.config.mjs"));
+  writeFileSync(join(dir, "kumiko.config.mjs"), `import base from "./base.config.mjs";\nconst c = structuredClone(base);\nc.targets.push("plugin");\nc.plugin = { path: "plugins/acme", author: { name: "Acme" } };\n${edit}\nexport default c;\n`);
   skill(dir, "plugins/acme/skills/acme");
   return dir;
 };

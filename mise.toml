@@ -5,10 +5,10 @@ bun = "latest"
 run = "bun install"
 
 [tasks.check]
-run = "bun build bin/tokens.mjs --target=bun --outdir=dist/check >/dev/null"
+run = "bun build bin/kumiko.mjs --target=bun --outdir=dist/check >/dev/null"
 
 [tasks.test]
 run = "bun test"
 
 [tasks.build]
-run = "bun build --compile --target=bun-linux-x64 --asset src/color.mjs --asset src/web --asset node_modules/beercss/dist/cdn bin/tokens.mjs --outfile dist/tokens-linux-x64"
+run = "bun build --compile --target=bun-linux-x64 --asset src/color.mjs --asset src/web --asset node_modules/beercss/dist/cdn bin/kumiko.mjs --outfile dist/kumiko-linux-x64"
