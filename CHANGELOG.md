@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.0](https://github.com/kickinrad/kumiko/compare/v0.17.1...v0.18.0) (2026-11-03)
+
+
+### Features
+
+* **plugin:** a kit can name its plugin's description ([#82](https://github.com/kickinrad/kumiko/issues/82)) ([a07ec21](https://github.com/kickinrad/kumiko/commit/a07ec21103fe1f8c419a0eef9a090d592359ba97))
+
 ## [0.17.1](https://github.com/kickinrad/kumiko/compare/v0.17.0...v0.17.1) (2026-11-03)
 
 
