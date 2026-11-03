@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.17.0](https://github.com/kickinrad/kumiko/compare/v0.16.0...v0.17.0) (2026-11-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* Install the kumiko release and run kumiko with kumiko.config.mjs. The tokens command, old config name, and tokens-linux-x64 asset are removed.
+
+### Features
+
+* rename tokens command and config to kumiko ([#78](https://github.com/kickinrad/kumiko/issues/78)) ([343f061](https://github.com/kickinrad/kumiko/commit/343f0616be149b2d2eb1ae3c5cca7b3b909a3996))
+
 ## [0.16.0](https://github.com/kickinrad/kumiko/compare/v0.15.0...v0.16.0) (2026-11-03)
 
 
