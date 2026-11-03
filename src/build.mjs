@@ -3,7 +3,7 @@
 // index), or a project's own, imported by tokens.config.mjs and listed as an object.
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import material from "./material.mjs";
+import material, { tv } from "./material.mjs";
 import { readTokens, resolve as resolveTokens, typography } from "./resolve.mjs";
 import { checkHeader, stamp } from "./header.mjs";
 import { checkContrast, contrastPairs } from "./checks/contrast.mjs";
@@ -12,7 +12,7 @@ import { loadTheme, withMedia } from "./theme.mjs";
 import builtins from "./targets/index.mjs";
 
 // Built-in include layers, named in a config's `include` beside its file globs.
-const layers = { [material.name]: material };
+const layers = { [material.name]: material, [tv.name]: tv };
 
 const cssTypes = new Set(["color", "dimension", "duration", "fontFamily", "fontWeight", "number", "string", "typography", "shadow", "cubicBezier"]);
 // One resolved token as targets see it: value is the CSS scalar.

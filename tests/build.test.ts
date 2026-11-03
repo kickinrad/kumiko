@@ -208,6 +208,15 @@ test("builtin:material sits beneath file includes too", () => {
   expect(read(dir, "src/styles/tokens.css")).toContain("--md-sys-shape-corner-small: 3px;");
 });
 
+test("builtin:material is Material 3 only; builtin:material-tv adds tv-material's card defaults", () => {
+  const plain = materialProject('"builtin:material"');
+  expect(run(plain).exitCode).toBe(0);
+  expect(read(plain, "src/styles/tokens.css")).not.toContain("--md-comp-tv-card-");
+  const tv = materialProject('"builtin:material", "builtin:material-tv"');
+  expect(run(tv).exitCode).toBe(0);
+  expect(read(tv, "src/styles/tokens.css")).toContain("--md-comp-tv-card-focused-scale: 1.1;");
+});
+
 test("an unknown built-in include fails loudly", () => {
   const result = run(materialProject('"builtin:nope"'));
   expect(result.exitCode).toBe(1);

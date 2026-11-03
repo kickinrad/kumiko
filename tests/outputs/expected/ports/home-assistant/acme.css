@@ -2539,9 +2539,6 @@ html {
   --md-comp-x-small-icon-button-selected-container-shape-square: var(--md-sys-shape-corner-full);
   --md-comp-x-small-icon-button-wide-leading-space: 10px;
   --md-comp-x-small-icon-button-wide-trailing-space: 10px;
-  --md-comp-tv-card-container-shape: 8px;
-  --md-comp-tv-card-focused-scale: 1.1;
-  --md-comp-tv-card-focused-border-width: 3px;
   --md-sys-elevation-level0: 0px;
   --md-sys-elevation-level1: 1px;
   --md-sys-elevation-level2: 3px;
