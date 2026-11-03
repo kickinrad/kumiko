@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.16.0](https://github.com/kickinrad/kumiko/compare/v0.15.0...v0.16.0) (2026-11-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* the plugin output no longer writes skills/<name>/SKILL.md and needs the kit's own; its links and default options are gone.
+
+### Features
+
+* a dtcg output for a kit's universal tokens; the kit writes its own skill ([#75](https://github.com/kickinrad/kumiko/issues/75)) ([b3e2217](https://github.com/kickinrad/kumiko/commit/b3e2217aad3ebd25200e56dd24bfd38fc4e0bb80))
+
 ## [0.15.0](https://github.com/kickinrad/kumiko/compare/v5.4.2...v0.15.0) (2026-11-03)
 
 
