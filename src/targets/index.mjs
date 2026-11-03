@@ -4,6 +4,7 @@ import claudeDesign from "./claude-design.mjs";
 import composeTv from "./compose-tv.mjs";
 import css from "./css.mjs";
 import designMd from "./design-md.mjs";
+import dtcg from "./dtcg.mjs";
 import materialYou from "./material-you.mjs";
 import mealie from "./mealie.mjs";
 import obsidian from "./obsidian.mjs";
@@ -12,7 +13,7 @@ import plugin from "./plugin.mjs";
 import tailwind from "./tailwind.mjs";
 import template from "./template.mjs";
 
-export default { [css.name]: css, [designMd.name]: designMd,
+export default { [css.name]: css, [designMd.name]: designMd, [dtcg.name]: dtcg,
   [tailwind.name]: tailwind, [composeTv.name]: composeTv, [obsidian.name]: obsidian, [mealie.name]: mealie,
   [materialYou.name]: materialYou, [beer.name]: beer, [playground.name]: playground, [claudeDesign.name]: claudeDesign,
   [plugin.name]: plugin, [template.name]: template };

@@ -153,12 +153,12 @@ A mode's `data-theme` is the colour scheme its surface is nearer to, so the swit
 
 ## The `plugin` output
 
-`"plugin"` writes the kit's agent plugin, one directory that Claude Code and Codex both install, for a declared kit with a `<kit root>/notes.md`: `plugin: { path: "plugins/acme" }`. Every kit's plugin comes from the same template; what differs is the kit's `theme.toml`, its `notes.md` and the config's outputs. Optional: `repository`, a URL where the kit's files are; `author`, the manifest's `{ name, email?, url? }`; `links`, `{ label: url }` pairs the skill lists, such as the kit's published design system; and `default: true`, which makes the skill use this kit whenever nothing selects another, instead of asking. It writes:
+`"plugin"` writes the kit's agent plugin, one directory that Claude Code and Codex both install, for a declared kit with a `<kit root>/notes.md` and its own `skills/<name>/SKILL.md` beside the output: `plugin: { path: "plugins/acme" }`. The kit writes the skill itself, so its wording changes with the kit and needs no engine release; the output writes what the skill reads. Optional: `repository`, a URL where the kit's files are; and `author`, the manifest's `{ name, email?, url? }`. It writes:
 
 | File | Holds |
 | --- | --- |
 | `.claude-plugin/plugin.json` | the manifest: the kit's name, a description, `author`, `repository` and keywords; no `version`, so the runtime keys the plugin by its commit |
-| `skills/<name>/SKILL.md` | the skill: a trigger from the outputs' surfaces (web pages, Home Assistant, Compose for TV, Obsidian, Mealie); when the kit applies (the user or the project selects it; with nothing selected and another kit available, ask; never two kits in one UI); what a quick page still does (with a `css` output, the page's stylesheet links in order); `notes.md` without its title as the kit's rules; then how to build: read `notes.md` and `theme.toml`, pick documented components and read an unfamiliar one's guidance first, wire the outputs (each configured output's files, by its own defaults, and its use; a project's own output by its name and path), write token names; and links to Material 3, Beer CSS (with a `beer` output) and `links` |
+| `skills/<name>/references/notes.md` | the kit's `notes.md`, its rules |
 | `skills/<name>/references/components.md` | with a `beer` output, each playground component in its Material 3 family with Beer's markup and Material 3's guidance where Material has a page; without one, only the components Material 3 documents, with their guidance |
 | `skills/<name>/references/theme.toml` | the kit's `theme.toml`, under a `#` header line, for agents outside the kit's checkout |
 
@@ -200,6 +200,7 @@ Five more built-in outputs for a declared kit (they read `ctx.name` and `VERSION
 
 | Output | Writes | Options (required first) |
 | --- | --- | --- |
+| `dtcg` | the kit's resolved tokens as DTCG 2025.10 files any tool reads: `<path>/<name>.tokens.json` for the base mode and `<path>/<name>.<mode>.tokens.json` for each other mode's differences, aliases resolved, without the Material component tokens the kit leaves alone. A kumiko project includes the first beneath `builtin:material` and lists each other in `media` under its query, then builds its own outputs | `path` (a directory); needs a declared kit |
 | `tailwind` | one Tailwind v4 `@theme inline` file mapping its namespaces onto the kit's runtime CSS variables | `path`, `css` (the runtime CSS file, named in the header) |
 | `compose-tv` | `Color.kt`, `Type.kt`, `Shape.kt`, `Tokens.kt`, `Motion.kt` for androidx.tv.material3 | `out` (directory), `package` |
 | `obsidian` | a snippet per mode for the Minimal theme, its code colours included: `<out>-<mode>.css` | `out`; the monospace face is the theme's `mono` |
