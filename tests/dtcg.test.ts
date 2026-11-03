@@ -50,8 +50,26 @@ test("a consumer that includes the files beneath builtin:material builds the kit
   expect(declarations(read(app, "out/app.css"))).toEqual(declarations(read(dir, "out/kit.css")));
 });
 
-test("the output needs a path and a declared kit", () => {
+test("every colour, a derived role's too, is a DTCG 2025.10 colour object", () => {
+  const dir = mkdtempSync(join(tmpdir(), "tokens-dtcg-derived-"));
+  cpSync(join(root, "tests/derived"), dir, { recursive: true });
+  writeFileSync(join(dir, "tokens.config.mjs"), 'export default { targets: ["dtcg"], include: ["builtin:material"], kit: { name: "acme" }, dtcg: { path: "out" } };\n');
+  const result = run(dir);
+  expect(result.stderr.toString()).toBe("");
+  const colours: unknown[] = [];
+  const walk = (node: Record<string, unknown>) => {
+    if ("$value" in node) { if (node.$type === "color") colours.push(node.$value); return; }
+    for (const [key, each] of Object.entries(node)) if (!key.startsWith("$")) walk(each as Record<string, unknown>);
+  };
+  for (const file of ["acme.tokens.json", "acme.day.tokens.json"]) walk(JSON.parse(read(dir, `out/${file}`)));
+  expect(JSON.parse(read(dir, "out/acme.tokens.json")).md.sys.color["primary-container"].$value).toMatchObject({ colorSpace: "srgb" });
+  for (const each of colours) expect(each).toMatchObject({ colorSpace: "srgb", components: expect.any(Array), hex: expect.stringMatching(/^#[0-9a-f]{6}$/) });
+});
+
+test("the output needs a path, never tokens/, and a declared kit", () => {
   const dir = kit();
   writeFileSync(join(dir, "tokens.config.mjs"), 'export default { targets: ["dtcg"], include: ["builtin:material"], kit: { name: "acme" } };\n');
   expect(run(dir).stderr.toString()).toContain("path");
+  writeFileSync(join(dir, "tokens.config.mjs"), 'export default { targets: ["dtcg"], include: ["builtin:material"], kit: { name: "acme" }, dtcg: { path: "tokens" } };\n');
+  expect(run(dir).stderr.toString()).toContain("tokens/ is the project's own token source");
 });

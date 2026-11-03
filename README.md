@@ -200,7 +200,7 @@ Five more built-in outputs for a declared kit (they read `ctx.name` and `VERSION
 
 | Output | Writes | Options (required first) |
 | --- | --- | --- |
-| `dtcg` | the kit's resolved tokens as DTCG 2025.10 files any tool reads: `<path>/<name>.tokens.json` for the base mode and `<path>/<name>.<mode>.tokens.json` for each other mode's differences, aliases resolved, without the Material component tokens the kit leaves alone. A kumiko project includes the first beneath `builtin:material` and lists each other in `media` under its query, then builds its own outputs | `path` (a directory); needs a declared kit |
+| `dtcg` | the kit's resolved tokens as DTCG 2025.10 files any tool reads: `<path>/<name>.tokens.json` for the base mode and `<path>/<name>.<mode>.tokens.json` for each other mode's differences, aliases resolved and each colour a 2025.10 colour object, without the Material component tokens the kit leaves alone. A kumiko project lists the first after `builtin:material` in `include` and each other in `media` under its query, then builds its own outputs | `path` (a directory other than `tokens/`, the project's own source); needs a declared kit |
 | `tailwind` | one Tailwind v4 `@theme inline` file mapping its namespaces onto the kit's runtime CSS variables | `path`, `css` (the runtime CSS file, named in the header) |
 | `compose-tv` | `Color.kt`, `Type.kt`, `Shape.kt`, `Tokens.kt`, `Motion.kt` for androidx.tv.material3 | `out` (directory), `package` |
 | `obsidian` | a snippet per mode for the Minimal theme, its code colours included: `<out>-<mode>.css` | `out`; the monospace face is the theme's `mono` |
