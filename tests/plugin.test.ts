@@ -67,12 +67,31 @@ test("the skill holds each kit's own rules, outputs and links, and the manifest 
   expect(t).toContain("# not a heading\n");
   expect(t).toContain("   - compose-tv: `tv/`: ");
   expect(t).toContain("`org.example.tern`");
-  expect(t).toContain("[the kit's repository](https://example.org/tern) at 0.4.0");
+  expect(t).toContain("[the kit's repository](https://example.org/tern) at its newest tag");
+  expect(t).toContain("a checkout of the kit at its newest tag");
   expect(t).toContain("- [Style guide](https://example.org/tern/guide)");
   expect(t).toContain("`dusk` and `dawn`");
   expect(t).not.toContain("Beer");
   expect(JSON.parse(read(dirs.acme, "plugins/acme/.claude-plugin/plugin.json"))).toMatchObject({ name: "acme", author: { name: "Acme" } });
   expect(JSON.parse(read(dirs.tern, "agent/tern/.claude-plugin/plugin.json"))).toMatchObject({ name: "tern", repository: "https://example.org/tern" });
+});
+
+test("a web kit's quick page loads its faces, then Beer in a cascade layer beneath the kit's files", () => {
+  const t = read(built(acme()), "plugins/acme/skills/acme/SKILL.md");
+  const head = t.slice(t.indexOf("```html"), t.indexOf("```", t.indexOf("```html") + 3));
+  const order = ["fonts.googleapis.com/css2?family=", '@import url("https://cdn.jsdelivr.net/npm/beercss/dist/cdn/beer.min.css") layer(beer);', 'href="ports/css/kit.css"', 'href="ports/css/kit-beer.css"', "beer.min.js"];
+  const at = order.map((part) => head.indexOf(part));
+  expect(at.every((index) => index >= 0)).toBe(true);
+  expect(at).toEqual([...at].sort((x, y) => x - y));
+  expect(head).not.toMatch(/\d+\.\d+\.\d+/);
+});
+
+test("a default kit is used when nothing selects another; any other kit asks", () => {
+  const ask = "When nothing selects a kit and another kit is also available, stop and ask the user which one";
+  expect(read(built(acme()), "plugins/acme/skills/acme/SKILL.md")).toContain(ask);
+  const t = read(built(acme("c.plugin.default = true;")), "plugins/acme/skills/acme/SKILL.md");
+  expect(t).toContain("When nothing selects a kit, acme is the default: use it.");
+  expect(t).not.toContain(ask);
 });
 
 test("two kits' plugins share the template and nothing of each other's choices", () => {

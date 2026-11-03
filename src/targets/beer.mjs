@@ -25,6 +25,9 @@ const system = ({ iconFont, shadowOpacity }) => ({
   ...(shadowOpacity && Object.fromEntries([1, 2, 3].map((level) => [`elevate${level}`, shadow(level, variable(shadowOpacity))]))),
 });
 
+// The component variables the beer output's rules read: the css output carries only these of Material's own.
+export const reads = new Set([...`${materialCss}${layoutCss}${Object.values(system({})).join("")}`.matchAll(/var\(--(md-comp-[a-z0-9-]+)/g)].map((match) => match[1]));
+
 export default {
   name: "beer",
   async build({ tokens, options, name }) {

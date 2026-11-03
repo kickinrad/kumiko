@@ -4,6 +4,7 @@ import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, w
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { command, read, root, run } from "./helpers";
+import { reads } from "../src/targets/beer.mjs";
 
 const project = () => {
   const dir = mkdtempSync(join(tmpdir(), "tokens-"));
@@ -191,7 +192,7 @@ test("builtin:material gives a project Material's tokens beneath its own", () =>
   const css = read(dir, "src/styles/tokens.css");
   expect(css).toContain("--md-sys-color-primary: #");
   // An alias in the baseline follows the project's override.
-  expect(css).toContain("--md-comp-filled-card-container-shape: 20px;");
+  expect(css).toContain("--md-comp-list-item-hovered-container-expressive-shape: 20px;");
   expect(css).toContain("--md-sys-motion-duration-short3: 150ms;");
   expect(css).toContain("--md-sys-shape-corner-medium: 20px;");
   expect(css).not.toContain("--md-sys-shape-corner-medium: 12px;");
@@ -208,13 +209,32 @@ test("builtin:material sits beneath file includes too", () => {
   expect(read(dir, "src/styles/tokens.css")).toContain("--md-sys-shape-corner-small: 3px;");
 });
 
+// What a target receives, written as JSON by a project's own target.
+const tokensOf = (dir: string) => {
+  writeFileSync(join(dir, "dump.mjs"), 'export default { name: "dump", build: ({ tokens }) => [{ path: "tokens.json", content: JSON.stringify(tokens) }] };\n');
+  writeFileSync(join(dir, "tokens.config.mjs"), read(dir, "tokens.config.mjs").replace('targets: ["css"]', 'targets: [(await import("./dump.mjs")).default]'));
+  expect(run(dir).exitCode).toBe(0);
+  return JSON.parse(read(dir, "tokens.json")) as { path: string; builtin?: boolean }[];
+};
+
 test("builtin:material is Material 3 only; builtin:material-tv adds tv-material's card defaults", () => {
-  const plain = materialProject('"builtin:material"');
-  expect(run(plain).exitCode).toBe(0);
-  expect(read(plain, "src/styles/tokens.css")).not.toContain("--md-comp-tv-card-");
-  const tv = materialProject('"builtin:material", "builtin:material-tv"');
-  expect(run(tv).exitCode).toBe(0);
-  expect(read(tv, "src/styles/tokens.css")).toContain("--md-comp-tv-card-focused-scale: 1.1;");
+  expect(tokensOf(materialProject('"builtin:material"')).some((token) => token.path.startsWith("md.comp.tv-card."))).toBe(false);
+  const tv = tokensOf(materialProject('"builtin:material", "builtin:material-tv"'));
+  expect(tv.find((token) => token.path === "md.comp.tv-card.focused-scale")?.builtin).toBe(true);
+});
+
+test("css writes Material's own component tokens only where Beer's layer reads them, and a project's own always", () => {
+  const dir = materialProject('"builtin:material"');
+  writeFileSync(join(dir, "tokens/component.tokens.json"), JSON.stringify({
+    md: { comp: { "filled-card": { "container-elevation": { $type: "dimension", $value: { value: 2, unit: "px" } } } } },
+  }));
+  expect(run(dir).exitCode).toBe(0);
+  const css = read(dir, "src/styles/tokens.css");
+  const names = [...css.matchAll(/^  --(md-comp-[a-z0-9-]+):/gm)].map((match) => match[1]);
+  expect(names.filter((name) => !reads.has(name) && !/^md-comp-.*-(size|line-height|weight|tracking)$/.test(name))).toEqual(["md-comp-filled-card-container-elevation"]);
+  expect(css).not.toContain("--md-comp-filled-card-container-shape:");
+  // Every component variable Beer's layer reads is declared, so none of its rules falls back.
+  for (const name of reads) expect(css, name).toContain(`--${name}:`);
 });
 
 test("an unknown built-in include fails loudly", () => {

@@ -98,7 +98,18 @@ export const build = async (config = {}, { check = false } = {}) => {
       .map(([key]) => `md.sys.color.${key}`);
     if (missing.length) throw new Error(`theme.toml: no layer sets ${missing.length} Material colour role${missing.length === 1 ? "" : "s"}: ${missing.join(", ")}`);
   }
-  const tokens = resolved.map(entry);
+  // A token no layer but a built-in one sets is marked `builtin`, so a target can tell Material's untouched tokens
+  // from a project's own.
+  const own = new Set();
+  const collect = (node, path = []) => {
+    if (!node || typeof node !== "object" || Array.isArray(node)) return;
+    if ("$value" in node) return own.add(path.join("."));
+    for (const [key, child] of Object.entries(node)) if (!key.startsWith("$")) collect(child, [...path, key]);
+  };
+  for (const layer of [...include, ...source, ...Object.values(media).flat()]) {
+    if (!layer.file?.startsWith("builtin:")) collect(layer.tree ?? await readTokens(layer.file));
+  }
+  const tokens = resolved.map(entry).map((token) => own.has(token.path) ? token : { ...token, builtin: true });
 
   // Each other mode resolves once, when a target or the contrast check first asks for it. A target passes back the
   // layers it was given in ctx.media.

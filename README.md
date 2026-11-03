@@ -106,7 +106,9 @@ Every pair is resolved in the base mode and in each other mode, and a pair under
 
 ## The `css` target's modes and springs
 
-`css: { scheme: "dark" }` names the base mode (`"dark"` or `"light"`). Each colour that differs by mode is then one `light-dark()` declaration on `:root`, with `color-scheme: <base> <other>` there, so the page follows the system. `[data-theme="light"]` and `[data-theme="dark"]` set only `color-scheme`, which pins a mode on the root or any element: a variable holding `light-dark()` resolves where it is used, so a pinned subtree switches without re-declaring anything. A non-colour token that differs by mode keeps its `prefers-color-scheme` media block on `:root:not([data-theme="<base>"])` and its value on each `data-theme` pin. `light-dark()` needs a Baseline 2024 browser (Chrome 123, Safari 17.5, Firefox 120). Without `scheme` the output is unchanged. When the tokens hold Material's springs (`md.sys.motion.spring.*.damping` and `.stiffness`), each spring also gets a `-easing` (a CSS `linear()` curve) and a `-settle` time.
+`css: { scheme: "dark" }` names the base mode (`"dark"` or `"light"`). Each colour that differs by mode is then one `light-dark()` declaration on `:root`, with `color-scheme: <base> <other>` there, so the page follows the system. `[data-theme="light"]` and `[data-theme="dark"]` set only `color-scheme`, which pins a mode on the root or any element: a variable holding `light-dark()` resolves where it is used, so a pinned subtree switches without re-declaring anything. A non-colour token that differs by mode keeps its `prefers-color-scheme` media block on `:root:not([data-theme="<base>"])` and its value on each `data-theme` pin. `light-dark()` needs a Baseline 2024 browser (Chrome 123, Safari 17.5, Firefox 120). Without `scheme` the output is unchanged.
+
+The `css` output writes Material's own component tokens (from `builtin:material`, untouched by the project) only where the `beer` output's rules read them; a component token the project or kit sets itself is always written. A platform that wants the full set builds it from `builtin:material` with its own output. The playground carries the same set. When the tokens hold Material's springs (`md.sys.motion.spring.*.damping` and `.stiffness`), each spring also gets a `-easing` (a CSS `linear()` curve) and a `-settle` time.
 
 ## The `beer` target
 
@@ -130,7 +132,7 @@ It writes:
 
 | File | Holds |
 | --- | --- |
-| `index.html` | Beer's stylesheet in a cascade layer, the kit's `css` and `beer` outputs, the kit's data (name, version, title, every token per mode, `notes.md` as HTML, the examples) and the engine's client as one script. Beer's script and the icon face come from their CDNs. The page has a navigation rail (Foundations, Components, Cards, Pages, Examples when there are entries, Rules), each destination a list-detail layout at `#destination/item`, and a top app bar with the kit's title and a mode switch. |
+| `index.html` | Beer's stylesheet in a cascade layer, the kit's `css` and `beer` outputs, the kit's data (name, version, title, the tokens the `css` output carries, per mode, `notes.md` as HTML, the examples) and the engine's client as one script. Beer's script and the icon face come from their CDNs. The page has a navigation rail (Foundations, Components, Cards, Pages, Examples when there are entries, Rules), each destination a list-detail layout at `#destination/item`, and a top app bar with the kit's title and a mode switch. |
 | `tailwind.html` | with a `tailwind` output: Tailwind's utility classes on the kit's outputs, shown in a frame so Tailwind's reset leaves Beer alone. |
 
 A mode's `data-theme` is the colour scheme its surface is nearer to, so the switch needs one dark and one light mode. `tokens audit`, below, checks the page in a browser.
@@ -151,7 +153,7 @@ A mode's `data-theme` is the colour scheme its surface is nearer to, so the swit
 
 ## The `plugin` output
 
-`"plugin"` writes the kit's agent plugin, one directory that Claude Code and Codex both install, for a declared kit with a `<kit root>/notes.md`: `plugin: { path: "plugins/acme" }`. Every kit's plugin comes from the same template; what differs is the kit's `theme.toml`, its `notes.md` and the config's outputs. Optional: `repository`, a URL where the kit's files are; `author`, the manifest's `{ name, email?, url? }`; and `links`, `{ label: url }` pairs the skill lists, such as the kit's published design system. It writes:
+`"plugin"` writes the kit's agent plugin, one directory that Claude Code and Codex both install, for a declared kit with a `<kit root>/notes.md`: `plugin: { path: "plugins/acme" }`. Every kit's plugin comes from the same template; what differs is the kit's `theme.toml`, its `notes.md` and the config's outputs. Optional: `repository`, a URL where the kit's files are; `author`, the manifest's `{ name, email?, url? }`; `links`, `{ label: url }` pairs the skill lists, such as the kit's published design system; and `default: true`, which makes the skill use this kit whenever nothing selects another, instead of asking. It writes:
 
 | File | Holds |
 | --- | --- |

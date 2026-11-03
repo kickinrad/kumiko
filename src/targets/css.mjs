@@ -3,11 +3,15 @@
 // A component's type role (Material names it as a string on an md.comp *-font token, such as "label-large")
 // becomes the five typescale variables it stands for.
 // With the Material springs in the tokens, each also gets its linear() easing and settle time.
+// A component token of Material's own (builtin:material, untouched by the project) is written only when the beer
+// output's rules read it; a project's or kit's own component token always is. A platform that wants the full set
+// builds it from builtin:material.
 // With `scheme` ("dark" or "light", the base mode), each colour that differs by mode is one light-dark() declaration
 // on :root, which follows color-scheme where the variable is used; data-theme pins a mode on the root or any element
 // by setting only color-scheme. A non-colour token that differs by mode keeps a media block and a data-theme pin.
 import { springVars } from "../motion.mjs";
 import { typeRole } from "../system.mjs";
+import { reads } from "./beer.mjs";
 
 const declare = (indent, declarations) => declarations.map((line) => `${indent}${line}`).join("\n");
 
@@ -29,8 +33,13 @@ export default {
     const base = new Map();
     const baseLetterSpacing = new Map();
     const paths = new Set(tokens.map((token) => token.path));
+    const skipped = new Set();
     for (const token of tokens) {
       const role = typeRole(token, paths);
+      if (token.builtin && token.path.startsWith("md.comp.") && !(role?.map(([name]) => name) ?? [token.name]).some((name) => reads.has(name))) {
+        skipped.add(token.path);
+        continue;
+      }
       if (role) for (const [name, value] of role) declarations.push(`--${name}: ${value};`);
       else declarations.push(`--${token.name}: ${valueOf(token)};`);
       base.set(token.path, String(token.value));
@@ -45,6 +54,7 @@ export default {
       const overrides = [];
       const bases = [];
       for (const token of query === modeQuery ? modeTokens : await mediaTokens(files)) {
+        if (skipped.has(token.path)) continue;
         if (String(token.value) !== base.get(token.path) && !(query === modeQuery && token.type === "color")) {
           overrides.push(`--${token.name}: ${token.value};`);
           bases.push(`--${token.name}: ${base.get(token.path)};`);
