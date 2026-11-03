@@ -154,7 +154,7 @@ export const build = async (config = {}, { check = false } = {}) => {
     if (check) {
       const existing = await readExisting(path);
       if (kit.name) checkHeader(path, existing);
-      if (existing !== content) throw new Error(`${path} is stale; run tokens`);
+      if (existing !== content) throw new Error(`${path} is stale; run kumiko`);
       continue;
     }
     await mkdir(dirname(path), { recursive: true });

@@ -48,6 +48,6 @@ export const stamp = (outputs, kit, target) => outputs.map(({ lead = 0, ...outpu
 // Under --check: the file on disk must carry the header, whatever else differs.
 export const checkHeader = (path, existing) => {
   if (wantsHeader(path) && existing !== undefined && !hasHeader(existing)) {
-    throw new Error(`${path} has no generated header in its first ${WINDOW} lines; run tokens`);
+    throw new Error(`${path} has no generated header in its first ${WINDOW} lines; run kumiko`);
   }
 };
