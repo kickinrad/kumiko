@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.15.0](https://github.com/kickinrad/kumiko/compare/v5.4.2...v0.15.0) (2026-11-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* md.comp.tv-card.* leaves builtin:material; a TV app adds "builtin:material-tv" to include.
+
+### Features
+
+* small, neutral web output: light-dark(), Beer-read component tokens, a TV layer of its own ([#71](https://github.com/kickinrad/kumiko/issues/71)) ([3f26918](https://github.com/kickinrad/kumiko/commit/3f26918a7fa62590426b331e7feb94d0d38860e5))
+
+
+### Miscellaneous Chores
+
+* **release:** restart at 0.15.0 ([#73](https://github.com/kickinrad/kumiko/issues/73)) ([9404f49](https://github.com/kickinrad/kumiko/commit/9404f491eed28708cbda8259931830a89d685e65))
+
 ## [5.4.2](https://github.com/kickinrad/kumiko/compare/v5.4.1...v5.4.2) (2026-11-02)
 
 
