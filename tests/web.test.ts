@@ -91,7 +91,7 @@ test("every colour role the installed Beer declares is set to Material's role of
     expect(set.get(role)).toBe(`var(--md-sys-color-${role})`);
     expect(m3.has(role), `md.sys.color.${role} is a Material role`).toBe(true);
   }
-  expect(read(dir, "out/beer.css")).toMatch(/^:root, \[data-theme\], body\.light, body\.dark \{$/m);
+  expect(read(dir, "out/beer.css")).toMatch(/^:root, body\.light, body\.dark \{$/m);
 });
 
 test("Beer's rem is body-large, so its buttons are Material's: small XS 32, the default S 40, extra M 56", () => {

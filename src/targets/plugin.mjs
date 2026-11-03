@@ -22,7 +22,7 @@ const SURFACES = { css: "web pages", beer: "web pages", tailwind: "web pages", "
 // Each built-in output as the skill lists it, those that build UI first: its files, from its own options (with the
 // output's own defaults), and its use.
 const OUTPUTS = {
-  css: (o, kit) => `\`${o.path ?? "src/styles/tokens.css"}\`: the tokens as CSS custom properties${o.scheme ? `, ${kit.modes.base} on \`:root\` and the other mode by its media query or \`data-theme\`` : ""}.`,
+  css: (o, kit) => `\`${o.path ?? "src/styles/tokens.css"}\`: the tokens as CSS custom properties${o.scheme ? `, each colour one \`light-dark()\` on \`:root\` that follows the system, or \`data-theme\` on any element to pin a mode` : ""}.`,
   beer: (o) => `\`${o.path ?? "src/styles/beer.css"}\`: Beer CSS on the theme; load it after Beer and the css output.`,
   tailwind: (o) => `\`${o.path}\`: Tailwind utilities on the css output.`,
   "material-you": (o) => `\`${o.path}\`: Home Assistant's Material You theme, which follows its light or dark mode.`,

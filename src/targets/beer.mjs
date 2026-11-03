@@ -35,7 +35,7 @@ export default {
       "/* Beer CSS themed by the kit: Beer's variables from the kit's. Load after Beer and the kit's css output; set",
       " * the mode the kit's way (data-theme), not with Beer's body classes. Load Beer in a cascade layer",
       " * (@import url(beer.min.css) layer(beer)) so the rules below win over its element reset. */",
-      ":root, [data-theme], body.light, body.dark {",
+      ":root, body.light, body.dark {",
       ...roles(tokens).map((role) => `  --${role}: var(--md-sys-color-${role});`),
       ...Object.entries(system({ iconFont, shadowOpacity })).map(([name, value]) => `  --${name}: ${value};`),
       "}",

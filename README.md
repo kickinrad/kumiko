@@ -106,7 +106,7 @@ Every pair is resolved in the base mode and in each other mode, and a pair under
 
 ## The `css` target's modes and springs
 
-`css: { scheme: "dark" }` names the base mode (`"dark"` or `"light"`). The output then sets `color-scheme`, and `data-theme` pins a mode on the root or any element: the base tokens sit on `:root, [data-theme]`, the `prefers-color-scheme` media set on `:root:not([data-theme="<base>"])`, and the other mode again on `[data-theme="<other>"]`. Without `scheme` the output is unchanged. When the tokens hold Material's springs (`md.sys.motion.spring.*.damping` and `.stiffness`), each spring also gets a `-easing` (a CSS `linear()` curve) and a `-settle` time.
+`css: { scheme: "dark" }` names the base mode (`"dark"` or `"light"`). Each colour that differs by mode is then one `light-dark()` declaration on `:root`, with `color-scheme: <base> <other>` there, so the page follows the system. `[data-theme="light"]` and `[data-theme="dark"]` set only `color-scheme`, which pins a mode on the root or any element: a variable holding `light-dark()` resolves where it is used, so a pinned subtree switches without re-declaring anything. A non-colour token that differs by mode keeps its `prefers-color-scheme` media block on `:root:not([data-theme="<base>"])` and its value on each `data-theme` pin. `light-dark()` needs a Baseline 2024 browser (Chrome 123, Safari 17.5, Firefox 120). Without `scheme` the output is unchanged. When the tokens hold Material's springs (`md.sys.motion.spring.*.damping` and `.stiffness`), each spring also gets a `-easing` (a CSS `linear()` curve) and a `-settle` time.
 
 ## The `beer` target
 
