@@ -72,6 +72,29 @@ const walk = async () => {
     }
     document.querySelector("[data-mode]").click();
   }
+  // A pin works on any element, both ways: inside a subtree pinned to one scheme, an element pinned to the other
+  // draws that mode's surface, and a Beer button its primary (Beer's own variables follow the pin too).
+  const colour = (value) => {
+    const el = document.body.appendChild(document.createElement("i"));
+    el.style.color = value;
+    const computed = getComputedStyle(el).color;
+    el.remove();
+    return computed;
+  };
+  const role = (mode, name) => data.modes[mode].find((token) => token.path === `md.sys.color.${name}`)?.value;
+  const drawn = {};
+  for (const [outer, inner] of [["dark", "light"], ["light", "dark"]]) {
+    const box = document.body.appendChild(document.createElement("div"));
+    box.dataset.theme = outer;
+    box.innerHTML = `<div data-theme="${inner}" style="background: var(--md-sys-color-surface)"><button>Pin</button></div>`;
+    const [pinned, button] = [box.firstElementChild, box.querySelector("button")];
+    const mode = names.find((each) => colour(role(each, "surface")) === getComputedStyle(pinned).backgroundColor);
+    if (!mode) out.push(`data-theme="${inner}" inside "${outer}": the surface ${getComputedStyle(pinned).backgroundColor} is no mode's`);
+    else if (getComputedStyle(button).backgroundColor !== colour(role(mode, "primary"))) out.push(`data-theme="${inner}" inside "${outer}": Beer's button is ${getComputedStyle(button).backgroundColor}, not ${mode}'s primary`);
+    drawn[inner] = mode;
+    box.remove();
+  }
+  if (drawn.light && drawn.light === drawn.dark) out.push(`data-theme="light" and "dark" both draw ${drawn.light}`);
   return out;
 };
 

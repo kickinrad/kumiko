@@ -25,6 +25,9 @@ const system = ({ iconFont, shadowOpacity }) => ({
   ...(shadowOpacity && Object.fromEntries([1, 2, 3].map((level) => [`elevate${level}`, shadow(level, variable(shadowOpacity))]))),
 });
 
+// The component variables the beer output's rules read: the css output carries only these of Material's own.
+export const reads = new Set([...`${materialCss}${layoutCss}${Object.values(system({})).join("")}`.matchAll(/var\(--(md-comp-[a-z0-9-]+)/g)].map((match) => match[1]));
+
 export default {
   name: "beer",
   async build({ tokens, options, name }) {
@@ -35,7 +38,7 @@ export default {
       "/* Beer CSS themed by the kit: Beer's variables from the kit's. Load after Beer and the kit's css output; set",
       " * the mode the kit's way (data-theme), not with Beer's body classes. Load Beer in a cascade layer",
       " * (@import url(beer.min.css) layer(beer)) so the rules below win over its element reset. */",
-      ":root, [data-theme], body.light, body.dark {",
+      ":root, body.light, body.dark {",
       ...roles(tokens).map((role) => `  --${role}: var(--md-sys-color-${role});`),
       ...Object.entries(system({ iconFont, shadowOpacity })).map(([name, value]) => `  --${name}: ${value};`),
       "}",

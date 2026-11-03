@@ -1,8 +1,8 @@
-:root, [data-theme] {
-  color-scheme: dark;
-  --md-sys-color-surface: #101418;
-  --md-sys-color-on-surface: #e1e2e8;
-  --md-sys-color-primary: #7aa2f7;
+:root {
+  color-scheme: dark light;
+  --md-sys-color-surface: light-dark(#f6f6f6, #101418);
+  --md-sys-color-on-surface: light-dark(#1b1c1f, #e1e2e8);
+  --md-sys-color-primary: light-dark(#2e7de9, #7aa2f7);
   --md-sys-typescale-label-large-font: 'Acme Sans';
   --md-sys-typescale-label-large-size: 14px;
   --md-sys-typescale-label-large-line-height: 20px;
@@ -18,18 +18,10 @@
   --acme-elevation-shadow-opacity: 0.3;
 }
 
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
-    color-scheme: light;
-    --md-sys-color-surface: #f6f6f6;
-    --md-sys-color-on-surface: #1b1c1f;
-    --md-sys-color-primary: #2e7de9;
-  }
+[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 [data-theme="light"] {
   color-scheme: light;
-  --md-sys-color-surface: #f6f6f6;
-  --md-sys-color-on-surface: #1b1c1f;
-  --md-sys-color-primary: #2e7de9;
 }

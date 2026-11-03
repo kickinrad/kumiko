@@ -84,6 +84,9 @@ export const type = (data, tokens) => `<p>Each line is set in its style's own va
 // The faces the type tokens and the kit's mono face (code) name, one Google Fonts css2 link per family (so one
 // unknown family fails alone), in the weights the type tokens use. A generic stack is not a family.
 const GENERIC = /^(serif|sans-serif|monospace|cursive|fantasy|system-ui|emoji|math|fangsong|ui-[a-z-]+)$/i;
+// The icon face's stylesheet on Google Fonts, every axis, so a filled or weighted icon draws.
+export const iconLink = (family) => `https://fonts.googleapis.com/css2?family=${family.replaceAll(" ", "+")}:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block`;
+
 export const fontLinks = (tokens) => {
   const families = tokens.filter((token) => token.type === "fontFamily" && (token.path.startsWith("md.sys.typescale.") || token.path.endsWith(".typeface.mono")))
     .flatMap((token) => String(token.value).split(",").map((family) => family.trim().replace(/^['"]|['"]$/g, "")))

@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join, relative } from "node:path";
 import tailwind from "../web/tailwind.html" with { type: "text" };
 import { need, needKit } from "../system.mjs";
+import { iconLink } from "../web/foundations.js";
 
 // Beer's stylesheet, installed with the engine (the binary carries Beer's dist/cdn folder as assets). Its shapes are
 // SVG files beside it, which the page carries as data; its font faces point at icon fonts beside it too, which the
@@ -42,7 +43,6 @@ const bundle = async (client, color) => {
     rmSync(dir, { recursive: true, force: true });
   }
 };
-const ICONS = (family) => `https://fonts.googleapis.com/css2?family=${family.replaceAll(" ", "+")}:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block`;
 // The client's modules; each imports the colour maths from "../color.mjs" in the source and "./color.mjs" beside the page.
 const CLIENT = ["playground.js", "examples.js", "foundations.js", "components.js", "cards.js", "pages.js"];
 // A source file as text. The engine imports some of them as modules too (color.mjs, and the specimens the
@@ -98,8 +98,10 @@ export default {
     const output = tailwindPath && built(tailwindPath);
     if (tailwindPath && output === undefined) throw new Error("playground: list the tailwind output before it");
 
-    const byMode = [[modes.base, tokens]];
-    for (const [query, files] of Object.entries(media)) byMode.push([modes.media[query] ?? query, await mediaTokens(files)]);
+    // The tokens the css output carries: Material's own component tokens only where that stylesheet writes them.
+    const carried = new Set(tokens.filter((token) => !(token.builtin && token.path.startsWith("md.comp.")) || css.includes(`--${token.name}:`)).map((token) => token.path));
+    const byMode = [[modes.base, tokens.filter((token) => carried.has(token.path))]];
+    for (const [query, files] of Object.entries(media)) byMode.push([modes.media[query] ?? query, (await mediaTokens(files)).filter((token) => carried.has(token.path))]);
 
     const color = await source("../color.mjs");
     const client = await Promise.all(CLIENT.map(async (file) => [file, await source(`../web/${file}`)]));
@@ -122,7 +124,7 @@ export default {
       '<meta charset="utf-8">',
       '<meta name="viewport" content="width=device-width, initial-scale=1">',
       "<title>Playground</title>",
-      `<link rel="stylesheet" href="${attribute(ICONS(iconFace))}">`,
+      `<link rel="stylesheet" href="${attribute(iconLink(iconFace))}">`,
       `<style>@layer beer {\n${inline(beerStyles)}\n}</style>`,
       `<style>\n${inline(css)}</style>`,
       `<style>\n${inline(beer)}</style>`,

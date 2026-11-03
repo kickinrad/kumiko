@@ -3,7 +3,7 @@
 // index), or a project's own, imported by tokens.config.mjs and listed as an object.
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import material from "./material.mjs";
+import material, { tv } from "./material.mjs";
 import { readTokens, resolve as resolveTokens, typography } from "./resolve.mjs";
 import { checkHeader, stamp } from "./header.mjs";
 import { checkContrast, contrastPairs } from "./checks/contrast.mjs";
@@ -12,7 +12,7 @@ import { loadTheme, withMedia } from "./theme.mjs";
 import builtins from "./targets/index.mjs";
 
 // Built-in include layers, named in a config's `include` beside its file globs.
-const layers = { [material.name]: material };
+const layers = { [material.name]: material, [tv.name]: tv };
 
 const cssTypes = new Set(["color", "dimension", "duration", "fontFamily", "fontWeight", "number", "string", "typography", "shadow", "cubicBezier"]);
 // One resolved token as targets see it: value is the CSS scalar.
@@ -98,7 +98,18 @@ export const build = async (config = {}, { check = false } = {}) => {
       .map(([key]) => `md.sys.color.${key}`);
     if (missing.length) throw new Error(`theme.toml: no layer sets ${missing.length} Material colour role${missing.length === 1 ? "" : "s"}: ${missing.join(", ")}`);
   }
-  const tokens = resolved.map(entry);
+  // A token no layer but a built-in one sets is marked `builtin`, so a target can tell Material's untouched tokens
+  // from a project's own.
+  const own = new Set();
+  const collect = (node, path = []) => {
+    if (!node || typeof node !== "object" || Array.isArray(node)) return;
+    if ("$value" in node) return own.add(path.join("."));
+    for (const [key, child] of Object.entries(node)) if (!key.startsWith("$")) collect(child, [...path, key]);
+  };
+  for (const layer of [...include, ...source, ...Object.values(media).flat()]) {
+    if (!layer.file?.startsWith("builtin:")) collect(layer.tree ?? await readTokens(layer.file));
+  }
+  const tokens = resolved.map(entry).map((token) => own.has(token.path) ? token : { ...token, builtin: true });
 
   // Each other mode resolves once, when a target or the contrast check first asks for it. A target passes back the
   // layers it was given in ctx.media.

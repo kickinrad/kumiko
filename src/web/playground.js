@@ -81,7 +81,11 @@ const boot = () => {
   const modes = Object.keys(data.modes);
   const schemes = Object.fromEntries(modes.map((mode) => [mode, scheme(data.modes[mode])]));
   const root = document.documentElement;
-  let mode = modes.find((each) => schemes[each] === getComputedStyle(root).colorScheme) ?? modes[0];
+  // The page opens in the scheme it shows: the root's, when it names one (a data-theme pin or a host's rule), else the
+  // system's, since the stylesheet's :root lists both.
+  const named = getComputedStyle(root).colorScheme.split(" ").filter((each) => each === "light" || each === "dark");
+  const shown = named.length === 1 ? named[0] : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  let mode = modes.find((each) => schemes[each] === shown) ?? modes[0];
   // Whether the rail is expanded, remembered per browser (a convenience; storage may be absent).
   const remember = (key, value) => { try { localStorage.setItem(key, value); } catch {} };
   let expanded = false;
