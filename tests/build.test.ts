@@ -28,6 +28,7 @@ test("--check passes when current and names the stale file otherwise", () => {
   const stale = run(dir, "--check");
   expect(stale.exitCode).toBe(1);
   expect(stale.stderr.toString()).toContain("src/styles/tokens.css is stale");
+  expect(stale.stderr.toString()).toContain("run kumiko");
 });
 
 test("a token file that isn't valid JSON fails the build with the parse error, not a hang", () => {
