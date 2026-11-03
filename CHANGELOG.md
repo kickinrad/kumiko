@@ -6,6 +6,8 @@
 ### ⚠ BREAKING CHANGES
 
 * md.comp.tv-card.* leaves builtin:material; a TV app adds "builtin:material-tv" to include.
+* the css output with `scheme` declares each colour once as `light-dark()` on `:root`; `[data-theme]` only sets `color-scheme`, and it needs a Baseline 2024 browser. Beer's variables sit on `:root, body.light, body.dark`, not on every `[data-theme]`.
+* `--md-comp-*` variables from builtin:material that the beer output does not read leave the css output and the playground's data; a project's own component tokens stay.
 
 ### Features
 
