@@ -1,7 +1,7 @@
 // What a rendered playground must hold, measured in the page itself: every visible text meets Material's contrast
 // against the colour actually behind it; every text is set in one of the kit's faces, and each face in use loaded; no two
 // boxes inside one control overlap; nothing scrolls the page sideways; headings step down; prose keeps a readable
-// measure, and a list's markers sit inside its text column. Returns one line per failure. Runs in the page; `tokens audit` (src/render.mjs) puts it there.
+// measure, and a list's markers sit inside its text column. Returns one line per failure. Runs in the page; `kumiko audit` (src/render.mjs) puts it there.
 export const audit = (doc, { faces }) => {
   const win = doc.defaultView;
   const failures = [];

@@ -80,7 +80,7 @@ const tokens = (given, at = []) => Object.entries(given).flatMap(([key, value]) 
 const validate = (toml, kitName) => {
   only(toml, KEYS, "the file");
   const name = tokenName(toml.name, "name");
-  if (name !== kitName) fail(`name "${name}" does not match kit.name "${kitName}" in tokens.config.mjs`);
+  if (name !== kitName) fail(`name "${name}" does not match kit.name "${kitName}" in kumiko.config.mjs`);
   const palette = table(toml.palette, "palette");
   const modes = Object.keys(palette);
   const base = text(toml.default, "default");

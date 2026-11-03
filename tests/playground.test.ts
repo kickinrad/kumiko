@@ -10,14 +10,14 @@ import { command, read, root, run } from "./helpers";
 
 const project = () => {
   const dir = mkdtempSync(join(tmpdir(), "tokens-playground-"));
-  for (const entry of ["design", "tokens", "VERSION", "tokens.config.mjs"]) cpSync(join(root, "tests/playground", entry), join(dir, entry), { recursive: true });
+  for (const entry of ["design", "tokens", "VERSION", "kumiko.config.mjs"]) cpSync(join(root, "tests/playground", entry), join(dir, entry), { recursive: true });
   return dir;
 };
 // The fixture's config with `edit` applied to a copy of its options.
 const edited = (edit: string) => {
   const dir = project();
-  renameSync(join(dir, "tokens.config.mjs"), join(dir, "base.config.mjs"));
-  writeFileSync(join(dir, "tokens.config.mjs"), `import base from "./base.config.mjs";\nconst c = structuredClone(base);\n${edit}\nexport default c;\n`);
+  renameSync(join(dir, "kumiko.config.mjs"), join(dir, "base.config.mjs"));
+  writeFileSync(join(dir, "kumiko.config.mjs"), `import base from "./base.config.mjs";\nconst c = structuredClone(base);\n${edit}\nexport default c;\n`);
   return dir;
 };
 // A kit's generated text starts with a header that names the kit (the engine's rule); the page itself names none.
@@ -135,7 +135,7 @@ test.each(["css", "beer"])("a config without the %s output fails, naming it", (t
 
 test("without a declared kit it fails, saying so", () => {
   const dir = project();
-  writeFileSync(join(dir, "tokens.config.mjs"), 'export default { targets: ["playground"], playground: { path: "p" } };\n');
+  writeFileSync(join(dir, "kumiko.config.mjs"), 'export default { targets: ["playground"], playground: { path: "p" } };\n');
   const result = run(dir);
   expect(result.exitCode).toBe(1);
   expect(result.stderr.toString()).toContain("needs a declared kit");
@@ -482,7 +482,7 @@ test("rules: the notes, then the kit's exceptions: every Material token with a d
 
 // Every destination's module, as the built page loads them.
 const modules = async (dir: string) => {
-  const load = async (name: string) => (await import(join(root, `src/web/${name}.js`))).default as { id: string; name: string; body: (data: unknown, tokens: unknown) => string }[];
+  const load = async (name: string) => (await import(join(root, `src/web/${name}.js`))).default as { id: string; name: string; body: (data: unknown, kumiko: unknown) => string }[];
   return { foundations: await load("foundations"), components: await load("components"), cards: await load("cards"), pages: await load("pages") };
 };
 // The tags of a fragment open and close in order (void elements and self-closing tags aside).
