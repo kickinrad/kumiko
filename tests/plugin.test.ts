@@ -103,3 +103,17 @@ test("the output needs a path and a declared kit", () => {
   const bare = run(acme("delete c.kit; c.targets = ['plugin'];"));
   expect(bare.stderr.toString()).toContain("plugin needs a declared kit");
 });
+
+test("the manifest's description is the kit's when it names one, and the default otherwise", () => {
+  const own = built(acme(`c.plugin.description = "Build, adopt and update UI on Acme.";`));
+  expect(JSON.parse(read(own, "plugins/acme/.claude-plugin/plugin.json")).description).toBe("Build, adopt and update UI on Acme.");
+  expect(run(own, "--check").exitCode).toBe(0);
+  const plain = built(acme());
+  expect(JSON.parse(read(plain, "plugins/acme/.claude-plugin/plugin.json")).description).toMatch(/^Build UI on the .* kit: its rules, components and token names\.$/);
+});
+
+test("an empty description fails, naming it", () => {
+  const result = run(acme(`c.plugin.description = " ";`));
+  expect(result.exitCode).not.toBe(0);
+  expect(result.stderr.toString()).toContain("plugin's description must be a non-empty string");
+});

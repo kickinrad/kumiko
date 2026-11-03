@@ -3,7 +3,8 @@
 // components.md (each component with its Material 3 guidance and, with a beer output, Beer's markup), notes.md (the
 // kit's rules) and theme.toml (the kit's values), for agents outside the kit's checkout. The kit writes SKILL.md
 // itself, so its wording changes with the kit, not with the engine.
-// Options: path (a directory); optional repository (a URL, where the kit's files are) and author ({ name, email?, url? }).
+// Options: path (a directory); optional description (the manifest's one line, which by default says the plugin builds
+// UI on the kit), repository (a URL, where the kit's files are) and author ({ name, email?, url? }).
 import { join, relative } from "node:path";
 import specimens from "../web/components.js";
 import { text } from "../header.mjs";
@@ -21,6 +22,7 @@ export default {
     needKit(ctx, "plugin");
     const { options, config, readExisting, root, name, version, title } = ctx;
     const dir = need(options, "plugin", "path");
+    if (options.description !== undefined && (typeof options.description !== "string" || !options.description.trim())) throw new Error("plugin's description must be a non-empty string");
     if (!NAME.test(name) || name.length > 64) throw new Error(`plugin needs a kit name in kebab-case of at most 64 characters, not "${name}"`);
     const skillDir = join(dir, "skills", name);
     if (await readExisting(join(skillDir, "SKILL.md")) === undefined) throw new Error(`plugin needs ${join(skillDir, "SKILL.md")}: the kit writes its own skill`);
@@ -44,7 +46,7 @@ ${specimens.filter((item) => web || item.m3).map((item) => `| ${item.name} | ${i
 
     const manifest = {
       name,
-      description: `Build UI on the ${title} kit: its rules, components and token names.`,
+      description: options.description ?? `Build UI on the ${title} kit: its rules, components and token names.`,
       ...(options.author && { author: options.author }),
       ...(options.repository && { repository: options.repository }),
       keywords: [name, ...(material ? ["material-3"] : []), "design-system", "ui"],

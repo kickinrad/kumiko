@@ -153,7 +153,7 @@ A mode's `data-theme` is the colour scheme its surface is nearer to, so the swit
 
 ## The `plugin` output
 
-`"plugin"` writes the kit's agent plugin, one directory that Claude Code and Codex both install, for a declared kit with a `<kit root>/notes.md` and its own `skills/<name>/SKILL.md` beside the output: `plugin: { path: "plugins/acme" }`. The kit writes the skill itself, so its wording changes with the kit and needs no engine release; the output writes what the skill reads. Optional: `repository`, a URL where the kit's files are; and `author`, the manifest's `{ name, email?, url? }`. It writes:
+`"plugin"` writes the kit's agent plugin, one directory that Claude Code and Codex both install, for a declared kit with a `<kit root>/notes.md` and its own `skills/<name>/SKILL.md` beside the output: `plugin: { path: "plugins/acme" }`. The kit writes the skill itself, so its wording changes with the kit and needs no engine release; the output writes what the skill reads. Optional: `description`, the manifest's one line, when the kit's skill does more than build UI (by default it says the plugin builds UI on the kit); `repository`, a URL where the kit's files are; and `author`, the manifest's `{ name, email?, url? }`. It writes:
 
 | File | Holds |
 | --- | --- |
