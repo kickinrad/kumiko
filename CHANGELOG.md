@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.1](https://github.com/kickinrad/kumiko/compare/v0.17.0...v0.17.1) (2026-11-03)
+
+
+### Bug Fixes
+
+* name kumiko in stale output errors ([#80](https://github.com/kickinrad/kumiko/issues/80)) ([7518f55](https://github.com/kickinrad/kumiko/commit/7518f55346e80b047b375060c4c9799f76d3efa7))
+
 ## [0.17.0](https://github.com/kickinrad/kumiko/compare/v0.16.0...v0.17.0) (2026-11-03)
 
 
