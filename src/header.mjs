@@ -7,7 +7,7 @@ const block = (text) => `/* ${text} */`;
 const line = (prefix) => (text) => `${prefix} ${text}`;
 const html = (text) => `<!-- ${text} -->`;
 // The file types the outputs use.
-const styles = { ".css": block, ".js": line("//"), ".mjs": line("//"), ".kt": line("//"), ".md": html, ".html": html };
+const styles = { ".css": block, ".js": line("//"), ".mjs": line("//"), ".ts": line("//"), ".kt": line("//"), ".md": html, ".html": html };
 // What must stay first: front matter, doctype, @charset.
 const leading = [
   /^---\r?\n(?:[\s\S]*?\r?\n)?---[ \t]*(?:\r?\n|$)/,
