@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.0](https://github.com/kickinrad/kumiko/compare/v0.18.0...v0.19.0) (2026-11-09)
+
+
+### Features
+
+* add typed React Native token output ([#86](https://github.com/kickinrad/kumiko/issues/86)) ([f531d07](https://github.com/kickinrad/kumiko/commit/f531d07b77efdeeb322a3d89cb99642e7072851d))
+
 ## [0.18.0](https://github.com/kickinrad/kumiko/compare/v0.17.1...v0.18.0) (2026-11-03)
 
 
