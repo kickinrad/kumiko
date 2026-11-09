@@ -3,10 +3,12 @@
 import { need, needKit, twoModes } from "../system.mjs";
 import { typeScale } from "../type.mjs";
 
+// A rem is the web's root font size, 16px by default; em and % depend on a parent React Native does not have.
+const REM = 16;
 const px = (value, path) => {
-  const match = String(value).match(/^(-?\d+(?:\.\d+)?)px$/);
-  if (!match) throw new Error(`react-native: ${path} must use px for a React Native point value`);
-  return Number(match[1]);
+  const match = String(value).match(/^(-?\d+(?:\.\d+)?)(px|rem)$/);
+  if (!match) throw new Error(`react-native: ${path} must use px or rem for a React Native point value`);
+  return Number(match[1]) * (match[2] === "rem" ? REM : 1);
 };
 const ms = (value, path) => {
   const match = String(value).match(/^(-?\d+(?:\.\d+)?)(ms|s)$/);
@@ -48,7 +50,7 @@ export default {
     const tokens = { [base.name]: modeTokens(ctx.tokens), [other.name]: modeTokens(second) };
     const textStyles = { [base.name]: modeStyles(ctx.tokens), [other.name]: modeStyles(second) };
     const content = [
-      "// Dimensions are React Native points, durations are milliseconds, and font families name the first installed face.",
+      "// Dimensions are React Native points (a rem is 16), durations are milliseconds, and font families name the first installed face.",
       `export const tokens = ${JSON.stringify(tokens, null, 2)} as const;`,
       `export const textStyles = ${JSON.stringify(textStyles, null, 2)} as const;`,
       "export type ThemeMode = keyof typeof tokens;",
