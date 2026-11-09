@@ -179,10 +179,11 @@ The plugin guides an agent; it enforces nothing. `--check` holds the files it wr
 | `GET /_kumiko/live` | the current draft: the `css` output's text, its faces' stylesheets, and the kit's tokens per mode |
 | `GET /_kumiko/events` | server-sent events: `live` after every edit, `reload` after a rebuild from disk |
 | `GET /_kumiko/bridge.js` | the bridge, below |
+| `GET /_kumiko/panel` | the Kit panel: every palette colour of a mode (with the pairs the kit is held to, their live ratios and whether they pass), the faces by the type roles that read them, and the kit's own lengths and times in `[tokens]` as sliders with their units, grouped as Spacing, Radius, Size and Duration; each with its reset, then Save. It wears the kit's own variables. The `storybook` output shows it as a Storybook panel |
 
 Only a page the server itself serves can edit or save: a request from another origin is refused.
 
-The bridge is how another app follows the edits: load `http://localhost:<port>/_kumiko/bridge.js` as a classic script, in development only. It adds the draft's CSS in a `<style id="kumiko-live">` (the `css` output's variables on `:root`), loads its faces, and replaces both on every edit, without a reload; each update also fires a `kumiko:live` event on `window` whose `detail` is the kit's tokens per mode, for code that reads tokens in JavaScript. The app's own styles follow when they read the kit's variables, for example `var(--md-sys-color-primary, <its own value>)`, so the page looks as before when the server is stopped. Pin the kit's mode on the root (`data-theme`) when the app has one scheme.
+The bridge is how another app follows the edits: load `http://localhost:<port>/_kumiko/bridge.js` as a classic script, in development only. It adds the draft's CSS in a `<style id="kumiko-live">` (the `css` output's variables on `:root`), loads its faces, and replaces both on every edit, without a reload; each update also fires a `kumiko:live` event on `window` whose `detail` is the kit's tokens per mode (kept as `window.kumikoLive` too), for code that reads tokens in JavaScript. The app's own styles follow when they read the kit's variables, for example `var(--md-sys-color-primary, <its own value>)`, so the page looks as before when the server is stopped. Pin the kit's mode on the root (`data-theme`) when the app has one scheme.
 
 ## Rendered check: `kumiko audit`
 

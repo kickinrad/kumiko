@@ -44,3 +44,11 @@ test("save writes exactly the edited values, and --check passes after", async ()
   expect(changed).toEqual(['blue = "#ff0000"', 'brand = ["Archivo", "serif"]']);
   expect(run(dir, "--check").exitCode).toBe(0);
 });
+
+test("the panel page carries the kit's draft CSS and the panel's client", async () => {
+  await ready;
+  const page = await (await fetch(`${origin}/_kumiko/panel`)).text();
+  expect(page).toContain('<style id="kit-css">');
+  expect(page).toContain("--acme-palette-ink");
+  expect(page).toContain("data-tune-panel");
+});

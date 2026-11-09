@@ -30,12 +30,12 @@ const beerCss = async () => {
 };
 // The client as one script: a page opened from disk cannot import modules beside it. Bundled from a scratch copy, so
 // the binary's embedded sources and a checkout's files take the same path.
-const bundle = async (client, color) => {
+export const bundle = async (client, color, entry = "playground.js") => {
   const dir = mkdtempSync(join(tmpdir(), "kumiko-playground-"));
   try {
     for (const [file, text] of client) writeFileSync(join(dir, file), text.replaceAll('"../color.mjs"', '"./color.mjs"'));
     writeFileSync(join(dir, "color.mjs"), color);
-    const result = await Bun.build({ entrypoints: [join(dir, "playground.js")], target: "browser", format: "esm" });
+    const result = await Bun.build({ entrypoints: [join(dir, entry)], target: "browser", format: "esm" });
     if (!result.success) throw new Error(`playground: the client did not bundle\n${result.logs.join("\n")}`);
     // The bundler marks each module with its path from here; the scratch copy's name changes every run.
     return (await result.outputs[0].text()).replace(/^\/\/ \S*kumiko-playground-[^/]+\//gm, "// ");
@@ -48,12 +48,12 @@ const CLIENT = ["playground.js", "examples.js", "foundations.js", "components.js
 // A source file as text. The engine imports some of them as modules too (color.mjs, and the specimens the
 // claude-design output reads), and the bundler cannot embed a module as text beside importing it, so the binary
 // carries them as assets (mise.toml: --asset); from source each is the file.
-const source = (path) => (Bun.embeddedFiles.find((file) => basename(file.name) === basename(path)) ?? Bun.file(new URL(path, import.meta.url))).text();
+export const source = (path) => (Bun.embeddedFiles.find((file) => basename(file.name) === basename(path)) ?? Bun.file(new URL(path, import.meta.url))).text();
 // Tailwind's browser build reads @import "tailwindcss" even inside a comment, and then draws nothing.
 const withoutComments = (css) => css.replace(/\/\*[\s\S]*?\*\//g, "");
 const attribute = (text) => text.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 // Text inside a <style> or <script> element: only its closing tag could end it early.
-const inline = (text) => text.replace(/<\/(style|script)/gi, "<\\/$1");
+export const inline = (text) => text.replace(/<\/(style|script)/gi, "<\\/$1");
 // The kit's notes as HTML (Bun's CommonMark): the leading level-one heading names the document, and the item's own
 // title already does, so it goes.
 const notesHtml = (text) => Bun.markdown.html(text.replace(/^\s*# [^\n]*\n/, ""));

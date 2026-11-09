@@ -8,15 +8,16 @@ import { extname, join, resolve, sep } from "node:path";
 import { build } from "./build.mjs";
 import { contrastPairs } from "./checks/contrast.mjs";
 import { setValue } from "./toml-edit.mjs";
-import { fontLinks } from "./web/foundations.js";
+import { fontLinks, iconLink } from "./web/foundations.js";
+import { bundle, inline, source } from "./targets/playground.mjs";
 
 const TYPES = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".mjs": "text/javascript", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".woff2": "font/woff2" };
 // Pages elsewhere (a WordPress copy, a Storybook) read the live CSS and its events.
 const OPEN = { "Access-Control-Allow-Origin": "*", "Cache-Control": "no-store" };
 
 // The bridge a consuming page loads in development only: it applies the kit's live CSS and faces, reads only from the
-// server that served it, and announces each update as a "kumiko:live" event (detail: the kit's tokens per mode) for
-// code that reads tokens in JavaScript.
+// server that served it, and announces each update as a "kumiko:live" event (detail: the kit's tokens per mode, also
+// kept as window.kumikoLive) for code that reads tokens in JavaScript.
 const bridge = `// kumiko's live bridge: the kit's CSS from kumiko dev, updated on every edit. Load it in development only.
 (() => {
   const origin = new URL(document.currentScript.src).origin;
@@ -24,6 +25,7 @@ const bridge = `// kumiko's live bridge: the kit's CSS from kumiko dev, updated 
   document.head.append(style);
   const apply = ({ css, fonts, kit }) => {
     style.textContent = css;
+    window.kumikoLive = kit;
     window.dispatchEvent(new CustomEvent("kumiko:live", { detail: kit }));
     for (const href of fonts) if (!document.querySelector('link[href="' + CSS.escape(href) + '"]')) document.head.append(Object.assign(document.createElement("link"), { rel: "stylesheet", href }));
   };
@@ -74,6 +76,28 @@ export const dev = async ({ config, port = 4400 }) => {
   };
   for (const dir of [kitRoot, resolve("tokens")]) try { watch(dir, changed); } catch {}
 
+  // The panel's page: the kit's draft css (replaced live), the panel's stylesheet on the kit's variables, its client.
+  const panel = async () => {
+    const color = await source("../color.mjs");
+    const client = await Promise.all(["panel.js", "tune.js", "foundations.js"].map(async (file) => [file, await source(`../web/${file}`)]));
+    return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kit</title>
+<link rel="stylesheet" href="${iconLink("Material Symbols Outlined")}">
+<style id="kit-css">\n${inline(live.css)}</style>
+<style>\n${inline(await source("../web/panel.css"))}</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">\n${inline(await bundle(client, color, "panel.js"))}</script>
+</body>
+</html>
+`;
+  };
+
   const json = (body, status = 200) => Response.json(body, { status, headers: OPEN });
   // A write from this page only: the browser sends Origin on a cross-site POST, and a JSON body needs a preflight
   // this server never grants, so no other site can edit or save.
@@ -87,6 +111,7 @@ export const dev = async ({ config, port = 4400 }) => {
       if (url.pathname === "/" && config.playground?.path) return Response.redirect(`/${config.playground.path.replace(/^\.?\//, "")}/index.html`, 302);
       if (url.pathname === "/_kumiko/bridge.js") return new Response(bridge, { headers: { ...OPEN, "Content-Type": "text/javascript" } });
       if (url.pathname === "/_kumiko/live") return json(live);
+      if (url.pathname === "/_kumiko/panel") return new Response(await panel(), { headers: { "Content-Type": "text/html", "Cache-Control": "no-store" } });
       if (url.pathname === "/_kumiko/events") {
         let client;
         return new Response(new ReadableStream({
