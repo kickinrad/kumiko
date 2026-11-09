@@ -6,8 +6,9 @@ import { contrast } from "../color.mjs";
 import cards from "./cards.js";
 import { examples } from "./examples.js";
 import components from "./components.js";
-import foundations, { fontLinks, replay } from "./foundations.js";
+import foundations, { fontLinks, iconLink, replay } from "./foundations.js";
 import pages from "./pages.js";
+import { edit, editorView, patch } from "./edit.js";
 
 export const esc = (text) => String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
@@ -44,12 +45,15 @@ export const exceptions = (tokens) => {
 // (layout.css): side by side from expanded, and below that only the list (a tab named) or the open item (an item
 // named, `data-open`, with a back button) shows. A destination with one item has no list: its item is the page.
 // Without example entries, no Examples.
-export const tabs = (data, device) => data.examples?.length
-  ? [...TABS.slice(0, -1), { id: "examples", name: "Examples", icon: "apps", items: examples(data.examples, device) }, TABS.at(-1)]
-  : TABS;
+export const tabs = (data, device, baseline = data.editor) => [
+  ...TABS.slice(0, -1),
+  ...(data.examples?.length ? [{ id: "examples", name: "Examples", icon: "apps", items: examples(data.examples, device) }] : []),
+  ...(data.editor ? [{ id: "edit", name: "Edit", icon: "tune", items: [{ id: "theme", name: "Theme", body: (data, tokens) => editorView(data, Object.keys(data.modes).find((mode) => data.modes[mode] === tokens), baseline) }] }] : []),
+  TABS.at(-1),
+];
 
-export const view = (data, { tab: tabId, item: itemId, mode = Object.keys(data.modes)[0], expanded = false, device = 0 }) => {
-  const TABS = tabs(data, device);
+export const view = (data, { tab: tabId, item: itemId, mode = Object.keys(data.modes)[0], expanded = false, device = 0, baseline = data.editor }) => {
+  const TABS = tabs(data, device, baseline);
   const tab = TABS.find((each) => each.id === tabId) ?? TABS[0];
   const item = tab.items.find((each) => each.id === itemId) ?? tab.items[0];
   const open = tab.id === tabId && item.id === itemId;
@@ -77,6 +81,7 @@ ${list}<div><h1>${item.name}</h1>${item.body(data, data.modes[mode])}</div>
 const boot = () => {
   // The kit's data, examples included, travels in the page, so it opens from disk.
   const data = JSON.parse(document.getElementById("kit").textContent);
+  const baseline = structuredClone(data.editor);
   let device = 0;
   const modes = Object.keys(data.modes);
   const schemes = Object.fromEntries(modes.map((mode) => [mode, scheme(data.modes[mode])]));
@@ -93,14 +98,54 @@ const boot = () => {
   document.title = `${data.title ?? data.name} playground`;
   // The kit's faces, one stylesheet each, so a family Google Fonts lacks fails alone.
   for (const href of new Set(modes.flatMap((each) => fontLinks(data.modes[each])))) document.head.append(Object.assign(document.createElement("link"), { rel: "stylesheet", href }));
+  const syncPreview = (target) => {
+    if (!data.editor) return;
+    const hasChanges = Boolean(patch(baseline, data.editor));
+    const paths = [...Object.keys(data.editor.palette[mode]).map((name) => `${data.name}.palette.${name}`), ...Object.keys(data.editor.roles), ...Object.keys(data.editor.tokens), "md.ref.typeface.brand", "md.ref.typeface.plain", `${data.name}.typeface.mono`, `${data.name}.typeface.icon`, ...data.modes[mode].filter((token) => token.type === "fontFamily" && token.path.startsWith("md.sys.typescale.")).map((token) => token.path)];
+    for (const path of paths) {
+      const token = data.modes[mode].find((each) => each.path === path);
+      if (token) {
+        const variable = `--${data.editor.variableNames?.[path] ?? path.replaceAll(".", "-")}`;
+        if (hasChanges) target.style.setProperty(variable, token.value);
+        else target.style.removeProperty(variable);
+      }
+    }
+  };
   const draw = () => {
     const [tab, item] = location.hash.slice(1).split("/");
-    document.getElementById("app").innerHTML = view(data, { tab, item, mode, expanded, device });
+    document.getElementById("app").innerHTML = view(data, { tab, item, mode, expanded, device, baseline });
+    syncPreview(root);
+    for (const href of fontLinks(data.modes[mode])) if (!document.querySelector(`link[href="${href}"]`)) document.head.append(Object.assign(document.createElement("link"), { rel: "stylesheet", href }));
+    const icon = data.editor?.faces.icon;
+    if (icon) {
+      const family = (Array.isArray(icon) ? icon[0] : icon).replace(/^['"]|['"]$/g, "");
+      const href = iconLink(family);
+      if (!document.querySelector(`link[href="${href}"]`)) document.head.append(Object.assign(document.createElement("link"), { rel: "stylesheet", href }));
+    }
     // A frame follows the mode through its address: the hash is the data-theme it sets.
-    for (const frame of document.querySelectorAll("[data-frame]")) frame.src = `${frame.dataset.frame}#${schemes[mode]}`;
+    for (const frame of document.querySelectorAll("iframe")) {
+      if (frame.dataset.frame) frame.src = `${frame.dataset.frame}#${schemes[mode]}`;
+      try { if (frame.contentDocument) syncPreview(frame.contentDocument.documentElement); } catch {} // An external example is not same-origin.
+    }
   };
+  document.addEventListener("load", (event) => { if (event.target.tagName === "IFRAME") { try { syncPreview(event.target.contentDocument.documentElement); } catch {} } }, true);
   window.addEventListener("hashchange", draw);
+  document.addEventListener("change", (event) => {
+    const control = event.target.closest("[data-edit]");
+    if (!control) return;
+    try { edit(data, { kind: control.dataset.edit, mode, name: control.dataset.name, value: control.value }); draw(); }
+    catch (error) { document.querySelector("[data-edit-status]").textContent = error.message; }
+  });
   document.addEventListener("click", (event) => {
+    if (event.target.closest("[data-export]")) {
+      const content = patch(baseline, data.editor);
+      if (!content) return;
+      const url = URL.createObjectURL(new Blob([content], { type: "application/toml" }));
+      const link = Object.assign(document.createElement("a"), { href: url, download: "theme.patch.toml" });
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      return;
+    }
     if (event.target.closest("[data-replay]")) return replay(document);
     const chosen = event.target.closest("[data-device]");
     if (chosen) { device = Number(chosen.dataset.device); return draw(); }

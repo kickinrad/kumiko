@@ -44,7 +44,7 @@ const bundle = async (client, color) => {
   }
 };
 // The client's modules; each imports the colour maths from "../color.mjs" in the source and "./color.mjs" beside the page.
-const CLIENT = ["playground.js", "examples.js", "foundations.js", "components.js", "cards.js", "pages.js"];
+const CLIENT = ["playground.js", "edit.js", "examples.js", "foundations.js", "components.js", "cards.js", "pages.js"];
 // A source file as text. The engine imports some of them as modules too (color.mjs, and the specimens the
 // claude-design output reads), and the bundler cannot embed a module as text beside importing it, so the binary
 // carries them as assets (mise.toml: --asset); from source each is the file.
@@ -110,6 +110,18 @@ export default {
       `"version": ${JSON.stringify(version)}`,
       `"title": ${JSON.stringify(ctx.title ?? name)}`,
       `"modes": {\n${byMode.map(([mode, each]) => `    ${JSON.stringify(mode)}: ${lines(each)}`).join(",\n")}\n  }`,
+      ...(theme?.colours ? [`"editor": ${JSON.stringify({
+        palette: Object.fromEntries(Object.entries(theme.colours).map(([mode, colours]) => [mode, Object.fromEntries(Object.entries(colours).map(([key, colour]) => [key, colour.hex]))])),
+        roles: Object.fromEntries(Object.entries(theme.roles).map(([role, modes]) => [role, Object.fromEntries(Object.entries(modes).map(([mode, choice]) => [mode, choice.from === mode ? choice.name : `${choice.from}.${choice.name}`]))])),
+        faces: theme.faces,
+        variableNames: Object.fromEntries(tokens.map((token) => [token.path, token.name])),
+        faceUses: Object.fromEntries(["brand", "plain", "mono", "icon"].map((face) => {
+          const path = { brand: "md.ref.typeface.brand", plain: "md.ref.typeface.plain", mono: `${name}.typeface.mono`, icon: `${name}.typeface.icon` }[face];
+          return [face, tokens.filter((token) => token.alias === path).map((token) => token.path)];
+        })),
+        tokens: Object.fromEntries(theme.values.filter(([, token]) => typeof token.$value === "number" || typeof token.$value === "string" && !/^\{[^{}]+\}$/.test(token.$value) || token.$value?.unit).map(([path, token]) => [path, token.$value?.unit ? `${token.$value.value}${token.$value.unit}` : token.$value])),
+        tokenMeta: Object.fromEntries(theme.values.map(([path, token]) => [path, { ...(token.$type ? { type: token.$type } : {}), ...(token.$description ? { why: token.$description } : {}) }])),
+      })}`] : []),
       ...(icon === undefined ? [] : [`"icon": ${JSON.stringify(icon)}`]),
       ...(output === undefined ? [] : [`"tailwind": "tailwind.html"`]),
       ...(notes === undefined ? [] : [`"notes": ${JSON.stringify(notesHtml(notes))}`]),

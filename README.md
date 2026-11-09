@@ -120,6 +120,8 @@ The `css` output writes Material's own component tokens (from `builtin:material`
 
 `"playground"` writes `index.html`, one page that opens from disk and shows the kit on its own generated theme, for a declared kit. List the `css` and `beer` outputs before it, and `tailwind` too if the kit has one; the page carries all of them.
 
+When the kit has a `theme.toml`, its **Edit** destination gives live controls for each mode's palette and role mapping, the faces, and the simple `[tokens]` values. Edits stay in the open page and update the preview; **Download patch** saves `theme.patch.toml` with only changed tables and keys. Merge those entries into `design/theme.toml`, then rebuild and run `kumiko audit`. The patch is valid TOML, but it is a fragment rather than a replacement theme. Derived colours and other build recipes recalculate only after rebuilding, so review the rebuilt playground before shipping. The editor works in the single HTML file opened from disk and does not write to the kit automatically.
+
 ```js
 playground: { path: "docs/playground", examples: ["preview/example.json"] }
 ```

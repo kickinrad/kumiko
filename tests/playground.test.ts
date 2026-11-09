@@ -68,11 +68,14 @@ test("the page opens from disk: it carries the kit's data and the client as one 
 
 test("the page's data holds the kit's name, version, both modes' tokens and the notes", () => {
   const data = tokensOf(built());
-  expect(Object.keys(data)).toEqual(["name", "version", "title", "modes", "notes"]);
+  expect(Object.keys(data)).toEqual(["name", "version", "title", "modes", "editor", "notes"]);
   expect(data.name).toBe("acme");
   expect(data.title).toBe("acme");
   expect(data.version).toBe("1.2.3");
   expect(Object.keys(data.modes)).toEqual(["night", "day"]);
+  expect(data.editor.palette.night.blue).toBe("#7aa2f7");
+  expect(data.editor.roles["md.sys.color.primary"]).toEqual({ night: "blue", day: "blue" });
+  expect(data.editor.faces.plain).toEqual(["Fixture Sans", "sans-serif"]);
   const at = (mode: string, path: string) => data.modes[mode].find((token: { path: string }) => token.path === path);
   expect(at("night", "md.sys.color.primary")).toEqual({ path: "md.sys.color.primary", value: "#7aa2f7", type: "color" });
   expect(at("day", "md.sys.color.primary").value).toBe("#2e7de9");
@@ -102,6 +105,15 @@ test("a kit with no notes.md has no notes, and a kit with no theme names its mod
   writeFileSync(join(plain, "tokens/day.tokens.json"), '{"md":{"sys":{"color":{"primary":{"$type":"color","$value":"#112233"}}}}}');
   built(plain);
   expect(Object.keys(tokensOf(plain).modes)).toEqual(["base", "(prefers-color-scheme: light)"]);
+});
+
+test("edit controls expose literal theme tokens and leave resolved aliases to the build", () => {
+  const dir = project();
+  const path = join(dir, "design/theme.toml");
+  writeFileSync(path, `${read(dir, "design/theme.toml")}\n[tokens]\n"acme.layout.gap" = "12px"\n"md.sys.typescale.label-large.font" = { value = "{acme.typeface.mono}", why = "Transmission labels" }\n`);
+  const data = tokensOf(built(dir));
+  expect(data.editor.tokens["acme.layout.gap"]).toBe("12px");
+  expect(data.editor.tokens["md.sys.typescale.label-large.font"]).toBeUndefined();
 });
 
 test.each(["docs/play", "ports/css", "."])("the page at %s carries Beer's styles in a layer, then the config's css and beer outputs as built, so it works served alone", (path) => {
@@ -374,7 +386,7 @@ test("tailwind: without the output the item says the kit has none and writes no 
 
   const dir = built(withTailwind());
   const withData = tokensOf(dir);
-  expect(Object.keys(withData)).toEqual(["name", "version", "title", "modes", "tailwind", "notes"]);
+  expect(Object.keys(withData)).toEqual(["name", "version", "title", "modes", "editor", "tailwind", "notes"]);
   expect(withData.tailwind).toBe("tailwind.html");
   const html: string = tailwind(withData, withData.modes.night);
   expect(html).toContain('<iframe data-frame="tailwind.html"');

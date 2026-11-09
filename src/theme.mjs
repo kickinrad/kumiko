@@ -103,7 +103,7 @@ const validate = (toml, kitName) => {
     const [from, colourName] = parts.length === 2 ? parts : [mode, value];
     if (!modes.includes(from)) fail(`role ${role} names mode "${from}", which has no [palette.${from}]`);
     if (!Object.hasOwn(colours[from], colourName)) fail(`role ${role} names colour "${colourName}", which the ${from} palette lacks`);
-    return { name: colourName, value: colours[from][colourName] };
+    return { name: colourName, from, value: colours[from][colourName] };
   };
   const given = table(toml.roles ?? {}, "roles");
   const roles = {};
