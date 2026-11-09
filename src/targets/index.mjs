@@ -9,6 +9,7 @@ import materialYou from "./material-you.mjs";
 import mealie from "./mealie.mjs";
 import obsidian from "./obsidian.mjs";
 import playground from "./playground.mjs";
+import reactNative from "./react-native.mjs";
 import plugin from "./plugin.mjs";
 import storybook from "./storybook.mjs";
 import tailwind from "./tailwind.mjs";
@@ -17,4 +18,4 @@ import template from "./template.mjs";
 export default { [css.name]: css, [designMd.name]: designMd, [dtcg.name]: dtcg,
   [tailwind.name]: tailwind, [composeTv.name]: composeTv, [obsidian.name]: obsidian, [mealie.name]: mealie,
   [materialYou.name]: materialYou, [beer.name]: beer, [playground.name]: playground, [claudeDesign.name]: claudeDesign,
-  [plugin.name]: plugin, [storybook.name]: storybook, [template.name]: template };
+  [plugin.name]: plugin, [storybook.name]: storybook, [template.name]: template, [reactNative.name]: reactNative };
