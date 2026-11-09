@@ -20,6 +20,9 @@ test("writes the theme, manager, preview, docs and site stories, and --check pas
   expect(result.stderr.toString()).toBe("");
   expect(readdirSync(join(dir, ".storybook")).sort()).toEqual(["color.mjs", "colour.mdx", "kit.js", "kit.json", "manager.js", "material.mdx", "measures.mdx", "preview.js", "sites.stories.js", "theme.js", "type.mdx"]);
   expect(run(dir, "--check").exitCode).toBe(0);
+  // The generated scripts parse: Storybook's own build is the first place a syntax error would otherwise show.
+  const parse = new Bun.Transpiler({ loader: "jsx" });
+  for (const file of ["kit.js", "manager.js", "preview.js", "sites.stories.js", "theme.js"]) expect(() => parse.transformSync(read(dir, `.storybook/${file}`))).not.toThrow();
 
   const data = JSON.parse(read(dir, ".storybook/kit.json"));
   const value = (path: string) => data.modes.night.find((token: { path: string }) => token.path === path).value;
@@ -35,9 +38,13 @@ test("writes the theme, manager, preview, docs and site stories, and --check pas
   expect(preview).toContain('import "../ports/css/kit.css";');
   expect(preview).toContain('themes: {"night":"dark","day":"light"}');
   expect(preview).toContain("http://localhost:4400/_kumiko/bridge.js");
+  expect(preview).toContain('a11y: { test: "error" }');
+  expect(preview).toContain("document.documentElement.dataset.platform = platform");
+  expect(preview).toContain('"ink":{"name":"ink","value":"var(--acme-palette-ink)"}');
   expect(read(dir, ".storybook/manager.js")).toContain('src: "http://localhost:4400/_kumiko/panel"');
   expect(read(dir, ".storybook/colour.mdx")).toContain('<Meta title="Foundations/Colour" />');
   expect(read(dir, ".storybook/sites.stories.js")).toContain("export const OurSite = {");
+  expect(read(dir, ".storybook/sites.stories.js")).toContain('title: "Site/Live"');
 });
 
 test("path and dev are options", () => {

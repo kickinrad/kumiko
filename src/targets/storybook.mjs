@@ -82,18 +82,25 @@ export const Type = () => {
     h(Typeset, { fontFamily: at(role + "-large.font"), fontWeight: at(role + "-medium.weight"), fontSizes: ["large", "medium", "small"].map((size) => at(role + "-" + size + ".size")), sampleText: kit.tagline ?? "The quick brown fox jumps over the lazy dog" })));
 };
 
-// The corner scale and the kit's own lengths and times.
+// The kit's own lengths and times, by what they measure, each with a sample drawn in its variable.
+const KINDS = [["Spacing", /space|spacing|gap|padding|margin|inset|gutter/], ["Radius", /corner|radius|shape|round/], ["Border width", /border|stroke/], ["Measure", /measure|width|container/]];
 export const Measures = () => {
   const kit = useKit();
   const { modes } = reader(kit);
-  const tokens = kit.modes[modes[0]];
-  const corners = tokens.filter((token) => /^md\\.sys\\.shape\\.corner\\.[a-z-]+$/.test(token.path) && token.type === "dimension").sort((a, b) => parseFloat(a.value) - parseFloat(b.value));
-  const own = tokens.filter((token) => (kit.tune?.tokens ?? []).includes(token.path));
-  const row = (token, sample) => h("tr", { key: token.path }, h("td", null, label(token.path.split(".").at(-1))), h("td", null, h("code", null, token.path)), h("td", null, token.value), h("td", null, sample));
-  return h(React.Fragment, null,
-    h("h3", null, "Radius"),
-    h("table", null, h("tbody", null, corners.map((token) => row(token, h("div", { style: { width: 48, height: 32, border: "1px solid currentColor", borderRadius: "var(--" + token.path.replaceAll(".", "-") + ")" } }))))),
-    own.length ? h(React.Fragment, null, h("h3", null, "The kit's own"), h("table", null, h("tbody", null, own.map((token) => row(token, null))))) : null);
+  const own = kit.modes[modes[0]].filter((token) => (kit.tune?.tokens ?? []).includes(token.path));
+  if (!own.length) return h("p", null, "This kit sets no lengths or times of its own.");
+  const kind = (token) => token.type === "duration" ? "Duration" : KINDS.find(([, test]) => test.test(token.path))?.[0] ?? "Size";
+  const css = (token) => "var(--" + token.path.replaceAll(".", "-") + ")";
+  const sample = (token) => ({
+    Spacing: h("div", { style: { inlineSize: css(token), blockSize: 12, background: "currentColor" } }),
+    Radius: h("div", { style: { inlineSize: 48, blockSize: 32, border: "1px solid currentColor", borderRadius: css(token) } }),
+    "Border width": h("div", { style: { inlineSize: 48, blockSize: 32, border: css(token) + " solid currentColor" } }),
+  })[kind(token)] ?? null;
+  const name = (token) => label(token.path.slice(kit.name.length + 1).replaceAll(".", " "));
+  return ["Spacing", "Radius", "Border width", "Measure", "Size", "Duration"].map((group) => {
+    const rows = own.filter((token) => kind(token) === group);
+    return rows.length ? h(React.Fragment, { key: group }, h("h3", null, group), h("table", null, h("tbody", null, rows.map((token) => h("tr", { key: token.path }, h("td", null, name(token)), h("td", null, token.value), h("td", null, sample(token))))))) : null;
+  });
 };
 
 // How the kit fills Material's colour roles, for the platforms that read them.
@@ -101,7 +108,12 @@ export const Roles = () => {
   const kit = useKit();
   const { modes, named } = reader(kit);
   const roles = kit.modes[modes[0]].filter((token) => token.path.startsWith("${COLOR}") && token.type === "color").map((token) => token.path);
-  return swatches(kit, roles, (path) => path.slice("${COLOR}".length), (path) => named(modes[0], path).map(label).join(", ") || "no palette colour");
+  const corners = kit.modes[modes[0]].filter((token) => /^md\\.sys\\.shape\\.corner\\.[a-z-]+$/.test(token.path) && token.type === "dimension").sort((a, b) => parseFloat(a.value) - parseFloat(b.value));
+  return h(React.Fragment, null,
+    h("h2", null, "Colour roles"),
+    swatches(kit, roles, (path) => path.slice("${COLOR}".length), (path) => named(modes[0], path).map(label).join(", ") || "no palette colour"),
+    h("h2", null, "Corner scale"),
+    h("table", null, h("tbody", null, corners.map((token) => h("tr", { key: token.path }, h("td", null, h("code", null, token.path)), h("td", null, token.value), h("td", null, h("div", { style: { inlineSize: 48, blockSize: 32, border: "1px solid currentColor", borderRadius: "var(--" + token.path.replaceAll(".", "-") + ")" } })))))));
 };
 `;
 
@@ -159,7 +171,7 @@ export default {
       title: title ?? name,
       ...(theme?.tagline && { tagline: theme.tagline }),
       modes: Object.fromEntries(Object.entries(byMode).map(([mode, each]) => [mode, each.filter((token) => !token.path.startsWith("md.comp.")).map(({ path, value, type }) => ({ path, value, type }))])),
-      ...(theme && { tune: { tokens: theme.values.filter(([, each]) => ["dimension", "duration"].includes(each.$type)).map(([path]) => path) } }),
+      ...(theme && { tune: { tokens: theme.values.filter(([path, each]) => path.startsWith(`${name}.`) && ["dimension", "duration"].includes(each.$type)).map(([path]) => path) } }),
       ...(theme?.contrast && { pairs: contrastPairs(theme, tokens) }),
     };
     const fontsJs = `for (const href of ${JSON.stringify(fonts)}) document.head.append(Object.assign(document.createElement("link"), { rel: "stylesheet", href }));`;
@@ -183,8 +195,11 @@ if (${local}) {
   }));
 }
 `,
-      "preview.js": `// Every story and docs page on the kit: its CSS, its faces, its modes (data-theme), its docs theme, and, while
+      "preview.js": `// Every story and docs page on the kit: its CSS, its faces, its modes (data-theme), its docs theme, its colours as
+// backgrounds, viewports, a platform switch (data-platform: web, iOS, Android, each with its device), and, while
 // kumiko dev runs on this machine, the live bridge.
+import { useEffect, useGlobals } from "storybook/preview-api";
+import { INITIAL_VIEWPORTS, MINIMAL_VIEWPORTS } from "storybook/viewport";
 import { withThemeByDataAttribute } from "@storybook/addon-themes";
 import "${relative(dir, cssPath)}";
 import theme from "./theme.js";
@@ -193,9 +208,35 @@ ${fontsJs}
 document.documentElement.dataset.theme ??= "${scheme}";
 if (${local}) document.head.append(Object.assign(document.createElement("script"), { src: "${dev}/_kumiko/bridge.js" }));
 
+// Each platform's device, picked when the platform changes.
+const DEVICES = { web: "desktop", ios: "iphone14", android: "pixel" };
+const withPlatform = (story, { globals }) => {
+  const [, updateGlobals] = useGlobals();
+  const platform = globals.platform ?? "web";
+  useEffect(() => {
+    document.documentElement.dataset.platform = platform;
+    if (globals.viewport?.value !== DEVICES[platform]) updateGlobals({ viewport: { value: DEVICES[platform], isRotated: false } });
+  }, [platform]);
+  return story();
+};
+
 export default {
-  parameters: { docs: { theme } },
-  decorators: [withThemeByDataAttribute({ themes: ${JSON.stringify(schemes)}, defaultTheme: "${modes.base}", attributeName: "data-theme" })],
+  parameters: {
+    docs: { theme },
+    // Accessibility failures fail the story tests (addon-vitest); the a11y panel shows the same checks.
+    a11y: { test: "error" },
+    backgrounds: { options: ${JSON.stringify(Object.fromEntries(tokens.filter((token) => token.type === "color" && token.path.startsWith(`${name}.palette.`)).map((token) => { const key = token.path.slice(`${name}.palette.`.length); return [key, { name: key, value: `var(--${token.name})` }]; })))} },
+    viewport: { options: { ...MINIMAL_VIEWPORTS, iphone14: INITIAL_VIEWPORTS.iphone14, pixel: INITIAL_VIEWPORTS.pixel } },
+    options: { storySort: { order: ["Foundations", "Components", "Patterns", "Pages", "Site", "Platform mapping"] } },
+  },
+  globalTypes: {
+    platform: {
+      description: "Platform: a preview of the kit's adaptation rules, on the web",
+      toolbar: { title: "Platform", icon: "mobile", items: [{ value: "web", title: "Web" }, { value: "ios", title: "iOS" }, { value: "android", title: "Android" }], dynamicTitle: true },
+    },
+  },
+  initialGlobals: { platform: "web" },
+  decorators: [withPlatform, withThemeByDataAttribute({ themes: ${JSON.stringify(schemes)}, defaultTheme: "${modes.base}", attributeName: "data-theme" })],
 };
 `,
       "kit.js": KIT_JS,
@@ -203,18 +244,28 @@ export default {
       "color.mjs": await source("../color.mjs"),
       "colour.mdx": page("Foundations/Colour", "The kit's own colours in each mode, then every pair the build holds them to.", "<Colours />\n\n## Contrast\n\n<Contrast />"),
       "type.mdx": page("Foundations/Type", "Each type role in its face, at its large, medium and small sizes.", "<Type />"),
-      "measures.mdx": page("Foundations/Shape and measure", "The corner scale and the kit's own lengths and times.", "<Measures />"),
-      "material.mdx": page("Platform mapping/Material", "How the kit fills Material 3's colour roles, for the platforms that read them (Android, the web outputs, Home Assistant).", "<Roles />"),
+      "measures.mdx": page("Foundations/Shape and measure", "The kit's own spacing, radius, border widths, measures and durations.", "<Measures />"),
+      "material.mdx": page("Platform mapping/Material", "How the kit fills Material 3's colour roles and corner scale, for the platforms that read them (Android, the web outputs, Home Assistant).", "<Roles />"),
     };
     // Each site is a story (a docs page has no addon panel), the page in a frame that fills the canvas.
     if (options.sites?.length) {
       files["sites.stories.js"] = `// The project's sites, live: each loads kumiko dev's bridge, so an edit in the Kit panel restyles it. Stories
 // return HTML (@storybook/html-vite).
-export default { title: "Site", parameters: { layout: "fullscreen" } };
+export default { title: "Site/Live", parameters: { layout: "fullscreen" } };
+
+// The page in a frame; the mode switch reaches it through the bridge ({ kumiko: "theme", scheme }).
+const SCHEMES = ${JSON.stringify(schemes)};
+const frame = (url, title, mode) => {
+  const iframe = Object.assign(document.createElement("iframe"), { src: url, title });
+  iframe.style.cssText = "border: 0; display: block; width: 100%; height: 100vh";
+  const send = () => iframe.contentWindow?.postMessage({ kumiko: "theme", scheme: SCHEMES[mode] ?? SCHEMES[Object.keys(SCHEMES)[0]] }, "*");
+  iframe.addEventListener("load", () => { send(); setTimeout(send, 1000); });
+  return iframe;
+};
 ${options.sites.map((site) => `
 export const ${site.name.replace(/[^A-Za-z0-9]+(.)?/g, (_, next = "") => next.toUpperCase()).replace(/^./, (first) => first.toUpperCase())} = {
   name: ${JSON.stringify(site.name)},
-  render: () => ${JSON.stringify(`<iframe src="${site.url}" title="${site.name}" style="border: 0; display: block; width: 100%; height: 100vh"></iframe>`)},
+  render: (args, { globals }) => frame(${JSON.stringify(site.url)}, ${JSON.stringify(site.name)}, globals.theme),
 };`).join("\n")}
 `;
     }

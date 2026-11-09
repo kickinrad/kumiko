@@ -65,13 +65,15 @@ test("a kit with a theme.toml builds, writing only its outputs", () => {
   expect(css).toContain("Some Sans");
 });
 
-test("the base mode holds the palette, the roles and the faces, brand and plain in Material's slots", () => {
+test("the base mode holds the palette, the roles and the faces, brand and plain in Material's slots, plain following brand", () => {
   const dir = kitProject();
   run(dir);
   const { base } = blocks(dir);
   expect(base).toContain("--acme-palette-blue: #7aa2f7;");
   expect(base).toContain("--md-sys-color-surface: #101418;");
   expect(base).toContain("--md-ref-typeface-brand: 'Some Sans';");
+  // Plain follows brand when only brand is set: one face for everything, not Material's Roboto underneath.
+  expect(base).toContain("--md-ref-typeface-plain: 'Some Sans';");
   expect(base).toContain("--acme-typeface-mono: 'Some Mono';");
 });
 

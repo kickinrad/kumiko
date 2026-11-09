@@ -183,7 +183,7 @@ The plugin guides an agent; it enforces nothing. `--check` holds the files it wr
 
 Only a page the server itself serves can edit or save: a request from another origin is refused.
 
-The bridge is how another app follows the edits: load `http://localhost:<port>/_kumiko/bridge.js` as a classic script, in development only. It adds the draft's CSS in a `<style id="kumiko-live">` (the `css` output's variables on `:root`), loads its faces, and replaces both on every edit, without a reload; each update also fires a `kumiko:live` event on `window` whose `detail` is the kit's tokens per mode (kept as `window.kumikoLive` too), for code that reads tokens in JavaScript. The app's own styles follow when they read the kit's variables, for example `var(--md-sys-color-primary, <its own value>)`, so the page looks as before when the server is stopped. Pin the kit's mode on the root (`data-theme`) when the app has one scheme.
+The bridge is how another app follows the edits: load `http://localhost:<port>/_kumiko/bridge.js` as a classic script, in development only. It adds the draft's CSS in a `<style id="kumiko-live">` (the `css` output's variables on `:root`), loads its faces, and replaces both on every edit, without a reload; each update also fires a `kumiko:live` event on `window` whose `detail` is the kit's tokens per mode (kept as `window.kumikoLive` too), for code that reads tokens in JavaScript. The app's own styles follow when they read the kit's variables, for example `var(--md-sys-color-primary, <its own value>)`, so the page looks as before when the server is stopped. Pin the kit's mode on the root (`data-theme`) when the app has one scheme. A parent page that frames the app switches its mode with `postMessage({ kumiko: "theme", scheme: "light" | "dark" })`, which the bridge sets as `data-theme`; Storybook's mode switch reaches a site story this way.
 
 ## The `storybook` output
 
@@ -193,11 +193,11 @@ The bridge is how another app follows the edits: load `http://localhost:<port>/_
 | --- | --- |
 | `theme.js` | the kit's [Storybook theme](https://storybook.js.org/docs/configure/user-interface/theming) (`create()` from `storybook/theming`): the base mode's scheme, colour roles, faces and corners, the kit's title, and `logo` as the sidebar image |
 | `manager.js` | sets that theme, loads the faces, and on `localhost` adds the Kit panel (`kumiko dev`'s `/_kumiko/panel`) |
-| `preview.js` | imports the `css` output, loads the faces, pins the base mode's `data-theme`, switches modes with `@storybook/addon-themes`, themes the docs pages, and on `localhost` loads the bridge |
+| `preview.js` | imports the `css` output, loads the faces, pins the base mode's `data-theme`, switches modes with `@storybook/addon-themes`, themes the docs pages, offers the kit's own colours as backgrounds, adds a Platform switch (Web, iOS, Android: sets `data-platform` on the preview and picks a matching viewport, so a kit's platform layer can be previewed on the web), fails story tests on accessibility violations (`a11y: { test: "error" }`), sorts the sidebar Foundations, Components, Patterns, Pages, Site, Platform mapping, and on `localhost` loads the bridge |
 | `colour.mdx`, `type.mdx`, `measures.mdx` | Foundations: the kit's own colours in every mode and every pair the build holds them to, the type roles in their faces and sizes, the corner scale and the kit's own lengths and times, on Storybook's doc blocks |
-| `material.mdx` | Platform mapping: how the kit fills Material's colour roles |
+| `material.mdx` | Platform mapping: how the kit fills Material's colour roles and corner scale |
 | `kit.js`, `kit.json`, `color.mjs` | the docs pages' components and data; they redraw on every `kumiko:live` event, so a docs page follows an edit |
-| `sites.stories.js` | with `sites`: each site in a story, framed, so the Kit panel sits beside it (stories in HTML, for `@storybook/html-vite`) |
+| `sites.stories.js` | with `sites`: each site in a story under Site/Live, framed, so the Kit panel sits beside it and the mode switch reaches it through the bridge (stories in HTML, for `@storybook/html-vite`) |
 
 The project keeps its own `main.js` (framework, stories, addons, [composition refs](https://storybook.js.org/docs/sharing/storybook-composition) to its apps' Storybooks) and installs `storybook`, `@storybook/html-vite`, `@storybook/addon-docs`, `@storybook/addon-themes`, `react` and `react-dom`:
 

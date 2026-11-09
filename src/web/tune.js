@@ -36,9 +36,9 @@ export const pairsOf = (data, tokens, key) => {
 // plain sets body and label).
 const FACES = { brand: "Display, headline and title", plain: "Body and label", mono: "Mono" };
 // A dimension's group by what its path names; the rest are sizes.
-const KIND = [["Radius", /corner|radius|shape|round/], ["Spacing", /space|spacing|gap|padding|margin|inset|gutter/]];
+const KIND = [["Radius", /corner|radius|shape|round/], ["Border", /border|stroke/], ["Spacing", /space|spacing|gap|padding|margin|inset|gutter/], ["Measure", /measure|width|container/]];
 // A slider's range by unit: wide enough to explore, fine enough to land on a value.
-const RANGE = { px: [0, 96, 1], rem: [0, 6, 0.125], em: [0, 6, 0.125], ms: [0, 1000, 10], s: [0, 2, 0.05] };
+const RANGE = { px: [0, 96, 1], rem: [0, 6, 0.125], em: [0, 6, 0.125], ch: [20, 120, 1], ms: [0, 1000, 10], s: [0, 2, 0.05] };
 const split = (value) => String(value).match(/^(-?[\d.]+)([a-z]+)$/)?.slice(1);
 
 // The controls for a mode: { group, items: [{ path, label, detail, kind, value, ... }] }. `edits` maps a theme.toml
@@ -71,7 +71,7 @@ export const controls = (data, mode, edits = {}) => {
     const value = split(edits[path] ?? token.value);
     (sized.get(group) ?? sized.set(group, []).get(group)).push({ path, label: label(tokenPath.split(".").slice(-2).join(" ").replace(new RegExp(`^${data.name} `), "")), detail: tokenPath, kind: token.type, value: Number(value[0]), unit: parts[1], saved: Number(parts[0]), min, max: Math.max(max, Number(parts[0]) * 2), step });
   }
-  for (const group of ["Spacing", "Radius", "Size", "Duration"]) if (sized.has(group)) groups.push({ group, items: sized.get(group) });
+  for (const group of ["Spacing", "Radius", "Border", "Measure", "Size", "Duration"]) if (sized.has(group)) groups.push({ group, items: sized.get(group) });
   return groups;
 };
 

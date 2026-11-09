@@ -52,3 +52,13 @@ test("the panel page carries the kit's draft CSS and the panel's client", async 
   expect(page).toContain("--acme-palette-ink");
   expect(page).toContain("data-tune-panel");
 });
+
+test("the event stream stays open past Bun's idle timeout", async () => {
+  await ready;
+  const reader = (await fetch(`${origin}/_kumiko/events`)).body!.getReader();
+  await reader.read();
+  const next = reader.read();
+  await Bun.sleep(13_000);
+  expect(await Promise.race([next.then(({ done }) => (done ? "closed" : "data")), Bun.sleep(10).then(() => "open")])).toBe("open");
+  await reader.cancel();
+}, 20_000);

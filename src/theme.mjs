@@ -214,6 +214,8 @@ export const loadTheme = async ({ root, name } = {}, given) => {
         const path = FACES[face][0] === "md" ? FACES[face] : [theme.name, ...FACES[face]];
         put(tree, path, { $type: "fontFamily", $value: family });
       }
+      // One face for everything: plain follows brand when only brand is set.
+      if (theme.faces.brand !== undefined && theme.faces.plain === undefined) put(tree, FACES.plain, { $type: "fontFamily", $value: "{md.ref.typeface.brand}" });
     }
     for (const [role, values] of Object.entries(theme.roles)) put(tree, role.split("."), { $type: "color", $value: values[mode].value });
     if (base) for (const [path, each] of theme.values) put(tree, path.split("."), each);

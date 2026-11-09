@@ -30,6 +30,8 @@ const bridge = `// kumiko's live bridge: the kit's CSS from kumiko dev, updated 
     for (const href of fonts) if (!document.querySelector('link[href="' + CSS.escape(href) + '"]')) document.head.append(Object.assign(document.createElement("link"), { rel: "stylesheet", href }));
   };
   fetch(origin + "/_kumiko/live").then((response) => response.json()).then(apply);
+  // A host page (a Storybook story framing this one) may switch the mode: { kumiko: "theme", scheme: "light" | "dark" }.
+  window.addEventListener("message", ({ data }) => { if (data?.kumiko === "theme" && ["light", "dark"].includes(data.scheme)) document.documentElement.dataset.theme = data.scheme; });
   new EventSource(origin + "/_kumiko/events").addEventListener("live", (event) => apply(JSON.parse(event.data)));
 })();
 `;
@@ -57,7 +59,7 @@ export const dev = async ({ config, port = 4400 }) => {
     const kit = {
       name: theme.name,
       modes: Object.fromEntries(Object.entries(modes).map(([mode, tokens]) => [mode, tokens.map(({ path, value, type }) => ({ path, value, type }))])),
-      tune: { faces: theme.faces, tokens: theme.values.filter(([, each]) => ["dimension", "duration"].includes(each.$type) && !String(each.$value).startsWith("{")).map(([path]) => path) },
+      tune: { faces: theme.faces, tokens: theme.values.filter(([path, each]) => path.startsWith(`${theme.name}.`) && ["dimension", "duration"].includes(each.$type) && !String(each.$value).startsWith("{")).map(([path]) => path) },
       pairs: theme.contrast ? contrastPairs(theme, Object.values(modes)[0]) : undefined,
     };
     live = { css: output(outputs, cssPath), fonts: [...new Set(Object.values(modes).flatMap(fontLinks))], kit, contrast, edits };
@@ -106,13 +108,15 @@ export const dev = async ({ config, port = 4400 }) => {
   const server = Bun.serve({
     hostname: "127.0.0.1",
     port,
-    async fetch(request) {
+    async fetch(request, server) {
       const url = new URL(request.url);
       if (url.pathname === "/" && config.playground?.path) return Response.redirect(`/${config.playground.path.replace(/^\.?\//, "")}/index.html`, 302);
       if (url.pathname === "/_kumiko/bridge.js") return new Response(bridge, { headers: { ...OPEN, "Content-Type": "text/javascript" } });
       if (url.pathname === "/_kumiko/live") return json(live);
       if (url.pathname === "/_kumiko/panel") return new Response(await panel(), { headers: { "Content-Type": "text/html", "Cache-Control": "no-store" } });
       if (url.pathname === "/_kumiko/events") {
+        // An event stream stays open while idle; Bun closes idle requests after 10s otherwise.
+        server.timeout(request, 0);
         let client;
         return new Response(new ReadableStream({
           start(controller) { client = controller; clients.add(client); controller.enqueue(": kumiko\n\n"); },

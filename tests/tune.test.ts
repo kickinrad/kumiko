@@ -19,10 +19,12 @@ const kit = {
       { path: "acme.space.base", value: "8px", type: "dimension" },
       { path: "acme.shape.corner", value: "0px", type: "dimension" },
       { path: "acme.motion.quick", value: "120ms", type: "duration" },
+      { path: "acme.border-width.strong", value: "3px", type: "dimension" },
+      { path: "acme.measure.content", value: "65ch", type: "dimension" },
     ]),
     day: tokens({ ink: "#ffffff", paper: "#111111", signal: "#922906", "on-signal": "#ffffff" }),
   },
-  tune: { faces: { brand: ["Archivo", "sans-serif"], mono: "PT Mono" }, tokens: ["acme.space.base", "acme.shape.corner", "acme.motion.quick"] },
+  tune: { faces: { brand: ["Archivo", "sans-serif"], mono: "PT Mono" }, tokens: ["acme.space.base", "acme.shape.corner", "acme.motion.quick", "acme.border-width.strong", "acme.measure.content"] },
   pairs: [
     { fg: "md.sys.color.on-surface", bg: "md.sys.color.surface", min: 4.5 },
     { fg: "md.sys.color.on-primary", bg: "md.sys.color.primary", min: 4.5 },
@@ -31,13 +33,14 @@ const kit = {
 
 test("groups by type, labels in plain words, the theme.toml path as the detail", () => {
   const groups = controls(kit, "night");
-  expect(groups.map((group: { group: string }) => group.group)).toEqual(["Color", "Typography", "Spacing", "Radius", "Duration"]);
+  expect(groups.map((group: { group: string }) => group.group)).toEqual(["Color", "Typography", "Spacing", "Radius", "Border", "Measure", "Duration"]);
   const items = groups.flatMap((group: { items: object[] }) => group.items);
   for (const item of items as { label: string; detail: string }[]) expect(item.label).not.toContain(".");
   expect(items.find((item: any) => item.path === "palette.night.on-signal")).toMatchObject({ label: "On signal", kind: "color" });
   expect(items.find((item: any) => item.path === "faces.brand")).toMatchObject({ label: "Display, headline and title", value: "Archivo, sans-serif" });
   expect(items.find((item: any) => item.path === "tokens.acme.space.base")).toMatchObject({ unit: "px", value: 8 });
   expect(items.find((item: any) => item.path === "tokens.acme.motion.quick")).toMatchObject({ unit: "ms", value: 120 });
+  expect(items.find((item: any) => item.path === "tokens.acme.measure.content")).toMatchObject({ unit: "ch", value: 65, min: 20 });
 });
 
 test("each colour carries the pairs that hold it, with the live ratio and pass or fail", () => {
