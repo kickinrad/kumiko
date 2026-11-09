@@ -168,6 +168,22 @@ The plugin guides an agent; it enforces nothing. `--check` holds the files it wr
 
 `"template"` writes a kit's own files for apps the engine has no output for, such as terminal and editor themes, for a declared kit: `template: { from: "templates", to: "ports" }`. Every file under `from` is written to the same path under `to`. In each file, `{{<mode>.<colour>}}` becomes that mode's palette colour as `#rrggbb` (so `{{night.blue}}80` adds an alpha), and `{{name}}` becomes the kit's name; every other byte stays as written. A slot the theme lacks fails the build, naming the file. CSS, JS, Kotlin, Markdown and HTML files get the generated header; other formats are written as the template has them.
 
+## Live editing: `kumiko dev`
+
+`kumiko dev [--port <n>]` (port 4400 by default) builds every output, then serves the project on `http://localhost:<port>/` (the playground, when the config has one) and edits the kit's `theme.toml` live, for a declared kit with a `css` output. Edits are built in memory exactly as `kumiko` builds them, derived roles and contrast included, and nothing is written until a save. A change to the kit's folder or `tokens/` on disk rebuilds every output.
+
+| Endpoint | Does |
+| --- | --- |
+| `POST /_kumiko/edit` | takes `{ "<theme.toml path>": value }` (`"palette.night.primary": "#fd5416"`, `"faces.brand": ["Archivo", "sans-serif"]`, `"tokens.acme.layout.gap": "12px"`; `null` drops an edit), builds the draft and answers with the pairs under their floors |
+| `POST /_kumiko/save` | writes the edits into `theme.toml` and rebuilds; each edited value changes on its own line, keeping its key, comment and `why`, and a new key joins its table. A draft with a pair under its floor is not saved |
+| `GET /_kumiko/live` | the current draft: the `css` output's text, its faces' stylesheets, and the kit's tokens per mode |
+| `GET /_kumiko/events` | server-sent events: `live` after every edit, `reload` after a rebuild from disk |
+| `GET /_kumiko/bridge.js` | the bridge, below |
+
+Only a page the server itself serves can edit or save: a request from another origin is refused.
+
+The bridge is how another app follows the edits: load `http://localhost:<port>/_kumiko/bridge.js` as a classic script, in development only. It adds the draft's CSS in a `<style id="kumiko-live">` (the `css` output's variables on `:root`), loads its faces, and replaces both on every edit, without a reload; each update also fires a `kumiko:live` event on `window` whose `detail` is the kit's tokens per mode, for code that reads tokens in JavaScript. The app's own styles follow when they read the kit's variables, for example `var(--md-sys-color-primary, <its own value>)`, so the page looks as before when the server is stopped. Pin the kit's mode on the root (`data-theme`) when the app has one scheme.
+
 ## Rendered check: `kumiko audit`
 
 `kumiko audit [<dir>]` opens the generated playground's `index.html` from disk (the config's `playground` path by default) in headless Chrome at 1280 and 412 px, under a host's reset as a page that embeds or publishes it would add, and walks every destination and item in every mode. It fails, one line each (size, mode, place, finding), on: text under Material's contrast (4.5:1, or 3:1 for large text and icons) against the colour actually behind it; text set in a face that is not one of the kit's type or mono faces, or a face that did not load; overlapping parts inside one control; sideways scroll; a heading larger than one a level above it; running text wider than about 75 characters, or a lone reading pane much wider than its text; a page error; or a request that failed (an app's example entry or another kit that is not there is optional). Run it in a kit's CI after `kumiko --check`. It needs Chrome: `$CHROME`, `google-chrome` or `chromium` on the PATH (GitHub's Ubuntu runners have it), or Playwright's download. The engine's own test runs it on a sample kit (`tests/render.theme.toml`).

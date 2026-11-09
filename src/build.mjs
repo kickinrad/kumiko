@@ -48,7 +48,9 @@ const loadKit = async (kit) => {
   return { root: resolve(kit.root ?? "design"), version, name: kit.name };
 };
 
-export const build = async (config = {}, { check = false } = {}) => {
+// `preview` (kumiko dev): read theme.toml from `theme` (its text), write nothing, and return contrast failures beside
+// the outputs instead of failing on them.
+export const build = async (config = {}, { check = false, preview = false, theme: themeText } = {}) => {
   if (!Array.isArray(config.targets) || !config.targets.length) throw new Error("kumiko.config.mjs names no targets");
   // A built-in by name, or a project's own target: a module the config imports, listed as its object.
   const targets = config.targets.map((spec) => {
@@ -61,7 +63,7 @@ export const build = async (config = {}, { check = false } = {}) => {
 
   // The layers, lowest first: built-in trees, include files, the kit's theme.toml, then the project's own tokens/
   // files, where a token set twice is an error. Each other mode adds its media layers on top.
-  const theme = await loadTheme(kit);
+  const theme = await loadTheme(kit, themeText);
   const media = withMedia(theme, config.media);
   const mediaPaths = new Set(Object.values(media).flat().filter((layer) => layer.file).map((layer) => resolve(layer.file)));
   // Sorted: directory listing order varies by filesystem and runtime, and output order must not.
@@ -134,7 +136,8 @@ export const build = async (config = {}, { check = false } = {}) => {
     });
   };
 
-  await checkContrast(theme.contrast && contrastPairs(theme, tokens), { tokens, media, mediaTokens });
+  const contrast = await checkContrast(theme.contrast && contrastPairs(theme, tokens), { tokens, media, mediaTokens });
+  if (contrast.length && !preview) throw new Error(`Contrast check failed:\n${contrast.map((line) => `  ${line}`).join("\n")}`);
 
   const readExisting = async (path) => {
     try { return await readFile(path, "utf8"); }
@@ -149,6 +152,12 @@ export const build = async (config = {}, { check = false } = {}) => {
     const files = await target.build({ tokens, media, mediaTokens, options, config, readExisting, built, ...kit,
       ...(kit.name && { title: theme.title ?? kit.name }), ...(theme.modes && { modes: theme.modes, theme }) });
     outputs.push(...(kit.name ? stamp(files, kit, target.name) : files));
+  }
+  if (preview) {
+    // Each mode's tokens by name, the base first, for kumiko dev's panel.
+    const modes = { [theme.modes?.base ?? "base"]: tokens };
+    for (const [query, files] of Object.entries(media)) modes[theme.modes?.media[query] ?? query] = await mediaTokens(files);
+    return { outputs, contrast, theme, modes };
   }
   for (const { path, content } of outputs) {
     if (check) {

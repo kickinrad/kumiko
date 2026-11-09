@@ -176,11 +176,11 @@ const validate = (toml, kitName) => {
   return { name, title, tagline, icon, modes, base, media, colours, roles, faces, values, derived, contrast, mealie };
 };
 
-// kit is build.mjs's { root, name } (or {}): no kit or no theme.toml is no theme.
-export const loadTheme = async ({ root, name } = {}) => {
+// kit is build.mjs's { root, name } (or {}): no kit or no theme.toml is no theme. `given` (its text) stands in for the file.
+export const loadTheme = async ({ root, name } = {}, given) => {
   if (!root) return NONE;
-  let source;
-  try { source = await readFile(join(root, "theme.toml"), "utf8"); }
+  let source = given;
+  try { source ??= await readFile(join(root, "theme.toml"), "utf8"); }
   catch (error) { if (error.code === "ENOENT") return NONE; throw error; }
   const parse = (text, file) => {
     try { return table(Bun.TOML.parse(text), "the file"); }
