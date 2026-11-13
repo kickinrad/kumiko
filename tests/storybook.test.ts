@@ -24,6 +24,9 @@ test("writes the theme, manager, preview, docs and site stories, and --check pas
   const parse = new Bun.Transpiler({ loader: "jsx" });
   for (const file of ["kit.js", "manager.js", "preview.js", "sites.stories.js", "theme.js"]) expect(() => parse.transformSync(read(dir, `.storybook/${file}`))).not.toThrow();
 
+  // The Type page sets each size in its own face and weight: a kit can set a role's sizes in two faces.
+  expect(read(dir, ".storybook/kit.js")).toContain('fontFamily: at(role + "-" + size + ".font"), fontWeight: at(role + "-" + size + ".weight")');
+
   const data = JSON.parse(read(dir, ".storybook/kit.json"));
   const value = (path: string) => data.modes.night.find((token: { path: string }) => token.path === path).value;
   const theme = read(dir, ".storybook/theme.js");

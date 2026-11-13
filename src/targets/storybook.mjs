@@ -72,14 +72,14 @@ export const Contrast = () => {
       ...modes.map((mode) => { const ratio = contrast(value(mode, fg), value(mode, bg)); return h("td", { key: mode }, ratio.toFixed(2) + ":1 " + (ratio >= min ? "passes" : "fails")); })))));
 };
 
-// The type roles, each in its face at its three sizes.
+// The type roles at their three sizes, each size in its own face and weight (a kit may set a role's sizes apart).
 export const Type = () => {
   const kit = useKit();
   const { modes, value } = reader(kit);
   const at = (path) => value(modes[0], "md.sys.typescale." + path);
   return ["display", "headline", "title", "body", "label"].map((role) => h(React.Fragment, { key: role },
     h("h3", null, label(role)),
-    h(Typeset, { fontFamily: at(role + "-large.font"), fontWeight: at(role + "-medium.weight"), fontSizes: ["large", "medium", "small"].map((size) => at(role + "-" + size + ".size")), sampleText: kit.tagline ?? "The quick brown fox jumps over the lazy dog" })));
+    ["large", "medium", "small"].map((size) => h(Typeset, { key: size, fontFamily: at(role + "-" + size + ".font"), fontWeight: at(role + "-" + size + ".weight"), fontSizes: [at(role + "-" + size + ".size")], sampleText: kit.tagline ?? "The quick brown fox jumps over the lazy dog" }))));
 };
 
 // The kit's own lengths and times, by what they measure, each with a sample drawn in its variable.
