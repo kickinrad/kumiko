@@ -4,11 +4,15 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "../src/build.mjs";
 
-// kumiko [--check] | kumiko lint <file>… | kumiko audit [<dir>]: anything else is a mistake, so nothing is built.
+// kumiko [--check] | kumiko lint <file>… | kumiko audit [<dir>] | kumiko dev [--port <n>]: anything else is a
+// mistake, so nothing is built.
 const [verb, ...rest] = process.argv.slice(2);
-const unknown = verb === "lint" || verb === "audit" ? undefined : [verb, ...rest].find((arg) => arg !== undefined && arg !== "--check");
+const port = verb === "dev" && rest[0] === "--port" && /^\d+$/.test(rest[1] ?? "") ? Number(rest[1]) : undefined;
+const unknown = verb === "lint" || verb === "audit" ? undefined
+  : verb === "dev" ? (port ? rest.slice(2) : rest)[0]
+  : [verb, ...rest].find((arg) => arg !== undefined && arg !== "--check");
 if (unknown !== undefined) {
-  console.error(`kumiko: unknown ${unknown} (kumiko [--check], kumiko lint <file>…, kumiko audit [<dir>])`);
+  console.error(`kumiko: unknown ${unknown} (kumiko [--check], kumiko lint <file>…, kumiko audit [<dir>], kumiko dev [--port <n>])`);
   process.exit(1);
 }
 
@@ -47,7 +51,16 @@ if (!(await Bun.file(configPath).exists())) {
   process.exit(1);
 }
 const config = await loadConfig();
-try {
+if (verb === "dev") {
+  const { dev } = await import("../src/dev.mjs");
+  try {
+    const server = await dev({ config, port });
+    console.log(`kumiko dev: http://localhost:${server.port}/ (the bridge is http://localhost:${server.port}/_kumiko/bridge.js)`);
+  } catch (error) {
+    console.error(error.message);
+    process.exit(1);
+  }
+} else try {
   await build(config, { check: process.argv.includes("--check") });
 } catch (error) {
   console.error(error.message);

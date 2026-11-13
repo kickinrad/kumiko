@@ -123,7 +123,7 @@ export default {
 };
 ```
 
-The module exports `tokens[mode]` with the resolved DTCG paths as nested objects, `textStyles[mode]` with Material's fifteen React Native `TextStyle` values, and the `ThemeMode` and `ThemeTokens` types. Mode keys come from `theme.toml` (for example `night` and `day`). Use `tokens[mode].md.sys.color.primary` for a role, `tokens[mode].md.sys.shape.corner.medium` for a radius, and `textStyles[mode]["label-large"]` for a text style. Dimensions become [unitless density-independent values](https://reactnative.dev/docs/height-and-width) for React Native layout, durations become milliseconds, colours remain strings, and font stacks become their first family. Install the named fonts in the app. A dimension without `px` fails because React Native cannot infer CSS relative units. CSS shadows, aggregate typography tokens, and untouched Material component defaults are omitted; named typography styles are in `textStyles`.
+The module exports `tokens[mode]` with the resolved DTCG paths as nested objects, `textStyles[mode]` with Material's fifteen React Native `TextStyle` values, and the `ThemeMode` and `ThemeTokens` types. Mode keys come from `theme.toml` (for example `night` and `day`). Use `tokens[mode].md.sys.color.primary` for a role, `tokens[mode].md.sys.shape.corner.medium` for a radius, and `textStyles[mode]["label-large"]` for a text style. Dimensions become [unitless density-independent values](https://reactnative.dev/docs/height-and-width) for React Native layout, durations become milliseconds, colours remain strings, and font stacks become their first family. Install the named fonts in the app. A `rem` dimension becomes 16 points per rem, the web's default root size, so a measure can stay in `rem` for the web. A dimension in `em` or `%` fails, because React Native has no parent size to resolve it against. CSS shadows, aggregate typography tokens, and untouched Material component defaults are omitted; named typography styles are in `textStyles`.
 
 ## The `beer` target
 
@@ -182,6 +182,50 @@ The plugin guides an agent; it enforces nothing. `--check` holds the files it wr
 ## The `template` output
 
 `"template"` writes a kit's own files for apps the engine has no output for, such as terminal and editor themes, for a declared kit: `template: { from: "templates", to: "ports" }`. Every file under `from` is written to the same path under `to`. In each file, `{{<mode>.<colour>}}` becomes that mode's palette colour as `#rrggbb` (so `{{night.blue}}80` adds an alpha), and `{{name}}` becomes the kit's name; every other byte stays as written. A slot the theme lacks fails the build, naming the file. CSS, JS, Kotlin, Markdown and HTML files get the generated header; other formats are written as the template has them.
+
+## Live editing: `kumiko dev`
+
+`kumiko dev [--port <n>]` (port 4400 by default) builds every output, then serves the project on `http://localhost:<port>/` (the playground, when the config has one) and edits the kit's `theme.toml` live, for a declared kit with a `css` output. Edits are built in memory exactly as `kumiko` builds them, derived roles and contrast included, and nothing is written until a save. A change to the kit's folder or `tokens/` on disk rebuilds every output.
+
+| Endpoint | Does |
+| --- | --- |
+| `POST /_kumiko/edit` | takes `{ "<theme.toml path>": value }` (`"palette.night.primary": "#fd5416"`, `"faces.brand": ["Archivo", "sans-serif"]`, `"tokens.acme.layout.gap": "12px"`; `null` drops an edit), builds the draft and answers with the pairs under their floors |
+| `POST /_kumiko/save` | writes the edits into `theme.toml` and rebuilds; each edited value changes on its own line, keeping its key, comment and `why`, and a new key joins its table. A draft with a pair under its floor is not saved |
+| `GET /_kumiko/live` | the current draft: the `css` output's text, its faces' stylesheets, and the kit's tokens per mode |
+| `GET /_kumiko/events` | server-sent events: `live` after every edit, `reload` after a rebuild from disk |
+| `GET /_kumiko/bridge.js` | the bridge, below |
+| `GET /_kumiko/panel` | the Kit panel: every palette colour of a mode (with the pairs the kit is held to, their live ratios and whether they pass), the faces by the type roles that read them, and the kit's own lengths and times in `[tokens]` as sliders with their units, grouped as Spacing, Radius, Size and Duration; each with its reset, then Save. It wears the kit's own variables. The `storybook` output shows it as a Storybook panel |
+
+Only a page the server itself serves can edit or save: a request from another origin is refused.
+
+The bridge is how another app follows the edits: load `http://localhost:<port>/_kumiko/bridge.js` as a classic script, in development only. It adds the draft's CSS in a `<style id="kumiko-live">` (the `css` output's variables on `:root`), loads its faces, and replaces both on every edit, without a reload; each update also fires a `kumiko:live` event on `window` whose `detail` is the kit's tokens per mode (kept as `window.kumikoLive` too), for code that reads tokens in JavaScript. The app's own styles follow when they read the kit's variables, for example `var(--md-sys-color-primary, <its own value>)`, so the page looks as before when the server is stopped. Pin the kit's mode on the root (`data-theme`) when the app has one scheme. A parent page that frames the app switches its mode with `postMessage({ kumiko: "theme", scheme: "light" | "dark" })`, which the bridge sets as `data-theme`; Storybook's mode switch reaches a site story this way.
+
+## The `storybook` output
+
+`"storybook"` gives a kit its own Storybook, for a declared kit with a `css` output listed before it: Storybook's UI in the kit, generated docs pages for its foundations and its Material mapping, the kit's CSS, faces and modes in every story and, while `kumiko dev` runs on the same machine, the Kit panel beside every story and the live bridge in the preview. `storybook: { path: ".storybook", dev: "http://localhost:4400", sites: [{ name, url }], logo }`, every key optional. It writes, under `path`:
+
+| File | Holds |
+| --- | --- |
+| `theme.js` | the kit's [Storybook theme](https://storybook.js.org/docs/configure/user-interface/theming) (`create()` from `storybook/theming`): the base mode's scheme, colour roles, faces and corners, the kit's title, and `logo` as the sidebar image |
+| `manager.js` | sets that theme, loads the faces, and on `localhost` adds the Kit panel (`kumiko dev`'s `/_kumiko/panel`) |
+| `preview.js` | imports the `css` output, loads the faces, pins the base mode's `data-theme`, switches modes with `@storybook/addon-themes`, themes the docs pages, offers the kit's own colours as backgrounds, adds a Platform switch (Web, iOS, Android: sets `data-platform` on the preview and picks a matching viewport, so a kit's platform layer can be previewed on the web), fails story tests on accessibility violations (`a11y: { test: "error" }`), sorts the sidebar Foundations, Components, Patterns, Pages, Site, Platform mapping, and on `localhost` loads the bridge |
+| `colour.mdx`, `type.mdx`, `measures.mdx` | Foundations: the kit's own colours in every mode and every pair the build holds them to, the type roles in their faces and sizes, the corner scale and the kit's own lengths and times, on Storybook's doc blocks |
+| `material.mdx` | Platform mapping: how the kit fills Material's colour roles and corner scale |
+| `kit.js`, `kit.json`, `color.mjs` | the docs pages' components and data; they redraw on every `kumiko:live` event, so a docs page follows an edit |
+| `sites.stories.js` | with `sites`: each site in a story under Site/Live, framed, so the Kit panel sits beside it and the mode switch reaches it through the bridge (stories in HTML, for `@storybook/html-vite`) |
+
+The project keeps its own `main.js` (framework, stories, addons, [composition refs](https://storybook.js.org/docs/sharing/storybook-composition) to its apps' Storybooks) and installs `storybook`, `@storybook/html-vite`, `@storybook/addon-docs`, `@storybook/addon-themes`, `react` and `react-dom`:
+
+```js
+// .storybook/main.js
+export default {
+  framework: "@storybook/html-vite",
+  stories: ["./*.mdx", "./*.stories.js"],
+  addons: ["@storybook/addon-docs", "@storybook/addon-themes"],
+};
+```
+
+A site follows edits when it loads the bridge and its styles read the kit's variables (see `kumiko dev`).
 
 ## Rendered check: `kumiko audit`
 

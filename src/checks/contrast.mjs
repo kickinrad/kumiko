@@ -43,8 +43,9 @@ export const contrastPairs = ({ name, contrast: floors, derived }, tokens) => {
 // An opaque colour as the build writes it (#rrggbb), else undefined.
 export const toHex = (value) => typeof value === "string" && /^#[0-9a-f]{6}$/.test(value) ? value : undefined;
 
+// Returns each pair under its floor, one line each (none when the theme sets no floors).
 export const checkContrast = async (pairs, { tokens, media, mediaTokens }) => {
-  if (pairs === undefined) return;
+  if (pairs === undefined) return [];
   const modes = [["base", tokens]];
   for (const [query, files] of Object.entries(media)) modes.push([query, await mediaTokens(files)]);
   const failures = [];
@@ -63,5 +64,5 @@ export const checkContrast = async (pairs, { tokens, media, mediaTokens }) => {
       if (ratio < min) failures.push(`${fg} (${colours[0]}) on ${bg} (${colours[1]}) is ${ratio.toFixed(2)}:1 in ${mode}, under the ${min}:1 floor`);
     }
   }
-  if (failures.length) throw new Error(`Contrast check failed:\n${[...new Set(failures)].map((line) => `  ${line}`).join("\n")}`);
+  return [...new Set(failures)];
 };
